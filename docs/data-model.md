@@ -22,8 +22,9 @@ created/modified stamps on everything — are absent unless something in the sou
 
 ## 1. Ownership questions resolved before modelling
 
-Six questions had to be answered before any entity could be drawn. Each answer is a modelling
-decision (DM-n) with its rationale and the alternative rejected.
+Six questions had to be answered before any entity could be drawn, and a seventh was answered
+afterwards (DM-7). Each answer is a modelling decision (DM-n) with its rationale and the
+alternative rejected.
 
 ### DM-1 · A person who logs in and a customer record are two different things
 
@@ -136,6 +137,26 @@ asks for it, and [product-scope.md](product-scope.md) §8 excludes evaluation to
   the ticket" — that record is a `TicketActivity` row, not an integration table. No adapter
   configuration, credential, webhook, or delivery-receipt storage exists, because no adapter that
   would need it is built.
+
+### DM-7 · `CustomerFeedback` belongs to the `Tickets` module
+
+**Question.** Raised 2026-08-24, after this document was approved. The entity was labelled as owned
+by a "Portal" module — but [architecture.md](architecture.md) §1 defines **ten** backend modules and
+`Portal` is not one of them. `customer-portal` is a feature slug and an Angular area, not a backend
+module. The label pointed at something that does not exist.
+
+**Decision.** `CustomerFeedback` is owned by the existing **`Tickets`** module.
+
+- Feedback is domain behaviour **attached to a ticket** — one row per ticket, unique on `ticketId`.
+- It is offered when a ticket reaches `Resolved` (T2-F), a ticket lifecycle event.
+- `customer-portal` is a front-end and planning concern, not a backend module.
+
+**No new module, and no change to the ten-module architecture.** Nothing about the entity's shape,
+fields, relationships or invariants changes — this fixes an ownership *label* only.
+
+**Rejected.** Adding a `Portal` backend module. It would exist to hold one write-once entity whose
+only relationship is to `Ticket`, and it would split ticket-lifecycle behaviour across two modules
+for no benefit.
 
 ---
 
@@ -497,7 +518,7 @@ storage, preview or versioning (T2-A).
 | `readAt` | ✖ | Null until read; drives the unread badge |
 
 **Relationships.** `User` 1 → many · `Ticket` 1 → many.
-**Ownership/scope.** SLA/notifications module. **Recipient-scoped** — a user reads only their own.
+**Ownership/scope.** `Sla` module. **Recipient-scoped** — a user reads only their own.
 **Mutability.** Only `readAt`, and only null → timestamp. Nothing else changes.
 **Invariants.** No per-user preferences exist (A-13) · no email, SMS or push row — delivery
 channels are T3-A and are not modelled (DM-6).
@@ -566,7 +587,9 @@ T2-F, T2-G.
 
 **Relationships.** `Ticket` 1 → 0..1 feedback. The submitter is the ticket's customer, already
 reachable through the ticket; no separate column.
-**Ownership/scope.** Portal module. Written by the customer; read by managers in reports.
+**Ownership/scope.** **`Tickets` module** (DM-7). Written by the customer; read by managers in
+reports. There is no `Portal` backend module — `customer-portal` is a front-end area
+([architecture.md](architecture.md) §1).
 **Mutability.** Write-once. Not editable, not resubmittable.
 **Invariants.** One per ticket · offered only once a ticket reaches `Resolved` · **declining is a
 normal outcome** (T2-F), so the absence of a row is meaningful and reporting must treat it as
@@ -624,10 +647,10 @@ Absent by decision, each with the reason:
 | 9 | `TicketInternalNote` | Tickets | **Staff-only** | **Immutable** | §4.5, T2-C |
 | 10 | `TicketTask` | Tickets | Staff-only | Mutable | §4.3, T2-C |
 | 11 | `Attachment` | Customers/Tickets | Follows owner | Immutable | §1.4, T2-A |
-| 12 | `Notification` | SLA | **Recipient-only** | `readAt` only | §5.4, T2-D, A-13 |
+| 12 | `Notification` | Sla | **Recipient-only** | `readAt` only | §5.4, T2-D, A-13 |
 | 13 | `KnowledgeArticle` | Knowledge | Organization | Mutable | §6, §7.4, T2-E |
 | 14 | `AuditEntry` | Administration | **Administrator-only** | **Append-only** | §10.4, T2-H |
-| 15 | `CustomerFeedback` | Portal | Customer / reports | Write-once | §8.5, §9.4, T2-F |
+| 15 | `CustomerFeedback` | Tickets | Customer / reports | Write-once | §8.5, §9.4, T2-F |
 
 Fifteen entities. Four are append-only or immutable by construction; two more are effectively
 write-once.

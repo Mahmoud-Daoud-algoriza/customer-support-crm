@@ -183,9 +183,11 @@ modelling decisions (DM-*). **Business** decisions are the numbered assumptions 
 [product-scope.md](product-scope.md) §7; the five most recent (**A-14…A-18**) are recorded as
 R-6…R-11 in §6.3, with their document and story impact traced in §6.4.
 
-**Known cosmetic defect, unfixed:** in [architecture.md](architecture.md) §7 the **AD-15 row renders
-above AD-14** — AD-15 was inserted at the wrong position during the token-staleness correction. No
+**Known issues.** One remains, and it is cosmetic: in [architecture.md](architecture.md) §7 the
+**AD-15 row renders above AD-14** — AD-15 was inserted at the wrong position during the token-staleness correction. No
 content is affected; ordering only. Recorded here so it is not lost.
+*(The `CustomerFeedback` "Portal module" mismatch flagged on 2026-08-24 is **resolved** — see
+R-12 in §6.3. It is no longer an open issue.)*
 
 | ID | Decision | Status | Why it matters | Source |
 |---|---|---|---|---|
@@ -250,6 +252,7 @@ Kept, not deleted.
 | R-8 ⚠ | Who may Cancel, Close and Escalate? **Partly superseded by R-10 — see the cancel row there.** | **Full authority matrix fixed.** Customer: create, reopen own, cancel own before work begins. Agent: open, pending, resolve, close, escalate. Manager: the same across all departments. Administrator: unrestricted. **Closure is manual only — no automatic closure.** As first recorded, this withheld cancel from agents and managers; **that half was corrected the same day — see R-10.** The rest stands | 2026-08-24 | **A-16** (superseded in part) |
 | R-9 | Does the creation contract carry a customer urgency input? | **Yes — `isUrgent`, a boolean.** Customer input only; does not set priority; agents and the AI suggestion may use it when deciding priority. Persisted on `Ticket` | 2026-08-24 | **A-17**, model §2.6 |
 | R-10 | May agents and managers cancel a ticket? | **Yes** — corrected 2026-08-24. Agents and Managers may cancel any non-terminal ticket (Manager across all departments); Administrators unrestricted. Customers may cancel their own **only while `New`**. Supersedes the first version of A-16, which withheld cancel from agents and managers | 2026-08-24 | **A-16** |
+| R-12 | Which backend module owns `CustomerFeedback`? The data model labelled it "Portal", which is not one of the ten modules | **The existing `Tickets` module.** Feedback is domain behaviour attached to a ticket, offered when the ticket reaches `Resolved`; `customer-portal` is a front-end and planning concern, not a backend module. **No new module; the ten-module architecture is unchanged**, and the entity's shape, fields and relationships are untouched — an ownership label only | 2026-08-24 | **DM-7**, model §2.15, arch §1 |
 | R-11 | **OQ-4** — what is the customer cancellation window? | **Assignment is not the start of work.** A ticket may be assigned while still `New`; `New → Open` is an agent deliberately starting work. The customer's window runs from creation until an agent picks the ticket up, so it is real rather than theoretical | 2026-08-24 | **A-18** |
 
 ### 6.4 Decision → document → story traceability
@@ -269,6 +272,7 @@ needed amending, because nothing in that artifact contradicted the decision.
 | **R-8 / A-16** transition authority matrix | `product-scope.md` A-5, **new A-16**; `data-model.md` invariant 11b | `ticket-lifecycle`, `portal-self-service` |
 | **R-9 / A-17** `isUrgent` customer input | `product-scope.md` A-6, **new A-17**; `data-model.md` §2.6 (**new field**) | — |
 | **R-10** agents and managers may cancel | `product-scope.md` A-16 (cancel row + consequences) | `ticket-lifecycle`, `portal-self-service` |
+| **R-12 / DM-7** `CustomerFeedback` owned by `Tickets` | `data-model.md` **new DM-7**, §1 preamble, §2.15 ownership, §3 entity list; `architecture.md` §1 (`customer-portal` row) | — (no intake asserted an owning module) |
 | **R-11 / A-18** assignment is not the start of work | `product-scope.md` A-5, **new A-18**, §9 (question 8 closed); `data-model.md` §2.6 field, **new invariant 2a**, 11b, §8 | `ticket-lifecycle`, `ticket-core`, `sla-routing-escalation`, `portal-self-service` |
 
 `sdd-workflow.md` was touched by the A-14…A-18 set only to widen the assumption range it cites.
@@ -313,7 +317,7 @@ Only entries with real evidence are marked verified.
 | API verification | ⬜ Not Run | No API |
 | UI verification | ⬜ Not Run | No UI |
 | Docker startup | ⬜ Not Run | `docker-compose.yml` is empty |
-| Working tree | ⚠ Uncommitted work | **6 commits** on `main`, all **pushed** to `origin/main`. **9 files modified and uncommitted** as of this audit: the A-14…A-18 decision set, the A-18 correction, four story intakes, and this tracker |
+| Working tree | ⚠ Uncommitted work | **7 commits** on `main`, all pushed to `origin/main`. **3 files modified and uncommitted**: the `architecture.md` §1 wording correction, the `CustomerFeedback` ownership decision in `data-model.md` and `architecture.md`, and this tracker |
 
 ---
 
@@ -323,6 +327,32 @@ Newest first. Every meaningful project change gets an entry.
 
 ### 2026-08-24
 
+- **Resolved the `CustomerFeedback` module-ownership mismatch.** The data model labelled the entity
+  as owned by a "Portal" module, which does not exist — [architecture.md](architecture.md) §1
+  defines ten backend modules and `customer-portal` is a front-end area. **Decision: the existing
+  `Tickets` module owns it**, because feedback is domain behaviour attached to a ticket and is
+  offered when the ticket reaches `Resolved`. **No new module was created and the ten-module
+  architecture is unchanged**; the entity's shape, fields, relationships and invariants are
+  untouched. Recorded in the data model as **DM-7** so the reasoning travels with the label.
+  While there, one adjacent looseness was fixed for consistency: `Notification` was labelled "SLA"
+  and "SLA/notifications module" and now reads `Sla`, matching the module list.
+  *Why:* found during the §1 wording correction and reported as needing a decision before the
+  Stage 7 pre-flight, since the feedback contract depends on it.
+  *Files:* `docs/data-model.md` (**new DM-7**, §1 preamble, §2.12, §2.15, §3),
+  `docs/architecture.md` §1 (`customer-portal` row), `docs/PROJECT-PROGRESS.md`.
+  *Not changed:* `sdd-workflow.md` — its inventory counts the A-\* assumptions, and this is a
+  DM-level modelling decision, so the range A-1…A-18 is still correct.
+- **Corrected loose wording in `architecture.md` §1** about the relationship between feature slugs
+  and backend modules. The text claimed the ten modules matched "the feature slugs already in
+  story-backlog.md"; there are **fourteen** slugs. The section now maps the ten slugs that do have
+  a backend module, names the four that do not — `platform-foundation`, `agent-workspace`,
+  `customer-portal`, `platform-experience` — as front-end areas or cross-cutting platform
+  concerns, and states that a feature slug is a unit of planning while a module is a unit of code
+  organization.
+  *Why:* found by the tracker audit and reported as inaccurate but unfixed; corrected now on
+  request. **Documentation wording only — no architecture, module boundary, business decision or
+  data-model change.**
+  *Files:* `docs/architecture.md` §1, `docs/PROJECT-PROGRESS.md`.
 - **Audited this tracker against every project document** ahead of the Stage 7 pre-flight.
   Checked the twelve things it must track, then cross-read `product-scope.md`,
   `architecture.md`, `data-model.md`, `sdd-workflow.md`, all 18 intakes and the repository state.

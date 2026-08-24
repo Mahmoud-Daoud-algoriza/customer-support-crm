@@ -63,11 +63,40 @@ declares interfaces, Infrastructure implements them, and the composition root in
 wires them together. This is the only structural rule in the codebase, and it is enforced by
 project references rather than by convention (§7, AD-2).
 
-**Modules.** Inside Application and Domain, code is organized by feature module, matching the
-feature slugs already in [story-backlog.md](story-backlog.md):
+**Modules.** Inside Application and Domain, code is organized into **ten backend feature modules**:
 
 `Identity` · `Organization` · `Customers` · `Tickets` · `Sla` · `Knowledge` · `Ai` ·
 `Reporting` · `Administration` · `Integrations`
+
+These ten are **not** a one-to-one match for the **fourteen feature slugs** in
+[story-backlog.md](story-backlog.md). Ten slugs have a corresponding backend module:
+
+| Feature slug | Backend module |
+|---|---|
+| `identity-access` | `Identity` |
+| `organization` | `Organization` |
+| `customer-management` | `Customers` |
+| `ticket-management` | `Tickets` |
+| `sla-automation` | `Sla` |
+| `knowledge-base` | `Knowledge` |
+| `ai-assist` | `Ai` |
+| `reporting` | `Reporting` |
+| `administration` | `Administration` |
+| `integration-seams` | `Integrations` |
+
+The remaining four slugs are **front-end areas or cross-cutting platform concerns, and have no
+backend module of their own**:
+
+| Feature slug | What it is instead |
+|---|---|
+| `platform-foundation` | The host, composition root and runtime setup (§2.1, §6) |
+| `agent-workspace` | An Angular area (§2.2) |
+| `customer-portal` | An Angular area (§2.2). Its server-side behaviour, including customer feedback, lives in `Tickets` |
+| `platform-experience` | i18n, RTL, responsive layout and branding (§2.3) |
+
+Where a story in one of those four needs server-side behaviour, it is served by the ten modules
+above rather than by a module of its own. A feature slug is a unit of *planning*; a module is a
+unit of *code organization*, and the two need not correspond.
 
 Modules are folders with a public service surface, not separate assemblies or deployables. A
 module calls another module through its Application service, never by reaching into its internals.
