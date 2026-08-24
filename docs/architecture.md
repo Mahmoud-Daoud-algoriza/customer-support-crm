@@ -239,8 +239,10 @@ The path every request takes, and the layer that owns each decision:
        └─ calls a typed API client service in core/
  2  HTTP interceptor attaches the bearer token
  3  ─────────── network ───────────
- 4  ASP.NET Core: authentication middleware resolves the caller
-       └─ produces the request-scoped current-user context (id, role, department)
+ 4  ASP.NET Core: authentication middleware validates the token → user id only
+       └─ per-request resolution loads the AUTHORITATIVE user record
+          (role, department, active) and builds the current-user context   ← §4.1.1
+          a missing or deactivated user is refused here
  5  Controller: role gate passes → binds the request → calls ONE Application service
  6  Application service:
        a. validates input
@@ -280,13 +282,47 @@ No ambient or nested transactions.
 - Email and password, per [product-scope.md](product-scope.md) A-9. No SSO, OAuth, MFA, password
   policy engine, or account recovery.
 - **Token-based (JWT bearer).** The front end is a separate origin from the API under Docker
-  Compose, and a bearer token is the least-friction fit for that shape. The token carries user id,
-  role, and department so the common authorization decisions need no database round trip.
+  Compose, and a bearer token is the least-friction fit for that shape.
+- **The token asserts identity only.** It carries the user id plus standard issuance and expiry
+  claims — and nothing an authorization decision depends on. Role, department and active status
+  are deliberately **not** authoritative claims (§4.1.1).
 - The signing key is a **secret from environment configuration** (§6.3) and is never committed.
 - Short-lived tokens; expiry means signing in again. No refresh-token rotation
   ([product-scope.md](product-scope.md) §8).
 - Passwords are stored using ASP.NET Core's standard password hashing. Deactivated users are
-  refused at sign-in.
+  refused at sign-in **and on every subsequent request**, because the active flag is re-read as
+  part of §4.1.1 rather than trusted from a token minted earlier.
+
+### 4.1.1 Identity comes from the token; authorization data is resolved per request
+
+**Why authorization data does not live in the token.** An Administrator can move an agent between
+departments, change their role, or deactivate them at any moment. A claim minted at sign-in keeps
+its value until the token expires. An agent moved from Billing to Technical would go on reading
+Billing's tickets — and be refused Technical's — for the remaining life of their token, while the
+server believed it was enforcing §4.3 correctly. The same staleness applies to a role change (a
+demoted Manager keeps cross-department reach) and to deactivation (a disabled account keeps
+working until expiry). That is a confidentiality defect rather than a latency inconvenience, and
+it fails silently.
+
+**The resolution.** After the token is validated, a **per-request resolution step** loads the
+**authoritative user record** — role, department, active status — for the user id the token
+asserts, and builds from it the request-scoped current-user context that §4.3 depends on:
+
+- A user that no longer exists, or is deactivated, is refused at this point. Authorization never
+  runs on a stale principal.
+- The freshly read role also populates the principal used by the coarse endpoint gates of §4.2,
+  so the check at the edge and the row scoping in the Application layer read the same
+  authoritative value rather than two different vintages of it.
+- **Role, department and active status are resolved together**, because the §4.3 rule is a
+  function of all three. Refreshing department while still trusting a stale role would leave the
+  same defect reachable through a different claim.
+
+**The cost, and why it is accepted.** One indexed read per authenticated request, against the same
+database the request is about to query anyway, in a single-process monolith at assessment scale.
+No caching layer is introduced to avoid it: [product-scope.md](product-scope.md) §8 excludes
+Redis, and an in-process cache would reintroduce the staleness this correction removes, with
+invalidation logic on top. Token revocation lists, or very short expiry with refresh rotation,
+would also close the gap and are more machinery than a single lookup (§7, AD-15).
 
 ### 4.2 Authorization — three enforcement points
 
@@ -320,11 +356,11 @@ T2-K); an agent sees in-department tickets regardless of the customer's branch.
 
 **How it is enforced:**
 
-1. **One request-scoped current-user context** is produced from the authenticated token at the
-   start of the request and injected into Application services. Services never read claims
-   directly and never accept a caller-supplied user id, department id, or role — those come from
-   the token only. A department id arriving in a request body is data to validate, never an
-   identity to trust.
+1. **One request-scoped current-user context**, built at the start of the request from the
+   authoritative user record (§4.1.1), is injected into Application services. Services never read
+   claims directly and never accept a caller-supplied user id, department id, or role — identity
+   comes from that resolved context alone. A department id arriving in a request body is data to
+   validate, never an identity to trust — and neither is a department carried in a token.
 2. **One scoping helper in the Tickets module** turns that context into a query restriction. Every
    ticket query — list, detail, dashboard, report, portal, AI assist, export — composes it. It is
    the single place the table above is expressed in code.
@@ -501,13 +537,14 @@ configuration requires none.
 | AD-4 | **Domain kept free of EF attributes**; mapping configured in Infrastructure | Lifecycle and SLA rules — the highest-risk logic — stay unit-testable with no database | Annotating entities directly — faster to write, couples the rules to persistence |
 | AD-5 | **Access scoping as an explicit Application-layer helper** | Role-dependent, must be bypassable by Manager and Administrator, and must not silently narrow reports. Visible and testable beats invisible | EF global query filters — fail open when accidentally absent, awkward for admin bypass and aggregates (§4.3) |
 | AD-6 | **SLA breach detection as a periodic hosted service** in-process | A-3 sets coarse granularity (minutes) and explicitly disclaims timing precision. A timer in the API process meets it exactly | Hangfire/Quartz or a message broker — infrastructure with no requirement behind it, and excluded by the brief |
-| AD-7 | **JWT bearer authentication** | Separate origins under Compose; role and department travel in the token, so common authorization decisions need no extra query | Cookie sessions — workable, but adds cross-origin and CSRF handling for no gain here |
+| AD-7 | **JWT bearer authentication, token asserting identity only** | Separate origins under Compose make a bearer token the simplest fit. Authorization data is deliberately kept out of the token so it cannot go stale (AD-15) | Cookie sessions — workable, but adds cross-origin and CSRF handling for no gain here |
 | AD-8 | **Migrations and seed data applied at API startup** | A fresh checkout must come up demo-ready with one command (product-scope §10, item 5) | A separate migration step — more correct for production, more friction for a three-evening demo. Recorded as a knowingly non-production choice |
 | AD-9 | **Runtime i18n library rather than compile-time localization** | T2-J requires switching language without losing application state; compile-time localization needs one bundle per locale and a reload | `@angular/localize` — better for production bundle size, wrong for a live switcher |
 | AD-10 | **Ticket history and audit log kept separate** | Different actors, different questions, different visibility rules; the intakes require both to stay independently queryable | One event table with a discriminator — superficially tidy, makes both reads awkward and blurs the visibility rule |
 | AD-11 | **Seam interfaces owned by Application, implemented in Infrastructure** | The dependency rule is what makes AI, channels and ERP swappable without touching business logic | Calling provider SDKs from services or controllers — the seam would exist on a diagram only |
 | AD-12 | **AI seam can only return suggestions** | A-8's advisory/human-approved rule becomes structural rather than a convention someone must remember | A general "AI action" interface — would make autonomous behaviour a one-line mistake away |
 | AD-13 | **Keyword search in SQL Server for the knowledge base** | T2-E fixes search as database text matching; suggested solutions are retrieval, not generation | A search engine or vector database — excluded by the brief and unjustified at this data volume |
+| AD-15 | **Role, department and active status resolved per request from the user record**, never from token claims | An Administrator can change an agent's department, role, or active status at any time. A claim minted at sign-in holds the old value until expiry, so a moved agent would keep reading their former department's tickets while the server believed §4.3 was being enforced. The §4.3 rule is a function of role, department and user id, so all three must be current (§4.1.1) | Trusting claims — stale until expiry, fails silently, and is the defect this decision exists to prevent. Revocation lists or very short expiry with refresh rotation — close the gap, cost more than one indexed read. Caching the user record — reintroduces the staleness and adds invalidation; a cache layer is excluded by §8 |
 | AD-14 | **One Angular application with role-based lazy areas** | Agents, customers and administrators need different surfaces, not different deployables; one build keeps i18n, branding and the API client shared | Separate SPAs per role — triples build and i18n work for no benefit |
 
 ---
@@ -557,6 +594,7 @@ production observability stack. Logging is ordinary application logging to the c
 | §2.5 Ticket history boundary | T1-B, T2-C, A-5 (requirements §2.5, §1.3) |
 | §3 Request/data flow | T1-B, T2-D |
 | §4.1 Authentication | T1-D, A-9 |
+| §4.1.1 Per-request identity resolution | T1-D, T1-E, A-2, A-4 — keeps the §4.3 rule current |
 | §4.2 Authorization points | T1-D, A-4 |
 | §4.3 Department access enforcement | T1-D, T1-E, A-2, A-4 |
 | §4.4 Internal notes, attachments | T2-C, T2-A |
