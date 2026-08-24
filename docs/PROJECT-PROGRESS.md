@@ -253,6 +253,7 @@ Kept, not deleted.
 | R-8 ⚠ | Who may Cancel, Close and Escalate? **Partly superseded by R-10 — see the cancel row there.** | **Full authority matrix fixed.** Customer: create, reopen own, cancel own before work begins. Agent: open, pending, resolve, close, escalate. Manager: the same across all departments. Administrator: unrestricted. **Closure is manual only — no automatic closure.** As first recorded, this withheld cancel from agents and managers; **that half was corrected the same day — see R-10.** The rest stands | 2026-08-24 | **A-16** (superseded in part) |
 | R-9 | Does the creation contract carry a customer urgency input? | **Yes — `isUrgent`, a boolean.** Customer input only; does not set priority; agents and the AI suggestion may use it when deciding priority. Persisted on `Ticket` | 2026-08-24 | **A-17**, model §2.6 |
 | R-10 | May agents and managers cancel a ticket? | **Yes** — corrected 2026-08-24. Agents and Managers may cancel any non-terminal ticket (Manager across all departments); Administrators unrestricted. Customers may cancel their own **only while `New`**. Supersedes the first version of A-16, which withheld cancel from agents and managers | 2026-08-24 | **A-16** |
+| R-14 | Who is the actor on the automatic `Pending -> Open` status change, which has no invoking user? | **The replying customer**, with `actorKind = User`. Their reply caused the transition, and A-5 requires every transition to carry an actor. **Not** a `System` actor — the SLA monitor stays the only system actor, and attributing a customer-caused change to the system would make ticket history less truthful. Approved 2026-08-24 after being flagged as a derived detail rather than applied silently. **No new entity or field**; `TicketActivity` already carries `actorUserId` and `actorKind` | 2026-08-24 | **A-5**, model 2.6 inv. 2b, 2.7, 2.8, constraint 9a |
 | R-13 | **PF-1** — is `Pending -> Open` legal, and what does a customer reply do to a `Pending` ticket? | **Both answered: the transition is legal and a customer reply triggers it automatically.** The reply is the trigger; no agent action is required. It fires from `Pending` only — a reply on `New` leaves it `New`, and a reply on `Resolved` does not reopen it. Recorded as a same-transaction status change with a `StatusChanged` history entry attributed to the replying customer | 2026-08-24 | **A-5**, A-16, model 2.6 inv. 2b, 2.8, constraint 9a |
 | R-12 | Which backend module owns `CustomerFeedback`? The data model labelled it "Portal", which is not one of the ten modules | **The existing `Tickets` module.** Feedback is domain behaviour attached to a ticket, offered when the ticket reaches `Resolved`; `customer-portal` is a front-end and planning concern, not a backend module. **No new module; the ten-module architecture is unchanged**, and the entity's shape, fields and relationships are untouched — an ownership label only | 2026-08-24 | **DM-7**, model §2.15, arch §1 |
 | R-11 | **OQ-4** — what is the customer cancellation window? | **Assignment is not the start of work.** A ticket may be assigned while still `New`; `New → Open` is an agent deliberately starting work. The customer's window runs from creation until an agent picks the ticket up, so it is real rather than theoretical | 2026-08-24 | **A-18** |
@@ -288,6 +289,7 @@ needed amending, because nothing in that artifact contradicted the decision.
 | **R-8 / A-16** transition authority matrix | `product-scope.md` A-5, **new A-16**; `data-model.md` invariant 11b | `ticket-lifecycle`, `portal-self-service` |
 | **R-9 / A-17** `isUrgent` customer input | `product-scope.md` A-6, **new A-17**; `data-model.md` §2.6 (**new field**) | — |
 | **R-10** agents and managers may cancel | `product-scope.md` A-16 (cancel row + consequences) | `ticket-lifecycle`, `portal-self-service` |
+| **R-14 / A-5** automatic transition attributed to the replying customer | `product-scope.md` A-5 (new attribution rule); `data-model.md` §2.6 invariant 2b, §2.7 `actorKind` note, §2.8 invariants, §5 constraint 9a | `ticket-lifecycle` |
 | **R-13 / A-5** customer reply reopens a `Pending` ticket | `product-scope.md` A-5 (transition graph + `Pending` bullet), A-16 (`-> Open` row); `data-model.md` §2.6 invariant 2b, §2.8 invariants, §5 constraint 9a | `ticket-lifecycle`, `ticket-intake-messaging`, `portal-self-service` |
 | **R-12 / DM-7** `CustomerFeedback` owned by `Tickets` | `data-model.md` **new DM-7**, §1 preamble, §2.15 ownership, §3 entity list; `architecture.md` §1 (`customer-portal` row) | — (no intake asserted an owning module) |
 | **R-11 / A-18** assignment is not the start of work | `product-scope.md` A-5, **new A-18**, §9 (question 8 closed); `data-model.md` §2.6 field, **new invariant 2a**, 11b, §8 | `ticket-lifecycle`, `ticket-core`, `sla-routing-escalation`, `portal-self-service` |
@@ -334,7 +336,7 @@ Only entries with real evidence are marked verified.
 | API verification | ⬜ Not Run | No API |
 | UI verification | ⬜ Not Run | No UI |
 | Docker startup | ⬜ Not Run | `docker-compose.yml` is empty |
-| Working tree | ⚠ Uncommitted work | **8 commits** on `main`; 7 pushed to `origin/main`, **1 ahead**. **6 files modified and uncommitted**: the PF-1 propagation across `product-scope.md`, `data-model.md`, three story intakes, and this tracker |
+| Working tree | ✅ Tracked | **9 commits** on `main`, all pushed to `origin/main` as of 2026-08-24. Only this tracker is typically uncommitted mid-task. **`git status` is the live source — this row is a snapshot, not a claim to be trusted over the repository** |
 
 ---
 
@@ -344,6 +346,17 @@ Newest first. Every meaningful project change gets an entry.
 
 ### 2026-08-24
 
+- **Approved the actor attribution for the automatic `Pending -> Open` transition.** When PF-1 was
+  propagated, the transition had no invoking user while A-5 requires every transition to carry an
+  actor; the customer was chosen and **flagged as a derived detail rather than applied silently**.
+  Now approved and recorded as a rule: the **replying customer** is the actor, `actorKind = User`,
+  never `System`. The SLA monitor remains the only system actor. The wording in the data model was
+  changed from reasoning ("since their action caused it") to an approved rule citing A-5, and the
+  `actorKind` field note now states the boundary where the enum is defined.
+  **No new entity or field** — `TicketActivity` already carries `actorUserId` and `actorKind`.
+  *Files:* `docs/product-scope.md` (A-5), `docs/data-model.md` (§2.6, §2.7, §2.8, §5),
+  `.squad/stories/ticket-management/ticket-lifecycle/intake.md` (new acceptance criterion),
+  `docs/PROJECT-PROGRESS.md`.
 - **Resolved PF-1 — a customer reply reopens a `Pending` ticket.** The Stage 7 pre-flight found
   that `Pending -> Open` appeared in no source, while `Pending` means "awaiting customer input",
   A-13 defines a `CustomerReplied` notification, and A-3 keeps the SLA clock running — so a replied-to
@@ -356,7 +369,8 @@ Newest first. Every meaningful project change gets an entry.
   and the transition raises none of its own), SLA behaviour (unchanged; `Pending` never paused the
   clock), and a search for the old three-arrow transition set, which no longer appears anywhere.
   *Derived detail, flagged not invented:* A-5 requires every transition to carry an actor, so the
-  automatic `StatusChanged` row is attributed to the **replying customer**.
+  automatic `StatusChanged` row is attributed to the **replying customer**. **Approved as R-14 the
+  same day** and recorded as a rule.
   *Files:* `docs/product-scope.md` (A-5 graph and `Pending` bullet, A-16 `-> Open` row),
   `docs/data-model.md` (§2.6 invariant 2b, §2.8 invariants, §5 constraint 9a), three story intakes
   (`ticket-lifecycle`, `ticket-intake-messaging`, `portal-self-service`), `docs/PROJECT-PROGRESS.md`.
