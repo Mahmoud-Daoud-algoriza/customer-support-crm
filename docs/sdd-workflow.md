@@ -5,7 +5,7 @@ stage, where it lives, and what must be true before the next stage starts.
 
 **Method:** spec-driven development, executed with [squad-kit](https://github.com/AzmSquad/squad-kit) v0.2.0
 (workspace at [.squad/](../.squad/)).
-**Status date:** 2026-08-24 (stage 5 complete)
+**Status date:** 2026-08-24 (stage 6 complete)
 
 ---
 
@@ -35,8 +35,8 @@ is recorded in this document rather than left silent."*
 | 3 | Product scope | Tiered scope + assumptions + exclusions | [docs/product-scope.md](product-scope.md) | ✅ Done |
 | 4 | **User stories / functional requirements** | 18 story intakes | [.squad/stories/](../.squad/stories/) + [docs/story-backlog.md](story-backlog.md) | ✅ Done |
 | 5 | Architecture | Architecture decision record | [docs/architecture.md](architecture.md) | ✅ Done |
-| 6 | Data model | Conceptual → logical model | `docs/data-model.md` | ⬜ **Next** |
-| 7 | API design | Endpoint contracts | `docs/api-design.md` | ⬜ Pending |
+| 6 | Data model | Conceptual → logical model | [docs/data-model.md](data-model.md) | ✅ Done |
+| 7 | API design | Endpoint contracts | `docs/api-design.md` | ⬜ **Next** |
 | 8 | UI design | Screen inventory + flows | `docs/ui-design.md` | ⬜ Pending |
 | 9 | Implementation plans | `NN-story-*.md` per story | [.squad/plans/](../.squad/plans/) | ⬜ Pending |
 | 10 | Implementation | Application code | `backend/`, `frontend/` | ⬜ Not started |
@@ -89,7 +89,7 @@ T3 seams sit (AI service, channel adapter, ERP boundary), how department scoping
 server-side, and where configuration is read. It must explicitly restate the technical exclusions
 so the constraint survives into planning.
 
-**Gate 6 → 7.** `docs/data-model.md` covers every entity implied by the T1/T2 stories, with the
+**Gate 6 → 7 (met).** [data-model.md](data-model.md) covers every entity implied by the T1/T2 stories, with the
 A-5 status set and A-2 department/branch asymmetry represented. Conceptual and logical only —
 migrations are written during implementation, not during design.
 
