@@ -36,6 +36,9 @@ Web form (requirements §3.5) — the single real, fully working inbound channel
 
 In-portal messaging (requirements §3.3, partial):
 - Customer and agent exchange replies on a ticket using ordinary request/response.
+- A customer reply posted while the ticket is Pending transitions it to Open automatically,
+  in the same transaction as the message (A-5). This is the one status side effect a message
+  has; posting a message changes nothing else about the ticket.
 - This is NOT real-time chat. No WebSocket infrastructure, no presence, no typing indicators.
   Real-time live chat is acknowledged as future scope T3-B.
 
@@ -62,6 +65,10 @@ Channel-agnostic message model:
       `agent-workspace/tasks-internal-notes`).
 - [ ] Messages appear in ticket history and in the customer's interaction timeline.
 - [ ] A reply on a Closed or Cancelled ticket is refused (A-5).
+- [ ] A customer reply on a Pending ticket returns the ticket to Open in the same transaction,
+      with both the MessagePosted and StatusChanged history entries written.
+- [ ] An agent reply does NOT transition the ticket, and a customer reply on a New or Resolved
+      ticket does not transition it either.
 - [ ] The message model demonstrably supports a second channel without schema change — shown by
       the log adapter in `integration-seams/channel-erp-adapters` writing an inbound message.
 - [ ] No polling implementation is presented as, or described as, real-time chat.

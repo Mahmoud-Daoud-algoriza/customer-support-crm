@@ -360,6 +360,16 @@ change writes a `TicketActivity` row.
 1. Status transitions follow the A-5 machine, enforced in the Domain layer
    ([architecture.md](architecture.md) §2.1). Illegal transitions are refused for every role.
 2. `Closed` and `Cancelled` are terminal: no further messages, notes or transitions.
+2b. **A customer reply reopens a `Pending` ticket automatically.** Posting an `Inbound`
+    `TicketMessage` while `status = Pending` transitions the ticket to `Open` in the same
+    transaction as the message, and writes a `StatusChanged` activity row alongside the
+    `MessagePosted` one. **The actor on that status row is the replying customer** — an approved
+    rule recorded in A-5, not an implementation choice: A-5 requires every transition to carry an
+    actor, and the customer's reply is what caused this one. It is **not** a `System` actor; the
+    SLA monitor remains the only system actor in this design. The rule fires **only**
+    from `Pending`: a reply on `New` leaves it `New`, and a reply on `Resolved` does **not** reopen
+    it (reopening `Resolved` remains the explicit action of A-16). No new entity or field is
+    involved (A-5, A-16).
 2a. **`status` and `assignedUserId` are independent.** A `New` ticket may carry an assignee
     (A-18); nothing may infer one field from the other. `New → Open` records an agent starting
     work, not an assignment.
@@ -399,7 +409,7 @@ a ticket. T1-B, [architecture.md](architecture.md) §2.5. **This is not the audi
 | `occurredAt` | ✔ | Ordering key |
 | `activityType` | ✔ | See the set below |
 | `actorUserId` | ✖ | Null when the actor is the system (the SLA monitor) |
-| `actorKind` | ✔ | `User` \| `System` — so a null actor is explicit, never ambiguous |
+| `actorKind` | ✔ | `User` \| `System` — so a null actor is explicit, never ambiguous. `System` is used **only** by the SLA monitor; the automatic `Pending → Open` transition is `User`, attributed to the replying customer (A-5) |
 | `oldValue` | ✖ | Short text; the before value for change types |
 | `newValue` | ✖ | Short text; the after value |
 | `visibility` | ✔ | `CustomerVisible` \| `Internal` — the portal read filter (T2-C) |
@@ -441,7 +451,12 @@ portal messaging. T2-B, and the model every future channel adapter writes into (
 **Mutability.** **Immutable once posted.** No edit or delete; a correction is a new message.
 **Invariants.** Never accepted on a `Closed` or `Cancelled` ticket (A-5) · the first `Outbound`
 message sets `Ticket.firstRespondedAt` if it is still null · every message has exactly one
-`MessagePosted` activity row.
+`MessagePosted` activity row · **an `Inbound` message posted while the ticket is `Pending`
+transitions it to `Open` automatically**, in the same transaction, writing a `StatusChanged`
+activity row attributed to the replying customer, per the approved rule in A-5 — `actorKind` is
+`User`, never `System` (§2.6 invariant 2b). The transition fires from
+`Pending` only — never from `New` or `Resolved` — and generates no notification of its own,
+because A-13 defines exactly four notification types and none of them is a status change.
 
 ### 2.9 `TicketInternalNote`
 
@@ -726,6 +741,9 @@ branch filter the reports ask for. Full audit of the sources in §2.3.
 7. Status follows the A-5 machine; illegal transitions are refused in the Domain layer.
 8. `Closed` and `Cancelled` are terminal — no messages, notes or further transitions.
 9. Escalation raises priority one level; Urgent stays Urgent; status is unchanged.
+9a. An `Inbound` message on a `Pending` ticket transitions it to `Open` automatically, in the
+    same transaction, recorded as a `StatusChanged` activity **attributed to the replying
+    customer with `actorKind = User`** (A-5). From `Pending` only (§2.6 invariant 2b, §2.8).
 10. `assignedUserId` must be an active staff user in the ticket's department.
 11. `categoryCode` must match the configured list; an unknown value is rejected.
 11a. For a customer-submitted ticket, `departmentId` is **derived from the category** through the

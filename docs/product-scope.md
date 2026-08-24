@@ -348,9 +348,11 @@ delegation, no branch-scoped restriction.
 **A-5 · Ticket lifecycle.** One fixed status set with enforced transitions:
 
 ```
-New → Open → Pending (waiting on customer) → Resolved → Closed
-         ↑                              ↓
-         └────────── reopen ────────────┘        (Resolved → Open)
+New ──▶ Open ──▶ Pending ──▶ Resolved ──▶ Closed
+         ▲         │             │
+         │         │             └── reopen ─────────┐  (Resolved → Open, explicit action)
+         │         └── customer reply ───────────────┤  (Pending → Open, AUTOMATIC)
+         └───────────────────────────────────────────┘
 
 Any non-terminal status → Cancelled
 ```
@@ -360,6 +362,10 @@ Any non-terminal status → Cancelled
   as being worked (A-18).
 - **Open** — **an agent has started work.** The `New → Open` transition *is* the act of starting.
 - **Pending** — awaiting customer input. *(Does not pause the SLA clock — see A-3.)*
+  **A customer reply moves it back to `Open` automatically.** The reply itself is the trigger; no
+  agent action is needed and no agent has to reopen it. The rule applies **only** from `Pending`:
+  a reply on a `New` ticket leaves it `New` (an agent has still not started work), and a reply on a
+  `Resolved` ticket does **not** reopen it — reopening `Resolved` stays the explicit action below.
 - **Resolved** — the agent believes it is done; triggers the feedback request.
 - **Closed** — terminal, reached from Resolved **by an agent, manually**. There is no
   automatic closure (A-16); no timer moves a ticket to Closed. No further replies.
@@ -368,6 +374,12 @@ Any non-terminal status → Cancelled
   ticket history, and notifies the manager, leaving status unchanged. There are no escalation
   tiers and no L1/L2/L3 support levels.
 - Every transition is recorded in ticket history with actor, timestamp, and before/after values.
+- **Actor attribution for the automatic `Pending → Open` transition — decided.** The transition has
+  no invoking user, but every transition must carry an actor. It is attributed to the **replying
+  customer**, because their reply is what caused it. It is **not** recorded as a system action: the
+  SLA monitor is the only system actor in this design, and attributing a customer-caused change to
+  the system would make ticket history less truthful, not more. Nothing new is stored to support
+  this — `TicketActivity` already carries an actor and an actor kind.
 - **Which role may perform which transition is fixed by A-16.** A-5 states which transitions are
   legal; A-16 states who may invoke them.
 
@@ -442,7 +454,7 @@ fixes who may invoke them.
 | Transition | Customer | Agent | Manager | Administrator |
 |---|---|---|---|---|
 | Create (→ New) | ✔ own | ✔ on behalf of a customer | ✔ | ✔ |
-| → Open | ✖ | ✔ | ✔ all departments | ✔ |
+| → Open | ✖ directly — but a customer **reply on a `Pending` ticket triggers it automatically** (A-5) | ✔ | ✔ all departments | ✔ |
 | → Pending | ✖ | ✔ | ✔ all departments | ✔ |
 | → Resolved | ✖ | ✔ | ✔ all departments | ✔ |
 | → Closed | ✖ | ✔ | ✔ all departments | ✔ |

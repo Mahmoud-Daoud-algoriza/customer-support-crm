@@ -32,16 +32,21 @@ ticket. The lifecycle is fixed by product-scope A-5 and must be enforced, not me
 
 Status lifecycle (§2.4, A-5) — one fixed status set with enforced transitions:
 
-    New → Open → Pending (waiting on customer) → Resolved → Closed
-             ↑                              ↓
-             └────────── reopen ────────────┘        (Resolved → Open)
+    New --> Open --> Pending --> Resolved --> Closed
+             ^        |            |
+             |        |            +-- reopen ----------+  (Resolved -> Open, explicit)
+             |        +-- customer reply ---------------+  (Pending -> Open, AUTOMATIC)
+             +--------------------------------------------+
 
-    Any non-terminal status → Cancelled
+    Any non-terminal status --> Cancelled
 
 - New       — created, not yet being worked. MAY already have an assignee: automatic assignment
               runs at creation, and assignment is not the start of work (A-18).
 - Open      — an agent has started work. New -> Open IS the act of starting.
 - Pending   — awaiting customer input. It does NOT pause the SLA clock (A-3).
+              A CUSTOMER REPLY MOVES IT BACK TO OPEN AUTOMATICALLY (A-5). The reply is the
+              trigger; no agent action is required. From Pending only — a reply on New leaves
+              it New, and a reply on Resolved does not reopen it.
 - Resolved  — the agent believes it is done; triggers the feedback request (portal story).
 - Closed    — terminal, reached from Resolved; no further replies.
 - Cancelled — terminal, for tickets abandoned or created in error. Agents, Managers and
@@ -73,6 +78,13 @@ Ticket history (§2.5):
 - [ ] Resolved can be reopened to Open by either an agent or the ticket's customer.
 - [ ] Closed and Cancelled are terminal: no further replies or transitions are accepted.
 - [ ] A ticket in New may carry an assignee; status and assignee are independent (A-18).
+- [ ] An inbound customer reply on a Pending ticket transitions it to Open automatically, in the
+      same transaction as the message, and writes a StatusChanged history entry attributed to
+      the customer.
+- [ ] The automatic transition fires from Pending ONLY: a reply on a New ticket leaves it New,
+      and a reply on a Resolved ticket does not reopen it.
+- [ ] The StatusChanged entry for that automatic transition records the replying CUSTOMER as the
+      actor with actorKind = User — not a system actor (A-5).
 - [ ] The transition authority matrix of A-16 is enforced server-side: a customer cancelling an
       Open ticket is refused; an agent cancelling a non-terminal ticket succeeds.
 - [ ] Escalating a ticket raises its priority exactly one level (Urgent stays Urgent), leaves
