@@ -5,7 +5,7 @@ stage, where it lives, and what must be true before the next stage starts.
 
 **Method:** spec-driven development, executed with [squad-kit](https://github.com/AzmSquad/squad-kit) v0.2.0
 (workspace at [.squad/](../.squad/)).
-**Status date:** 2026-08-24 (stage 6 complete)
+**Status date:** 2026-08-24 (stage 7 complete)
 
 ---
 
@@ -36,8 +36,8 @@ is recorded in this document rather than left silent."*
 | 4 | **User stories / functional requirements** | 18 story intakes | [.squad/stories/](../.squad/stories/) + [docs/story-backlog.md](story-backlog.md) | ✅ Done |
 | 5 | Architecture | Architecture decision record | [docs/architecture.md](architecture.md) | ✅ Done |
 | 6 | Data model | Conceptual → logical model | [docs/data-model.md](data-model.md) | ✅ Done |
-| 7 | API design | Endpoint contracts | `docs/api-design.md` | ⬜ **Next** |
-| 8 | UI design | Screen inventory + flows | `docs/ui-design.md` | ⬜ Pending |
+| 7 | API design | Endpoint contracts | [docs/api-design.md](api-design.md) | ✅ Done |
+| 8 | UI design | Screen inventory + flows | `docs/ui-design.md` | ⬜ **Next** |
 | 9 | Implementation plans | `NN-story-*.md` per story | [.squad/plans/](../.squad/plans/) | ⬜ Pending |
 | 10 | Implementation | Application code | `backend/`, `frontend/` | ⬜ Not started |
 
@@ -93,7 +93,7 @@ so the constraint survives into planning.
 A-5 status set and A-2 department/branch asymmetry represented. Conceptual and logical only —
 migrations are written during implementation, not during design.
 
-**Gate 7 → 8.** `docs/api-design.md` gives a contract for each capability the stories need, with
+**Gate 7 → 8 (met).** [api-design.md](api-design.md) gives a contract for each capability the stories need, with
 role-based access stated per endpoint (A-4), and matches the data model exactly.
 
 **Gate 8 → 9.** `docs/ui-design.md` lists every screen for the agent workspace, the customer

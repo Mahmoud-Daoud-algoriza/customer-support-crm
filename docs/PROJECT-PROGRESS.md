@@ -16,14 +16,14 @@
 
 | | |
 |---|---|
-| **Current SDD stage** | **Stage 6 complete → Stage 7 (API Design) is next, not started** |
+| **Current SDD stage** | **Stage 7 complete → Stage 8 (UI Design) is next, not started** |
 | **Current phase** | Design. Implementation has **not** begun |
 | **Overall status** | 🟢 On track — **Stage 7 pre-flight passed**. The one blocking finding (PF-1) is resolved; every API contract is designable |
-| **Overall progress** | **23%** (method in §1.1) |
-| **SDD pipeline** | **6 of 10 stages complete** (60% of the pipeline) |
+| **Overall progress** | **27%** (method in §1.1) |
+| **SDD pipeline** | **7 of 10 stages complete** (70% of the pipeline) |
 | **Code written** | **None.** `backend/` and `frontend/` are empty; `docker-compose.yml` is 0 bytes |
 | **Last updated** | 2026-08-24 |
-| **Current focus** | Stage 7 — API Design (`docs/api-design.md`). Pre-flight audit complete; all six blocking business questions answered 2026-08-24 (A-14…A-18 and the A-5 reply-driven transition) |
+| **Current focus** | Stage 8 — UI Design (`docs/ui-design.md`). Stage 7 delivered 66 endpoints across 12 modules |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 23% is calculated
@@ -33,9 +33,9 @@ recorded here so the number is reproducible rather than invented.
 
 | Track | Contents | Weight | Complete | Contribution |
 |---|---|---|---|---|
-| **Design & planning** | Tracker rows 1–9 (§2), equally weighted at 3.89% each | 35% | 6 of 9 rows | 6 ÷ 9 × 35 = **23.3%** |
+| **Design & planning** | Tracker rows 1–9 (§2), equally weighted at 3.89% each | 35% | 7 of 9 rows | 7 ÷ 9 × 35 = **27.2%** |
 | **Delivery** | Row 10 — the 18 stories implemented *and* verified | 65% | 0 of 18 | 0 ÷ 18 × 65 = **0%** |
-| | | **100%** | | **≈ 23%** |
+| | | **100%** | | **≈ 27%** |
 
 **Why 35/65.** [product-scope.md](product-scope.md) §10 defines done in five items, four of which
 concern running software. The SDD chain is the method; the working system is the deliverable, so
@@ -58,8 +58,8 @@ delivery carries the larger weight. A design-only project is not most of the way
 | 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan-overview stubs | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
 | 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
 | 6 | Data Model | ✅ Complete | [data-model.md](data-model.md) | ✅ | ✅ Met, re-verified after the four clarifications | Approved 2026-08-24. 15 entities |
-| 7 | API Design | ⬜ **Not Started** | `docs/api-design.md` | ✖ | ✖ | **Current stage.** Gate: a contract per capability, role access per endpoint (A-4, A-16), matching the data model. **Pre-flight passed 2026-08-24**; unblocked by A-14…A-18 and R-13 |
-| 8 | UI Design | ⬜ Not Started | `docs/ui-design.md` | ✖ | ✖ | Gate: every screen for workspace, portal and admin; RTL implications; phone-width behaviour |
+| 7 | API Design | ✅ Complete | [api-design.md](api-design.md) | ✅ | ✅ Met | 66 endpoints, 12 modules, 16 API decisions (AP-1…AP-16). Pre-flight passed the same day |
+| 8 | UI Design | ⬜ **Not Started** | `docs/ui-design.md` | ✖ | ✖ | **Current stage.** Gate: every screen for workspace, portal and admin; RTL implications; phone-width behaviour |
 | 9 | Implementation Plans | ⬜ Not Started | `.squad/plans/<feature>/NN-story-*.md` | ✖ (0 plan files) | ✖ | Generated one story at a time via `/squad-plan` |
 | 10 | Implementation / Verification | ⬜ Not Started | `backend/`, `frontend/` | ✖ (both empty) | ✖ | No code exists |
 
@@ -265,12 +265,12 @@ inside the API document or deferred to the story named.
 
 | ID | Finding | Handle in |
 |---|---|---|
-| **PF-2** | `Ticket.createdByUserId` and `TicketMessage.authorUserId` are required with no System actor, but story 18's inbound fake adapter creates tickets with no human actor. `TicketActivity` and `AuditEntry` both support a System actor; these two do not | Story 18, or Stage 7 if it specifies an ingestion endpoint |
-| **PF-3** | OQ-1 leaves the CSAT scale undecided and `architecture.md` §6.3 has **no** configuration key for it. Stage 7 must add one or leave the validation range unstated | Stage 7 + OQ-1 |
+| **PF-2** | `Ticket.createdByUserId` and `TicketMessage.authorUserId` are required with no System actor, but story 18's inbound fake adapter creates tickets with no human actor | **Avoided in Stage 7** (AP-11 publishes no ingestion endpoint) but **still open for story 18** |
+| **PF-3** | OQ-1 leaves the CSAT scale undecided and `architecture.md` §6.3 has **no** configuration key for it | **Handled in api-design §5.7** — `rating` validates against `feedback.ratingScale` from `GET /config`. ⚠ **Requires adding `Feedback:RatingScale` to architecture §6.3 — flagged for approval, not applied** |
 | **PF-4** | "Tickets assigned" in the agent-performance metric is undefined — currently assigned vs. ever assigned. Same response shape either way | Story 15 |
 | **PF-5** | `firstRespondedAt` is set only by the first outbound message, so a ticket resolved without a reply is permanently first-response-breached | Story 09 |
-| **PF-6** | A-15 covers registration when a **Customer profile** exists for the email, not when a **User** already does. Derivable from the unique-email constraint (409), but the contract should state it | Stage 7 |
-| **PF-7** | `TicketMessage.direction` has no stated derivation rule (customer → `Inbound`, agent → `Outbound`) and must not be client-settable | Stage 7 |
+| **PF-6** | A-15 covers registration when a **Customer profile** exists for the email, not when a **User** already does | ✅ **Closed** — api-design §5.2 states `409 user-already-exists` |
+| **PF-7** | `TicketMessage.direction` has no stated derivation rule and must not be client-settable | ✅ **Closed** — api-design §7 derives it from author role and omits it from every request model |
 
 ### 6.4 Decision → document → story traceability
 
@@ -346,6 +346,21 @@ Newest first. Every meaningful project change gets an entry.
 
 ### 2026-08-24
 
+- **Completed Stage 7 — API Design.** `docs/api-design.md`: 66 endpoints across 12 modules,
+  covering every T1/T2 story. Role gate stated on every endpoint; department scoping expressed as
+  `404` rather than `403` so the boundary does not leak existence (AP-4); a separate `/portal` path
+  space for the Customer role (AP-5); lifecycle changes as an action endpoint carrying the target
+  status, with A-5 legality and A-16 authority producing distinct `409` and `403` (AP-6); the
+  automatic `Pending -> Open` on customer reply, with R-14 attribution, as the one status side
+  effect in the API (§5.7); thirteen classes of server-derived field excluded from request models
+  (§7). Sixteen technical decisions recorded as AP-1…AP-16 with rationale and rejected alternative.
+  **No business rule was invented.** Gate 7 -> 8 met.
+  *Notable:* PF-2 is **avoided** rather than solved — AP-11 publishes no inbound-channel endpoint,
+  so no contract needs a system actor the model cannot express; the gap remains for story 18.
+  PF-6 and PF-7 are **closed** by the contract. PF-3 is handled but **requires a
+  `Feedback:RatingScale` key that architecture §6.3 does not have — raised for approval, not
+  applied**. PF-4's metric semantics remain undecided by design.
+  *Files:* `docs/api-design.md` (new), `docs/sdd-workflow.md`, `docs/PROJECT-PROGRESS.md`.
 - **Approved the actor attribution for the automatic `Pending -> Open` transition.** When PF-1 was
   propagated, the transition had no invoking user while A-5 requires every transition to carry an
   actor; the customer was chosen and **flagged as a derived detail rather than applied silently**.
@@ -493,9 +508,8 @@ Newest first. Every meaningful project change gets an entry.
 
 ## 10. Current Next Steps
 
-1. **Stage 7 — API Design** → `docs/api-design.md`. Gate: a contract for every capability the
-   stories need, role-based access stated per endpoint (A-4 and the A-16 matrix), matching the data
-   model exactly. A-14…A-18 supply everything that was missing.
+1. **Approve or reject the `Feedback:RatingScale` configuration key** for architecture §6.3
+   (api-design §9, item 1). Small, but it touches an approved document.
 2. **Stage 8 — UI Design** → `docs/ui-design.md`. Every screen for workspace, portal and admin;
    RTL implications; phone-width behaviour.
 3. **Decide OQ-1, OQ-2, OQ-3** — needed before stories 09, 13 and 15 are implemented, not before
