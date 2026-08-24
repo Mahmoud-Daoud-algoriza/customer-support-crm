@@ -1,6 +1,6 @@
 # Architecture — Customer Support CRM
 
-> **Source of truth:** [requirements.md](requirements.md) (all sections) · [product-scope.md](product-scope.md) T1–T4, A-1…A-13 · [sdd-workflow.md](sdd-workflow.md) stage 5 · [story-backlog.md](story-backlog.md) (18 intakes)
+> **Source of truth:** [requirements.md](requirements.md) (all sections) · [product-scope.md](product-scope.md) T1–T4, A-1…A-18 · [sdd-workflow.md](sdd-workflow.md) stage 5 · [story-backlog.md](story-backlog.md) (18 intakes)
 > **SDD stage:** 5 of 10. Gate 5 → 6 per [sdd-workflow.md](sdd-workflow.md) §4.
 > **Status:** Design only. No code, no database schema, no API endpoints, no UI components.
 
@@ -505,6 +505,8 @@ degrading at runtime — required by the `audit-configuration` intake.
 | **Database connection** | Environment variable from Compose (`.env`, git-ignored) | Never in a committed file |
 | **AI provider** | Configuration selects `fake` or a real provider; credentials from environment | Default is `fake`; the system must run with none |
 | **Categories** | Configuration — a flat list | Fixed enumeration, not a user-managed taxonomy (A-6) |
+| **Category → department map** | Configuration — one department per category | Sets a ticket's department at creation, before assignment (A-14). Validated at startup: every category must map |
+| **Default branch** | Configuration — one branch id | Assigned to self-registering customers (A-15) |
 | **Priorities** | Configuration — Low, Medium, High, Urgent | Four levels, fixed (A-6) |
 | **SLA targets** | Configuration — first-response and resolution hours **per priority** | 24/7 clock (A-3) |
 | **Quick replies** | Configuration — a small canned-response library | T1-C |

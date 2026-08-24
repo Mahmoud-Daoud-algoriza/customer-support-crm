@@ -38,12 +38,15 @@ Status lifecycle (§2.4, A-5) — one fixed status set with enforced transitions
 
     Any non-terminal status → Cancelled
 
-- New       — created, unassigned.
-- Open      — assigned and being worked.
+- New       — created, not yet being worked. MAY already have an assignee: automatic assignment
+              runs at creation, and assignment is not the start of work (A-18).
+- Open      — an agent has started work. New -> Open IS the act of starting.
 - Pending   — awaiting customer input. It does NOT pause the SLA clock (A-3).
 - Resolved  — the agent believes it is done; triggers the feedback request (portal story).
 - Closed    — terminal, reached from Resolved; no further replies.
-- Cancelled — terminal, for tickets abandoned or created in error.
+- Cancelled — terminal, for tickets abandoned or created in error. Agents, Managers and
+              Administrators may cancel any non-terminal ticket; a customer may cancel their
+              own ticket ONLY while it is New (A-16, A-18).
 
 An illegal transition must be refused by the server, not merely hidden in the UI.
 
@@ -69,6 +72,9 @@ Ticket history (§2.5):
       error, verified by a test that bypasses the UI.
 - [ ] Resolved can be reopened to Open by either an agent or the ticket's customer.
 - [ ] Closed and Cancelled are terminal: no further replies or transitions are accepted.
+- [ ] A ticket in New may carry an assignee; status and assignee are independent (A-18).
+- [ ] The transition authority matrix of A-16 is enforced server-side: a customer cancelling an
+      Open ticket is refused; an agent cancelling a non-terminal ticket succeeds.
 - [ ] Escalating a ticket raises its priority exactly one level (Urgent stays Urgent), leaves
       status unchanged, writes a history entry, and notifies the department manager.
 - [ ] Ticket history shows every status, assignment, priority and category change with actor,

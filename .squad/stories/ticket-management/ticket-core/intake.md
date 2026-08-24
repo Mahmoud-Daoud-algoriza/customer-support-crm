@@ -49,6 +49,8 @@ Categories and priorities (§2.2, A-6):
 
 Assignment (§2.3):
 - An agent can be assigned to a ticket, and a ticket can be reassigned.
+- Assignment does not change status: an assigned ticket stays New until an agent starts work
+  (A-18).
 - Managers may reassign across departments; agents may not.
 ```
 

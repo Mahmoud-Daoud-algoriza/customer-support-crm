@@ -65,6 +65,8 @@ Submit feedback (§8.5):
       optional comment; submitting it records the rating against that ticket.
 - [ ] A rating can be submitted once per ticket, and declining is a normal outcome, not an error.
 - [ ] A customer can reopen a Resolved ticket (A-5), and reopening is reflected in ticket history.
+- [ ] A customer can cancel their own ticket while it is New — including when it has already been
+      auto-assigned (A-18) — and the cancellation is refused once the ticket is Open (A-16).
 - [ ] The portal is usable at phone width (T3-F, responsive web).
 ```
 

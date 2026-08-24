@@ -355,20 +355,28 @@ New → Open → Pending (waiting on customer) → Resolved → Closed
 Any non-terminal status → Cancelled
 ```
 
-- **New** — created, unassigned. **Open** — assigned and being worked.
+- **New** — created, and **not yet being worked**. A ticket in `New` **may already have an
+  assignee**: automatic assignment (T2-D) runs at creation, and being assigned is not the same
+  as being worked (A-18).
+- **Open** — **an agent has started work.** The `New → Open` transition *is* the act of starting.
 - **Pending** — awaiting customer input. *(Does not pause the SLA clock — see A-3.)*
 - **Resolved** — the agent believes it is done; triggers the feedback request.
-- **Closed** — terminal, reached from Resolved; no further replies.
+- **Closed** — terminal, reached from Resolved **by an agent, manually**. There is no
+  automatic closure (A-16); no timer moves a ticket to Closed. No further replies.
 - **Cancelled** — terminal, for tickets abandoned or created in error.
 - **Escalation is an action, not a status** — it raises priority, records an escalation entry in
   ticket history, and notifies the manager, leaving status unchanged. There are no escalation
   tiers and no L1/L2/L3 support levels.
 - Every transition is recorded in ticket history with actor, timestamp, and before/after values.
+- **Which role may perform which transition is fixed by A-16.** A-5 states which transitions are
+  legal; A-16 states who may invoke them.
 
 **A-6 · Categories and priorities.** Both are fixed configuration enumerations, not user-managed
 taxonomies. Priority is a four-level scale (Low, Medium, High, Urgent), set by the agent or by the
-AI suggestion; a customer may indicate urgency at submission but does not set priority directly.
-Categories are a flat list — no sub-categories.
+AI suggestion; a customer may indicate urgency at submission but does not set priority directly —
+that indication is the boolean flag of A-17.
+Categories are a flat list — no sub-categories. **A category also determines the ticket's
+department**, through the configured mapping of A-14.
 
 **A-7 · Integrations.** No live external system is contacted during the assessment. Email,
 WhatsApp, SMS, and ERP are represented by adapter interfaces with logging/no-op fakes (T3-A,
@@ -382,7 +390,8 @@ UI, and its acceptance or override is recorded in ticket history. No autonomous 
 customer-facing generation.
 
 **A-9 · Identity and authentication.** Email + password authentication with session or token auth,
-sufficient to distinguish the four roles. Customers self-register or are created by an agent.
+sufficient to distinguish the four roles. Customers self-register or are created by an agent —
+A-15 fixes what self-registration does about branch and about an email that already has a profile.
 **No** SSO, OAuth, MFA, password-policy engine, or account-recovery flow. No anonymous ticket
 submission.
 
@@ -399,6 +408,77 @@ existing `docker-compose.yml`. Seed/demo data is provided so the demo is meaning
 
 **A-13 · Notifications.** In-app only, generated for: assignment, SLA breach, escalation, and a
 customer reply on an assigned ticket. No per-user notification preferences.
+
+---
+
+### Assumptions added after the architecture and data-model stages
+
+A-14…A-17 were decided on 2026-08-24, when the Stage 7 (API Design) review found four business
+questions that no source answered and that materially changed an API contract. They are decisions,
+not inferences, and they extend A-5, A-6, A-9 and A-10 rather than contradicting them.
+
+**A-14 · A ticket's department comes from its category.** Customers do not choose a department.
+- A customer chooses a **category**; every category maps to **exactly one department** through
+  configuration.
+- The ticket receives its `departmentId` from that mapping **at creation, before assignment** —
+  which T2-D requires, since automatic assignment is round-robin *within* the ticket's department.
+- The mapping is configuration alongside the category list itself (T2-I: no configuration UI).
+- Every configured category must map to a department; an unmapped category is a configuration
+  error and fails at startup validation.
+- An agent creating a ticket on behalf of a customer may set the department directly; the mapping
+  is the default, not a cage.
+
+**A-15 · Self-registration uses a default branch, and links to an existing profile.**
+- `Customer.branchId` is required (A-2). A self-registering customer is assigned the
+  **system default branch**, a configured value. They are not asked to choose one.
+- **If a `Customer` profile already exists with the submitted email** (an agent created it
+  earlier), registration **creates the `User` account and links it to that existing profile**. It
+  does **not** create a second customer, and it does not fail.
+- This preserves A-10 — one customer per email address — and DM-1's one-login-per-profile rule.
+
+**A-16 · Who may perform each ticket transition.** A-5 fixes which transitions are legal; this
+fixes who may invoke them.
+
+| Transition | Customer | Agent | Manager | Administrator |
+|---|---|---|---|---|
+| Create (→ New) | ✔ own | ✔ on behalf of a customer | ✔ | ✔ |
+| → Open | ✖ | ✔ | ✔ all departments | ✔ |
+| → Pending | ✖ | ✔ | ✔ all departments | ✔ |
+| → Resolved | ✖ | ✔ | ✔ all departments | ✔ |
+| → Closed | ✖ | ✔ | ✔ all departments | ✔ |
+| Reopen (Resolved → Open) | ✔ own | ✔ | ✔ all departments | ✔ |
+| → Cancelled | ✔ own, **only while `New`** | ✔ | ✔ all departments | ✔ |
+| Escalate (action, not a transition) | ✖ | ✔ | ✔ all departments | ✔ |
+
+- Agent and Manager authority is otherwise identical; Manager's applies across all departments
+  (A-4). Administrator is unrestricted.
+- **Closure is manual only. No automatic closure exists** — no timer, no scheduled job, no
+  configured close-after period.
+- **Agents and Managers may cancel** (a Manager across all departments); Administrators are
+  unrestricted. **Customers may cancel their own ticket only while it is `New`** — the window
+  defined by A-18. Once an agent starts work and the ticket becomes `Open`, the customer can no
+  longer cancel it.
+- One consequence remains deliberate and worth stating plainly: **customers cannot close** a
+  ticket — they can only reopen a `Resolved` one.
+
+**A-17 · Customers indicate urgency with a boolean, not a priority.**
+- The ticket-creation input accepts **`isUrgent`** — a boolean, supplied by the customer.
+- It **does not set priority**. Priority remains agent-set or AI-suggested (A-6).
+- Agents and the AI categorization suggestion **may use it** as one input when deciding priority,
+  so it is stored on the ticket and remains visible after creation.
+- It is **customer input only**: an agent creating a ticket on behalf of a customer sets priority
+  directly and does not supply this flag.
+
+**A-18 · Assignment is not the start of work.** Decided 2026-08-24, resolving what had been open
+question 8.
+- Automatic assignment (T2-D) runs at creation. **A ticket may be assigned and still be `New`.**
+- `New` means: created, possibly already assigned, **but no agent has begun working on it**.
+- **`New → Open` is the act of an agent starting work.** It is a deliberate agent action, not a
+  side effect of assignment.
+- Therefore the customer's cancellation window (A-16) is real rather than theoretical: it lasts
+  from creation until an agent actually picks the ticket up.
+- Consequence for the data model: `Ticket.assignedUserId` may be set while `status = New`. Nothing
+  may infer status from the presence of an assignee, or an assignee from the status.
 
 ---
 
@@ -457,6 +537,9 @@ assessment, but would block a real build.
 5. Real SLA policy: business hours, holiday calendars, per-branch timezones, pause-on-customer-reply.
 6. Chatbot → human handoff semantics.
 7. Whether ticket submission must be possible without an account. A-9 assumes not.
+
+*(A question 8 — the boundary of the customer cancellation window — was raised and **resolved** on
+2026-08-24. Assignment does not start work; see A-18. It is recorded there rather than left here.)*
 
 ---
 

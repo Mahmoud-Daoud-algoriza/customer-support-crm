@@ -1,6 +1,6 @@
 # Data Model — Customer Support CRM
 
-> **Source of truth:** [requirements.md](requirements.md) · [product-scope.md](product-scope.md) T1–T4, A-1…A-13 · [architecture.md](architecture.md) §2.1, §2.4, §2.5, §4.1.1, §4.3, §5, §6.3 · [story-backlog.md](story-backlog.md) and the 18 story intakes
+> **Source of truth:** [requirements.md](requirements.md) · [product-scope.md](product-scope.md) T1–T4, A-1…A-18 · [architecture.md](architecture.md) §2.1, §2.4, §2.5, §4.1.1, §4.3, §5, §6.3 · [story-backlog.md](story-backlog.md) and the 18 story intakes
 > **SDD stage:** 6 of 10. Gate 6 → 7 per [sdd-workflow.md](sdd-workflow.md) §4.
 > **Status:** Conceptual and logical model only. No SQL, no EF Core entities, no `DbContext`, no migrations, no endpoints, no UI.
 
@@ -40,7 +40,9 @@ both be true of one row.
   interaction history.
 
 They are linked **one-to-at-most-one**: a customer who uses the portal has a `User` row of role
-`Customer` pointing at their profile. A customer who has never logged in has a profile and no
+`Customer` pointing at their profile. When someone self-registers with an email that already has
+a profile, the new `User` **links to that profile** rather than creating a second customer
+(A-15), which is what keeps A-10's one-customer-per-email rule true. A customer who has never logged in has a profile and no
 login — which is required, because an agent creates tickets on behalf of customers
 (`ticket-core` intake) who may never touch the portal.
 
@@ -268,7 +270,7 @@ from its customer's — that contradicts A-2 and must be raised against
 | `fullName` | ✔ | §1 contact details |
 | `email` | ✔ | Unique, case-insensitive. The identifier of A-10 |
 | `phone` | ✖ | §1 contact details |
-| `branchId` | ✔ | A-2: a customer belongs to one branch |
+| `branchId` | ✔ | A-2: a customer belongs to one branch. A self-registering customer receives the configured **default branch** (A-15) |
 | `externalReference` | ✖ | ERP seam, unused by default (DM-6, [architecture.md](architecture.md) §5.3) |
 | `createdAt` | ✔ | |
 
@@ -312,7 +314,8 @@ silently editable by other users"; immutability is the cheapest way to guarantee
 | `categoryCode` | ✔ | Validated against the configured flat list; **not** a table (A-6, [architecture.md](architecture.md) §6.3) |
 | `priority` | ✔ | `Low` \| `Medium` \| `High` \| `Urgent` (A-6) |
 | `status` | ✔ | `New` \| `Open` \| `Pending` \| `Resolved` \| `Closed` \| `Cancelled` (A-5) |
-| `assignedUserId` | ✖ | Null while `New`; the current assignee thereafter (DM-2) |
+| `assignedUserId` | ✖ | The current assignee (DM-2). **May be set while `status = New`** — assignment is not the start of work (A-18). Null only until assignment happens |
+| `isUrgent` | ✔ | Boolean, default false. **Customer input only** — an urgency indication that does **not** set priority; agents and the AI suggestion may use it when deciding priority (A-17) |
 | `createdByUserId` | ✔ | The agent or the customer who raised it |
 | `createdAt` | ✔ | **The SLA clock origin** (A-3) |
 | `firstResponseDueAt` | ✔ | At creation: `createdAt` + the configured hours for the ticket's priority (A-3). Behaviour on a later priority change is **undecided** — OQ-2 |
@@ -336,6 +339,9 @@ change writes a `TicketActivity` row.
 1. Status transitions follow the A-5 machine, enforced in the Domain layer
    ([architecture.md](architecture.md) §2.1). Illegal transitions are refused for every role.
 2. `Closed` and `Cancelled` are terminal: no further messages, notes or transitions.
+2a. **`status` and `assignedUserId` are independent.** A `New` ticket may carry an assignee
+    (A-18); nothing may infer one field from the other. `New → Open` records an agent starting
+    work, not an assignment.
 3. `assignedUserId`, when set, must be an **active staff user in this ticket's department** —
    a cross-row rule enforced in the Application layer, so a ticket can never be assigned to someone
    who could not then see it (`ticket-core` AC).
@@ -699,6 +705,13 @@ branch filter the reports ask for. Full audit of the sources in §2.3.
 9. Escalation raises priority one level; Urgent stays Urgent; status is unchanged.
 10. `assignedUserId` must be an active staff user in the ticket's department.
 11. `categoryCode` must match the configured list; an unknown value is rejected.
+11a. For a customer-submitted ticket, `departmentId` is **derived from the category** through the
+    configured mapping, at creation and before assignment (A-14). An agent creating a ticket may
+    set it directly. Either way the column is stored, not computed on read.
+11b. Which role may invoke which transition is fixed by **A-16**; the Domain enforces legality,
+    the Application layer enforces authority. Closure is manual — nothing in this model schedules
+    a transition to `Closed`. A customer may cancel **only while `status = New`** (A-16, A-18);
+    agents, managers and administrators may cancel any non-terminal ticket.
 
 **SLA**
 
@@ -879,8 +892,14 @@ pre-empted by an assumption baked into the model.
 | **OQ-2** | When priority changes, do the SLA due dates recompute or stay frozen? | A-3 fixes per-priority targets and a `createdAt` origin; silent on later changes, which T2-D escalation causes routinely | Stores both timestamps; **compatible with either rule and asserts neither** (§2.6 invariant 6) | `sla-routing-escalation`, and §9.2 SLA attainment |
 | **OQ-3** | Who is notified on breach when a department has no manager? | T2-D and the intake both say "notify the department manager"; neither covers its absence | `managerUserId` optional; **no fallback recipient invented**. Breach flag and priority raise still occur (§2.2) | `sla-routing-escalation` |
 
-**Resolved and closed since the first draft of this document:** whether a ticket needs its own
-branch relationship. It does not — a ticket's branch is derived `Ticket → Customer → Branch`, no
-source requires otherwise, and §2.3 records the full audit.
+**Resolved and closed since the first draft of this document:**
+
+- **Whether a ticket needs its own branch relationship.** It does not — a ticket's branch is derived
+  `Ticket → Customer → Branch`, no source requires otherwise, and §2.3 records the full audit.
+- **OQ-4 — the customer cancellation window** (raised and resolved 2026-08-24). **Assignment is not
+  the start of work** (A-18): a ticket may be assigned while still `New`, and `New → Open` is an
+  agent deliberately starting work. The customer's window therefore lasts from creation until an
+  agent picks the ticket up. Model consequence: `status` and `assignedUserId` are independent
+  (§2.6 invariant 2a).
 
 **Next stage:** 7 — API Design (`docs/api-design.md`). Not started.

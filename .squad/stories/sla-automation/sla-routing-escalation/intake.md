@@ -41,6 +41,7 @@ Automatic assignment (§5.2):
 - Round-robin across active agents in the ticket's department.
 - No skills, no load balancing, no capacity rules.
 - Manual assignment (ticket-core) always overrides.
+- Assignment does NOT move the ticket out of New (A-18). Only an agent starting work does.
 
 Escalation rules (§5.3):
 - Exactly ONE rule: on target breach → flag the ticket breached → raise priority one level →
@@ -67,8 +68,10 @@ not seconds). Timing precision is explicitly not a goal. No job queue, no messag
 - [ ] Each ticket exposes its target times and its remaining/overdue state, computed on a 24/7
       clock from creation.
 - [ ] Moving a ticket to Pending demonstrably does NOT pause the clock (A-3).
-- [ ] A new unassigned ticket is auto-assigned round-robin to an active agent in its department;
+- [ ] A newly created ticket is auto-assigned round-robin to an active agent in its department;
       successive tickets go to different agents.
+- [ ] Auto-assignment does NOT change status: the ticket stays New until an agent starts work
+      (A-18). Assignment is not the start of work.
 - [ ] Auto-assignment never selects an agent outside the ticket's department or a deactivated user.
 - [ ] A manual reassignment overrides the automatic one and is recorded in ticket history.
 - [ ] On breach, the ticket is flagged breached, its priority rises exactly one level (Urgent

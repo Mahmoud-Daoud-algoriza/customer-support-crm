@@ -18,12 +18,12 @@
 |---|---|
 | **Current SDD stage** | **Stage 6 complete → Stage 7 (API Design) is next, not started** |
 | **Current phase** | Design. Implementation has **not** begun |
-| **Overall status** | 🟢 On track — no blockers to the next stage |
+| **Overall status** | 🟢 On track — no blocker to Stage 7. Every contract is now designable |
 | **Overall progress** | **23%** (method in §1.1) |
 | **SDD pipeline** | **6 of 10 stages complete** (60% of the pipeline) |
 | **Code written** | **None.** `backend/` and `frontend/` are empty; `docker-compose.yml` is 0 bytes |
 | **Last updated** | 2026-08-24 |
-| **Current focus** | Stage 7 — API Design (`docs/api-design.md`) |
+| **Current focus** | Stage 7 — API Design (`docs/api-design.md`). All five blocking business questions answered 2026-08-24 (A-14…A-18) |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 23% is calculated
@@ -52,13 +52,13 @@ delivery carries the larger weight. A design-only project is not most of the way
 
 | # | Stage | Status | Artifact(s) | Doc? | Gate | Note |
 |---|---|---|---|---|---|---|
-| 1 | Requirements | ✅ Complete | [requirements.md](requirements.md) (14 lines, 56 requirement lines) | ✅ | n/a — given input | Never edited. Includes the stage-2 requirements analysis, delivered in conversation and distilled into scope |
-| 2 | Product Scope | ✅ Complete | [product-scope.md](product-scope.md) (483 lines) | ✅ | n/a | T1–T4 tiers, A-1…A-13, 7 open questions. Approved 2026-08-24 |
+| 1 | Requirements | ✅ Complete | [requirements.md](requirements.md) — 56 requirement lines | ✅ | n/a — given input | Never edited. Includes the stage-2 requirements analysis, delivered in conversation and distilled into scope |
+| 2 | Product Scope | ✅ Complete | [product-scope.md](product-scope.md) | ✅ | n/a | T1–T4 tiers, A-1…A-18, 7 open questions. Approved 2026-08-24; A-14…A-18 added 2026-08-24 |
 | 3 | Story Intake / Backlog | ✅ Complete | 18 intakes + [story-backlog.md](story-backlog.md) | ✅ | ✅ Met | All 56 requirement lines mapped to a story |
-| 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories, 13 plan-overview stubs | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
-| 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) (646 lines) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
-| 6 | Data Model | ✅ Complete | [data-model.md](data-model.md) (886 lines) | ✅ | ✅ Met, re-verified after the four clarifications | Approved 2026-08-24. 15 entities |
-| 7 | API Design | ⬜ **Not Started** | `docs/api-design.md` | ✖ | ✖ | **Current stage.** Gate: a contract per capability, role access per endpoint (A-4), matching the data model |
+| 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan-overview stubs | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
+| 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
+| 6 | Data Model | ✅ Complete | [data-model.md](data-model.md) | ✅ | ✅ Met, re-verified after the four clarifications | Approved 2026-08-24. 15 entities |
+| 7 | API Design | ⬜ **Not Started** | `docs/api-design.md` | ✖ | ✖ | **Current stage.** Gate: a contract per capability, role access per endpoint (A-4, A-16), matching the data model. Fully unblocked by A-14…A-18 |
 | 8 | UI Design | ⬜ Not Started | `docs/ui-design.md` | ✖ | ✖ | Gate: every screen for workspace, portal and admin; RTL implications; phone-width behaviour |
 | 9 | Implementation Plans | ⬜ Not Started | `.squad/plans/<feature>/NN-story-*.md` | ✖ (0 plan files) | ✖ | Generated one story at a time via `/squad-plan` |
 | 10 | Implementation / Verification | ⬜ Not Started | `backend/`, `frontend/` | ✖ (both empty) | ✖ | No code exists |
@@ -69,7 +69,8 @@ differently: its stage 2 is the requirements analysis (folded into row 1 here), 
 user-story stage (rows 3 and 4 here, since squad-kit initialization is tooling rather than a
 workflow stage). Rows 5–10 match its stages 5–10 exactly. The workflow document governs.
 
-**Blockers to the pipeline:** none. Stage 7 can start immediately.
+**Blockers to the pipeline:** none. Every Stage 7 contract is designable; OQ-4, the last one that
+blocked an endpoint, was resolved on 2026-08-24 by A-18.
 
 ---
 
@@ -177,6 +178,15 @@ pursued. [architecture.md](architecture.md) §8 restates them so they survive in
 
 All approved. Full text in [architecture.md](architecture.md) §7 and [data-model.md](data-model.md) §1.
 
+**This table is not the whole decision inventory.** It covers technical decisions (AD-*) and
+modelling decisions (DM-*). **Business** decisions are the numbered assumptions A-1…A-18 in
+[product-scope.md](product-scope.md) §7; the five most recent (**A-14…A-18**) are recorded as
+R-6…R-11 in §6.3, with their document and story impact traced in §6.4.
+
+**Known cosmetic defect, unfixed:** in [architecture.md](architecture.md) §7 the **AD-15 row renders
+above AD-14** — AD-15 was inserted at the wrong position during the token-staleness correction. No
+content is affected; ordering only. Recorded here so it is not lost.
+
 | ID | Decision | Status | Why it matters | Source |
 |---|---|---|---|---|
 | AD-1 | Layered modular monolith, single deployable | ✅ Approved | Rules out microservices for every downstream plan | arch §7 |
@@ -213,7 +223,8 @@ All approved. Full text in [architecture.md](architecture.md) §7 and [data-mode
 | **OQ-2** | On a priority change, do SLA due dates recompute from `createdAt` or stay frozen? A-3 is silent, and T2-D escalation changes priority routinely | Materially different §9.2 attainment numbers; recompute can breach a ticket as a consequence of the escalation the breach triggered | Story 09, and §9.2 in story 15 | 🔴 Open — business rule |
 | **OQ-3** | Who is notified on breach when a department has no manager? T2-D says "notify the department manager"; absence is uncovered | Breach flag and priority raise are unaffected; only the recipient is undetermined. **No fallback invented** | Story 09 | 🔴 Open — product decision |
 
-**None of these blocks Stage 7.** All three are implementation-time decisions.
+**None of these blocks Stage 7.** All three are implementation-time decisions. OQ-4, which did
+block one contract, was resolved on 2026-08-24 — see R-11 below.
 
 ### 6.2 Carried from product scope — non-blocking by design
 
@@ -234,6 +245,34 @@ Kept, not deleted.
 | R-3 | Do AI features need persistence? | **No entity.** Summaries and suggested replies are not stored; the categorization record is ticket history | 2026-08-24 | DM-5 |
 | R-4 | Is `Customer` a role or an entity? | **Both, separately.** `User` (login, role, department) and `Customer` (profile, branch), linked 1:0..1 | 2026-08-24 | DM-1 |
 | R-5 | Was a CSAT 1–5 scale assumed? | **Withdrawn.** The assumption was removed rather than hardened into a constraint; reopened as OQ-1 | 2026-08-24 | model §2.15 |
+| R-6 | How does a customer-submitted ticket get its department? | **Category → department mapping in configuration**, applied at creation before assignment. Customers choose a category, never a department | 2026-08-24 | **A-14** |
+| R-7 | Self-registration: which branch, and what if the email already has a profile? | **System default branch** (configured). An existing profile is **linked**, not duplicated — the `User` is created and points at it | 2026-08-24 | **A-15** |
+| R-8 ⚠ | Who may Cancel, Close and Escalate? **Partly superseded by R-10 — see the cancel row there.** | **Full authority matrix fixed.** Customer: create, reopen own, cancel own before work begins. Agent: open, pending, resolve, close, escalate. Manager: the same across all departments. Administrator: unrestricted. **Closure is manual only — no automatic closure.** As first recorded, this withheld cancel from agents and managers; **that half was corrected the same day — see R-10.** The rest stands | 2026-08-24 | **A-16** (superseded in part) |
+| R-9 | Does the creation contract carry a customer urgency input? | **Yes — `isUrgent`, a boolean.** Customer input only; does not set priority; agents and the AI suggestion may use it when deciding priority. Persisted on `Ticket` | 2026-08-24 | **A-17**, model §2.6 |
+| R-10 | May agents and managers cancel a ticket? | **Yes** — corrected 2026-08-24. Agents and Managers may cancel any non-terminal ticket (Manager across all departments); Administrators unrestricted. Customers may cancel their own **only while `New`**. Supersedes the first version of A-16, which withheld cancel from agents and managers | 2026-08-24 | **A-16** |
+| R-11 | **OQ-4** — what is the customer cancellation window? | **Assignment is not the start of work.** A ticket may be assigned while still `New`; `New → Open` is an agent deliberately starting work. The customer's window runs from creation until an agent picks the ticket up, so it is real rather than theoretical | 2026-08-24 | **A-18** |
+
+### 6.4 Decision → document → story traceability
+
+Which documents and which story intakes each resolved decision actually changed. "—" means nothing
+needed amending, because nothing in that artifact contradicted the decision.
+
+| Decision | Documents changed | Story intakes changed |
+|---|---|---|
+| **R-1 / AD-15** token asserts identity only | `architecture.md` §4.1, **new §4.1.1**, §3 flow, §4.3, AD-7, **new AD-15** | — |
+| **R-2** branch derived, not stored | `data-model.md` §2.3, §4, §8 | — |
+| **R-3 / DM-5** no AI entity | `data-model.md` §1 | — |
+| **R-4 / DM-1** `User` and `Customer` separate | `data-model.md` §1, §2.1, §2.4 | — |
+| **R-5** CSAT scale assumption withdrawn | `data-model.md` §2.15, §8 (reopened as OQ-1) | — |
+| **R-6 / A-14** category → department routing | `product-scope.md` A-6, **new A-14**; `architecture.md` §6.3 (new config key); `data-model.md` invariant 11a | — |
+| **R-7 / A-15** self-registration branch + linking | `product-scope.md` A-9, **new A-15**; `architecture.md` §6.3 (new config key); `data-model.md` DM-1, §2.4 | — |
+| **R-8 / A-16** transition authority matrix | `product-scope.md` A-5, **new A-16**; `data-model.md` invariant 11b | `ticket-lifecycle`, `portal-self-service` |
+| **R-9 / A-17** `isUrgent` customer input | `product-scope.md` A-6, **new A-17**; `data-model.md` §2.6 (**new field**) | — |
+| **R-10** agents and managers may cancel | `product-scope.md` A-16 (cancel row + consequences) | `ticket-lifecycle`, `portal-self-service` |
+| **R-11 / A-18** assignment is not the start of work | `product-scope.md` A-5, **new A-18**, §9 (question 8 closed); `data-model.md` §2.6 field, **new invariant 2a**, 11b, §8 | `ticket-lifecycle`, `ticket-core`, `sla-routing-escalation`, `portal-self-service` |
+
+`sdd-workflow.md` was touched by the A-14…A-18 set only to widen the assumption range it cites.
+No decision so far has changed [requirements.md](requirements.md), which is never edited.
 
 ---
 
@@ -274,7 +313,7 @@ Only entries with real evidence are marked verified.
 | API verification | ⬜ Not Run | No API |
 | UI verification | ⬜ Not Run | No UI |
 | Docker startup | ⬜ Not Run | `docker-compose.yml` is empty |
-| Working tree | ✅ Clean | 5 commits on `main`, nothing uncommitted, nothing pushed |
+| Working tree | ⚠ Uncommitted work | **6 commits** on `main`, all **pushed** to `origin/main`. **9 files modified and uncommitted** as of this audit: the A-14…A-18 decision set, the A-18 correction, four story intakes, and this tracker |
 
 ---
 
@@ -284,6 +323,55 @@ Newest first. Every meaningful project change gets an entry.
 
 ### 2026-08-24
 
+- **Audited this tracker against every project document** ahead of the Stage 7 pre-flight.
+  Checked the twelve things it must track, then cross-read `product-scope.md`,
+  `architecture.md`, `data-model.md`, `sdd-workflow.md`, all 18 intakes and the repository state.
+  **Six discrepancies found, all in this file, all fixed:** the plan-overview stub count was 13 and
+  is 14 (14 feature slugs, not the 11 previously reported); line counts cited for
+  `architecture.md` and `data-model.md` had gone stale and were removed rather than re-pinned;
+  the working-tree row still claimed 5 commits, clean, nothing pushed, when there are 6 commits,
+  all pushed, with 9 files uncommitted; a historical change-log entry repeated the feature
+  miscount; §5 read as though it were the complete decision inventory when the A-* business
+  decisions live in §6.3; and the decision → document → story traceability required of this
+  tracker did not exist, so §6.4 was added.
+  **No stale status, missing decision, missing open question, mis-stated blocker, or unsupported
+  claim was found** — the stage numbering matches `sdd-workflow.md`, the three active open
+  questions match `data-model.md` §8, and every story blocked by an open decision is marked.
+  *Why:* the tracker is the single progress source of truth and had drifted on facts about itself.
+  *Files:* `docs/PROJECT-PROGRESS.md` only. No project document was modified.
+- **Corrected the cancel authority and resolved OQ-4.** Agents and Managers may now cancel
+  (Administrators were already unrestricted); customers may cancel their own ticket only while it
+  is `New`. OQ-4 answered by **A-18**: automatic assignment does not mean work has started, a
+  ticket may be assigned while still `New`, and `New → Open` is the agent starting work.
+  *Why:* the first version of A-16 withheld cancel from agents and managers, and the cancellation
+  window it described could have been zero because auto-assignment runs at creation.
+  *Contradiction found and fixed:* A-5 and the `ticket-lifecycle` intake both defined `New` as
+  "created, **unassigned**" and `Open` as "assigned and being worked" — directly incompatible with
+  A-18. Both were rewritten, and the data model's `assignedUserId` note ("Null while `New`") with
+  them; status and assignee are now explicitly independent.
+  *Files:* `docs/product-scope.md` (A-5, A-16, **A-18**, §9), `docs/data-model.md` (§2.6 field and
+  invariants 2a/11b, OQ register), `docs/architecture.md` and `docs/sdd-workflow.md` (assumption
+  range), four story intakes (`ticket-lifecycle`, `ticket-core`, `sla-routing-escalation`,
+  `portal-self-service`), `docs/PROJECT-PROGRESS.md`.
+- **Answered four blocking business decisions ahead of Stage 7** and recorded them as assumptions
+  **A-14…A-17** in the product scope: category→department routing, self-registration branch and
+  profile-linking, the ticket-transition authority matrix with manual-only closure, and the
+  `isUrgent` customer input. Consequences propagated: two configuration keys added to the
+  architecture (category→department map, default branch), `Ticket.isUrgent` added to the data
+  model, and `Customer`/DM-1 amended for the linking rule.
+  *Why:* a pre-Stage-7 review found four questions that no source answered and that each changed
+  an API contract; none was in the open-question register.
+  *Files:* `docs/product-scope.md`, `docs/architecture.md`, `docs/data-model.md`,
+  `docs/sdd-workflow.md`, `docs/PROJECT-PROGRESS.md`.
+- **Opened OQ-4** — the boundary of "before work begins" for customer cancellation. Auto-assignment
+  at creation may leave a zero-length cancellation window, so A-16's rule needs one more
+  clarification before the portal cancellation contract can be written.
+  *Files:* `docs/product-scope.md` (§9 question 8), `docs/data-model.md` (§8 register).
+- **Reviewed all design documents for contract-blocking ambiguities** before starting Stage 7.
+  Found four blockers (recorded above), one partial (OQ-1, deferrable through configuration) and
+  eight non-blocking items with the technique for designing around each. Established that OQ-2 and
+  OQ-3 do not affect any contract shape.
+  *Files:* none — analysis only.
 - **Created this progress tracker.** No other file modified.
   *Files:* `docs/PROJECT-PROGRESS.md` (new).
 - **Clarified four points in the data model** after review, without changing the model.
@@ -310,7 +398,7 @@ Newest first. Every meaningful project change gets an entry.
   inside all 18 intakes.
   *Files:* `docs/architecture.md` (new), `docs/sdd-workflow.md`, 18 intakes. *Commit:* `bbcff22`.
 - **Completed Stages 2–4 — Product Scope, Story Backlog, Squad Kit.** Tiered scope with 13
-  assumptions and 7 open questions; squad-kit v0.2.0 initialized; 18 story intakes across 11
+  assumptions and 7 open questions; squad-kit v0.2.0 initialized; 18 story intakes across 14
   feature slugs; SDD workflow and backlog documents written.
   *Files:* `docs/product-scope.md`, `docs/sdd-workflow.md`, `docs/story-backlog.md`, `.squad/**`.
   *Commit:* `ba89afd`.
@@ -323,7 +411,8 @@ Newest first. Every meaningful project change gets an entry.
 ## 10. Current Next Steps
 
 1. **Stage 7 — API Design** → `docs/api-design.md`. Gate: a contract for every capability the
-   stories need, role-based access stated per endpoint (A-4), matching the data model exactly.
+   stories need, role-based access stated per endpoint (A-4 and the A-16 matrix), matching the data
+   model exactly. A-14…A-18 supply everything that was missing.
 2. **Stage 8 — UI Design** → `docs/ui-design.md`. Every screen for workspace, portal and admin;
    RTL implications; phone-width behaviour.
 3. **Decide OQ-1, OQ-2, OQ-3** — needed before stories 09, 13 and 15 are implemented, not before
