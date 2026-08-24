@@ -23,7 +23,7 @@
 | **SDD pipeline** | **7 of 10 stages complete** (70% of the pipeline) |
 | **Code written** | **None.** `backend/` and `frontend/` are empty; `docker-compose.yml` is 0 bytes |
 | **Last updated** | 2026-08-24 |
-| **Current focus** | Stage 8 — UI Design (`docs/ui-design.md`). Stage 7 delivered 66 endpoints across 12 modules |
+| **Current focus** | Stage 8 — UI Design (`docs/ui-design.md`). Stage 7 delivered 65 endpoints across 12 modules and passed its post-flight review |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 23% is calculated
@@ -58,7 +58,7 @@ delivery carries the larger weight. A design-only project is not most of the way
 | 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan-overview stubs | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
 | 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
 | 6 | Data Model | ✅ Complete | [data-model.md](data-model.md) | ✅ | ✅ Met, re-verified after the four clarifications | Approved 2026-08-24. 15 entities |
-| 7 | API Design | ✅ Complete | [api-design.md](api-design.md) | ✅ | ✅ Met | 66 endpoints, 12 modules, 16 API decisions (AP-1…AP-16). Pre-flight passed the same day |
+| 7 | API Design | ✅ Complete | [api-design.md](api-design.md) | ✅ | ✅ Met | **65** endpoints, 12 modules, 18 API decisions (AP-1…AP-18). Pre-flight passed 2026-08-24; **post-flight review 2026-08-25 closed two blocking defects** |
 | 8 | UI Design | ⬜ **Not Started** | `docs/ui-design.md` | ✖ | ✖ | **Current stage.** Gate: every screen for workspace, portal and admin; RTL implications; phone-width behaviour |
 | 9 | Implementation Plans | ⬜ Not Started | `.squad/plans/<feature>/NN-story-*.md` | ✖ (0 plan files) | ✖ | Generated one story at a time via `/squad-plan` |
 | 10 | Implementation / Verification | ⬜ Not Started | `backend/`, `frontend/` | ✖ (both empty) | ✖ | No code exists |
@@ -226,8 +226,10 @@ R-12 in §6.3. It is no longer an open issue.)*
 | **OQ-2** | On a priority change, do SLA due dates recompute from `createdAt` or stay frozen? A-3 is silent, and T2-D escalation changes priority routinely | Materially different §9.2 attainment numbers; recompute can breach a ticket as a consequence of the escalation the breach triggered | Story 09, and §9.2 in story 15 | 🔴 Open — business rule |
 | **OQ-3** | Who is notified on breach when a department has no manager? T2-D says "notify the department manager"; absence is uncovered | Breach flag and priority raise are unaffected; only the recipient is undetermined. **No fallback invented** | Story 09 | 🔴 Open — product decision |
 
-**None of these blocks Stage 7.** All three are implementation-time decisions. OQ-4, which did
-block one contract, was resolved on 2026-08-24 — see R-11 below.
+| **OQ-5** | When `Customer.email` is changed, does a linked portal login's sign-in email change with it? | A customer profile and its portal login are separate entities, each with a unique email (DM-1, A-15). No source covers a divergence | Raised 2026-08-25 by the N-2 correction. Blocks nothing in Stage 8; must be answered before **story 04** is implemented | 🔴 Open |
+
+**None of these blocks Stage 7 or Stage 8.** All four are implementation-time decisions. OQ-4, which
+did block one contract, was resolved on 2026-08-24 — see R-11 below.
 
 ### 6.2 Carried from product scope — non-blocking by design
 
@@ -266,11 +268,28 @@ inside the API document or deferred to the story named.
 | ID | Finding | Handle in |
 |---|---|---|
 | **PF-2** | `Ticket.createdByUserId` and `TicketMessage.authorUserId` are required with no System actor, but story 18's inbound fake adapter creates tickets with no human actor | **Avoided in Stage 7** (AP-11 publishes no ingestion endpoint) but **still open for story 18** |
-| **PF-3** | OQ-1 leaves the CSAT scale undecided and `architecture.md` §6.3 has **no** configuration key for it | **Handled in api-design §5.7** — `rating` validates against `feedback.ratingScale` from `GET /config`. ⚠ **Requires adding `Feedback:RatingScale` to architecture §6.3 — flagged for approval, not applied** |
+| **PF-3** | OQ-1 leaves the CSAT scale undecided and `architecture.md` §6.3 had **no** configuration key for it | ✅ **Closed 2026-08-25** — the `Feedback rating scale` key is now an approved entry in architecture §6.3, with its **values deliberately undecided** because OQ-1 remains open. `GET /config` publishes it; the feedback endpoint validates against it |
 | **PF-4** | "Tickets assigned" in the agent-performance metric is undefined — currently assigned vs. ever assigned. Same response shape either way | Story 15 |
 | **PF-5** | `firstRespondedAt` is set only by the first outbound message, so a ticket resolved without a reply is permanently first-response-breached | Story 09 |
 | **PF-6** | A-15 covers registration when a **Customer profile** exists for the email, not when a **User** already does | ✅ **Closed** — api-design §5.2 states `409 user-already-exists` |
 | **PF-7** | `TicketMessage.direction` has no stated derivation rule and must not be client-settable | ✅ **Closed** — api-design §7 derives it from author role and omits it from every request model |
+
+### 6.6 Stage 7 post-flight findings (2026-08-25)
+
+The post-flight review of `api-design.md` found two blocking defects and five non-blocking ones.
+
+| ID | Finding | Status |
+|---|---|---|
+| **B-1** | `api-design` made the feedback contract depend on a `Feedback:RatingScale` config key that architecture §6.3 did not have — the contract was not implementable from the approved documents | ✅ **Closed** — key approved and added, values left open (OQ-1) |
+| **B-2** | `GET /config` returned **quick replies and SLA targets to every authenticated caller, including Customers**. No source authorizes that: customers do not set priority (A-6), do not choose a department (A-14), and their ticket payload carries no SLA field | ✅ **Closed** — configuration split into three audience tiers (public / customer-safe / staff-only), AP-17 |
+| **N-1** | Response shapes defined for 5 payload types; **eleven** returned resource types have none, and three request bodies are unstated | 🟡 **Tracked — to be completed before Stage 9**, where plans need them. Does not block Stage 8 |
+| **N-2** | `api-design` asserted that a customer's `email` is immutable. **No approved source supports it** — A-10 makes email an identifier, not an immutable one | ✅ **Closed** — rule removed; uniqueness validation (`409 customer-email-in-use`) kept, since that *is* in the model. Raised **OQ-5** rather than inventing the linked-login consequence |
+| **N-3** | `GET /auth/me/permissions` and `POST /notifications/read-all` traced to no requirement | ✅ **Closed** — both removed (AP-18). Roles are fixed and hierarchical (A-4), so a client derives capability from the role `/auth/me` already returns; A-13 asks for a list and a badge, not a bulk action |
+| **N-4** | `hasFeedback` on the portal ticket payload is derived but was not declared as such | ✅ **Closed** — added to the server-derived field table (api-design §7) |
+| **N-5** | `data-model.md` §2.15 types `rating` as "an ordinal value" while OQ-1's own candidate list includes a binary thumbs up/down | 🟡 **Recorded, not fixed.** Resolving it would either retype an approved field or narrow an open question — both would pre-empt OQ-1. It predates `api-design.md` |
+
+Endpoint count moved **66 → 65**: `/config/staff` added, `/auth/me/permissions` and
+`/notifications/read-all` removed.
 
 ### 6.4 Decision → document → story traceability
 
@@ -289,6 +308,9 @@ needed amending, because nothing in that artifact contradicted the decision.
 | **R-8 / A-16** transition authority matrix | `product-scope.md` A-5, **new A-16**; `data-model.md` invariant 11b | `ticket-lifecycle`, `portal-self-service` |
 | **R-9 / A-17** `isUrgent` customer input | `product-scope.md` A-6, **new A-17**; `data-model.md` §2.6 (**new field**) | — |
 | **R-10** agents and managers may cancel | `product-scope.md` A-16 (cancel row + consequences) | `ticket-lifecycle`, `portal-self-service` |
+| **B-1** feedback rating-scale config key | `architecture.md` §6.3 | — (story 13 consumes it) |
+| **B-2 / AP-17** configuration split by audience | `api-design.md` §5.1, §3 | — (stories 01, 08, 13, 16 consume it) |
+| **N-2 / OQ-5** customer email is patchable | `api-design.md` §5.5 | — (story 04 blocked on OQ-5) |
 | **R-14 / A-5** automatic transition attributed to the replying customer | `product-scope.md` A-5 (new attribution rule); `data-model.md` §2.6 invariant 2b, §2.7 `actorKind` note, §2.8 invariants, §5 constraint 9a | `ticket-lifecycle` |
 | **R-13 / A-5** customer reply reopens a `Pending` ticket | `product-scope.md` A-5 (transition graph + `Pending` bullet), A-16 (`-> Open` row); `data-model.md` §2.6 invariant 2b, §2.8 invariants, §5 constraint 9a | `ticket-lifecycle`, `ticket-intake-messaging`, `portal-self-service` |
 | **R-12 / DM-7** `CustomerFeedback` owned by `Tickets` | `data-model.md` **new DM-7**, §1 preamble, §2.15 ownership, §3 entity list; `architecture.md` §1 (`customer-portal` row) | — (no intake asserted an owning module) |
@@ -343,6 +365,27 @@ Only entries with real evidence are marked verified.
 ## 9. Change Log
 
 Newest first. Every meaningful project change gets an entry.
+
+### 2026-08-25
+
+- **Stage 7 post-flight review, and the corrections it required.** Reviewed `api-design.md` against
+  every authoritative source. **Two blocking defects found and closed:**
+  **B-1** — the feedback contract depended on a `Feedback:RatingScale` configuration key that
+  architecture §6.3 did not have, so the approved contract was not implementable from the approved
+  documents. The key is now an approved entry **with its values deliberately undecided**, because
+  OQ-1 is still open and the scale must not be invented.
+  **B-2** — `GET /config` handed **quick replies and SLA targets to every authenticated caller,
+  including Customers**. Configuration is now split into three audience tiers — public,
+  customer-safe, staff-only — recorded as AP-17, with `403` for a customer reaching the staff tier.
+  **Three non-blocking items also closed:** the unsupported email-immutability rule removed (N-2,
+  replaced with the uniqueness validation the model actually supports), two endpoints that traced to
+  no requirement removed (N-3, AP-18), and `hasFeedback` declared as a derived field (N-4).
+  **One new open question:** **OQ-5** — whether changing a customer's email also changes a linked
+  portal login's sign-in email. Raised rather than invented; blocks story 04 only.
+  **Deferred by decision:** N-1, the eleven undefined response shapes, tracked for completion
+  **before Stage 9**; N-5 recorded without change because fixing it would pre-empt OQ-1.
+  Endpoint count 66 → 65. No new contradiction introduced.
+  *Files:* `docs/architecture.md` §6.3, `docs/api-design.md`, `docs/PROJECT-PROGRESS.md`.
 
 ### 2026-08-24
 
@@ -508,9 +551,7 @@ Newest first. Every meaningful project change gets an entry.
 
 ## 10. Current Next Steps
 
-1. **Approve or reject the `Feedback:RatingScale` configuration key** for architecture §6.3
-   (api-design §9, item 1). Small, but it touches an approved document.
-2. **Stage 8 — UI Design** → `docs/ui-design.md`. Every screen for workspace, portal and admin;
+1. **Stage 8 — UI Design** → `docs/ui-design.md`. Every screen for workspace, portal and admin;
    RTL implications; phone-width behaviour.
 3. **Decide OQ-1, OQ-2, OQ-3** — needed before stories 09, 13 and 15 are implemented, not before
    stages 7 and 8. Raising them early avoids a stall mid-implementation.

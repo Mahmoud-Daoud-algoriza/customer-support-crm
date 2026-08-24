@@ -23,8 +23,8 @@ alternative.
 
 | Module | Endpoints | Stories |
 |---|---|---|
-| Platform | 3 | 01 |
-| Auth & identity | 4 | 02 |
+| Platform | 4 | 01 |
+| Auth & identity | 3 | 02 |
 | Users | 5 | 02 |
 | Organization | 2 | 03 |
 | Customers | 9 | 04 |
@@ -32,10 +32,10 @@ alternative.
 | Portal (customer) | 11 | 07, 13 |
 | AI assists | 3 | 10, 11 |
 | Knowledge base | 7 | 12 |
-| Notifications | 3 | 09 |
+| Notifications | 2 | 09 |
 | Reporting | 1 | 15 |
 | Administration | 1 | 16 |
-| **Total** | **66 distinct endpoints** | **all T1/T2 stories** |
+| **Total** | **65 distinct endpoints** | **all T1/T2 stories** |
 
 The two portal knowledge-base endpoints are listed in both §5.7 and §5.9 for readability; they are
 counted once here.
@@ -113,6 +113,8 @@ ignored.
 | **AP-13** | Attachment upload is `multipart/form-data`; download streams through an authorized endpoint | [architecture.md](architecture.md) §4.4 requires download to pass the owner's authorization path, so no direct or guessable file URL is exposed | Returning a static file path or a pre-signed URL |
 | **AP-14** | Suggested articles are a **Knowledge** endpoint, not an AI one | T2-E fixes them as keyword retrieval (AD-13). Putting them under `/ai` would imply generation | `/ai/suggested-solutions` |
 | **AP-15** | Sort and filter fields are per-endpoint whitelists; unknown values are `400` | Prevents clients depending on incidental orderings, and keeps the indexes of [data-model.md](data-model.md) §6 sufficient | Free-form sorting on any field |
+| **AP-17** | **Configuration is split into three audience tiers** — public, customer-safe, staff-only (§5.1) | Quick replies are agent content and SLA targets are internal policy; no requirement gives a customer either. A single authenticated `/config` would hand both to the Customer role, which A-4 includes | One `/config` for every authenticated caller — leaks staff content across the role boundary |
+| **AP-18** | **Surface that traces to no requirement is not published** — `/auth/me/permissions` and `/notifications/read-all` were removed | Roles are four, fixed and hierarchical (A-4), so a client derives capability from the role `/auth/me` already returns; A-13 asks for a list and an unread badge, not a bulk action. Unrequested surface is scope creep dressed as convenience | Keeping them as conveniences — they would become contract obligations no story asked for |
 | **AP-16** | The customer's ticket DTO **omits** assignee identity | No requirement gives a customer the name of their agent. Omitting is the smaller surface; adding later is additive | Returning the assignee to the portal |
 
 ---
@@ -177,11 +179,23 @@ Roles use A-4's hierarchy. **Story** is the [story-backlog.md](story-backlog.md)
 | Method | Path | Roles | Purpose | Requirement |
 |---|---|---|---|---|
 | `GET` | `/health` | Anonymous | Liveness plus database reachability | §11.1, T2-L |
-| `GET` | `/config/bootstrap` | Anonymous | Branding, available languages, product name — needed before sign-in (T3-E, T2-J) | §12 |
-| `GET` | `/config` | Authenticated | Read-only effective configuration: categories, priorities, quick replies, SLA targets, feedback scale. **Read-only by design** (T2-I) | §10.5 |
+| `GET` | `/config/bootstrap` | Anonymous | Branding, product name, available languages — needed before sign-in (T3-E, T2-J) | §12 |
+| `GET` | `/config` | Authenticated — **all roles** | **Customer-safe configuration only**: the category list and the feedback rating scale | §10.5 |
+| `GET` | `/config/staff` | **Agent** | **Staff-only configuration**: priorities, quick replies, SLA targets, category → department map | §10.5 |
 
-`GET /config` never writes. There is no configuration write endpoint anywhere in this API — T2-I
-states that changing configuration is a redeploy.
+**Configuration is split by audience (AP-17).** Every configured value sits in exactly one of the
+three tiers, and the tier is decided by who legitimately needs it:
+
+| Tier | Endpoint | Audience | Values | Why |
+|---|---|---|---|---|
+| Public | `/config/bootstrap` | Anonymous | Branding, product name, languages | Needed to render the sign-in screen (T3-E, T2-J) |
+| Customer-safe | `/config` | Any authenticated user | Category list, feedback rating scale | A customer picks a **category** when submitting (A-14) and needs the **rating scale** to render the feedback control (§5.7) |
+| Staff-only | `/config/staff` | Agent and above | Priorities, quick replies, SLA targets, category → department map | Quick replies are the agent canned-response library (T1-C); SLA targets and the routing map are internal policy. **A customer has no requirement that needs any of these** — they do not set priority (A-6), do not choose a department (A-14), and the portal ticket payload carries no priority or SLA field (§6) |
+
+A Customer calling `/config/staff` gets **`403`** — a capability denial they can infer from their
+own role, so `403` is correct here and AP-4's `404` rule does not apply.
+
+**No endpoint in this API writes configuration** — T2-I states that changing it is a redeploy.
 
 ### 5.2 Auth and identity — story 02
 
@@ -190,7 +204,6 @@ states that changing configuration is a redeploy.
 | `POST` | `/auth/register` | Anonymous | Customer self-registration (A-15) |
 | `POST` | `/auth/login` | Anonymous | Exchange credentials for a token |
 | `GET` | `/auth/me` | Authenticated | Resolved identity: id, displayName, role, departmentId, branchId, customerId (AP-9) |
-| `GET` | `/auth/me/permissions` | Authenticated | The caller's capability flags, so the front end can hide what it must not show — **a convenience, never an enforcement point** ([architecture.md](architecture.md) §2.2) |
 
 **`POST /auth/register`** — request `{ email, password, fullName, phone? }`.
 
@@ -249,8 +262,20 @@ activity ([data-model.md](data-model.md) §2.4) — it is not a stored entity, a
 internal notes** and any activity marked `Internal`. Customer notes are a separate collection and
 do not appear in it.
 
-`email` is **not** patchable: A-10 makes it the customer's identifier and there is no merge or
-dedupe tooling (T2-A/§8). Creating a customer with a duplicate email → `409`.
+**`email` is patchable.** No approved source makes it immutable — A-10 makes it the customer's
+*identifier*, which is not the same thing, and an unfixable typo in a customer's email would be a
+rule this project never agreed to. The validation that **is** supported by the model applies on
+both create and update: email is required, must be a valid address, and is **unique across
+customers, case-insensitively** ([data-model.md](data-model.md) §5 constraint 1) — a duplicate
+is `409` `type: customer-email-in-use`. There is no merge or dedupe tooling (T2-A/§8), so a
+duplicate is rejected rather than reconciled.
+
+> **Open question raised by this correction (OQ-5).** A customer profile may have a linked portal
+> login whose `User.email` is also unique and is the sign-in identifier (DM-1, A-15). **No approved
+> source says whether changing `Customer.email` also changes the linked `User.email`.** This
+> contract does not decide it: the endpoint patches the customer profile, and whether the login
+> follows is recorded as OQ-5 rather than invented. It blocks nothing in Stage 8 — it must be
+> answered before story 04 is implemented.
 
 ### 5.6 Tickets (staff) — stories 05, 06, 07, 14
 
@@ -407,7 +432,6 @@ unpublished article is **`404`** on the portal paths — never `403`, which woul
 |---|---|---|---|
 | `GET` | `/notifications` | Authenticated | The caller's own. Filter `unreadOnly`; response includes `unreadCount` for the badge |
 | `POST` | `/notifications/{id}/read` | Authenticated | `204` |
-| `POST` | `/notifications/read-all` | Authenticated | `204` |
 
 Recipient-scoped: a notification belonging to another user is `404`. Types are exactly the four of
 A-13. **There is no create endpoint** — notifications are raised by the server (assignment, SLA
@@ -498,6 +522,7 @@ thinking it worked.
 | `Customer.branchId` (registration) | The configured default branch (A-15) |
 | `User.role`, `User.departmentId` (self) | Administrator-only, never self-set |
 | Any activity or audit entry | Written by the server; no create endpoint exists |
+| `hasFeedback` (portal ticket) | Computed from the existence of a `CustomerFeedback` row — a response projection, not a stored field |
 
 ---
 
@@ -539,18 +564,33 @@ assumption:
 | Finding | How this contract handles it |
 |---|---|
 | **PF-2** system actor for inbound tickets | **Avoided by design** — AP-11 publishes no ingestion endpoint, so no contract needs an actor the model cannot express. The gap remains real for story 18 and is unchanged by this document |
-| **PF-3** CSAT scale has no config key | `rating` is validated against `feedback.ratingScale` from `GET /config`. **Requires adding `Feedback:RatingScale` to [architecture.md](architecture.md) §6.3 — flagged below, not applied** |
+| **PF-3** CSAT scale has no config key | ✅ **Closed 2026-08-25.** `rating` validates against `feedback.ratingScale` from `GET /config`, and the `Feedback rating scale` key is now an approved entry in [architecture.md](architecture.md) §6.3 — **values still undecided (OQ-1)** |
 | **PF-4** "tickets assigned" undefined | Field named and shaped; **semantics explicitly not decided here** (§5.11) |
 | **PF-5** `firstRespondedAt` never set without a reply | Exposed as-is on the staff DTO, including `null`. No contract change; the behaviour question stays open for story 09 |
 | **PF-6** registration when a `User` exists | Now stated as `409 user-already-exists` (§5.2) rather than left to inference |
 | **PF-7** message `direction` | Server-derived, absent from every request model (§7) |
 
-**Two follow-ups this document requires, neither applied here:**
+**Post-flight corrections applied 2026-08-25.** The Stage 7 post-flight review found two blocking
+defects in this document's first version; both are closed:
 
-1. **[architecture.md](architecture.md) §6.3 needs a `Feedback:RatingScale` configuration key**, so
-   `GET /config` can publish it. This is a consequence of AP-9's design choice, and it touches an
-   approved document — raised for approval rather than edited.
+- **B-1** — the `Feedback:RatingScale` key now exists in [architecture.md](architecture.md) §6.3,
+  approved with its **values left undecided** because OQ-1 is still open.
+- **B-2** — `GET /config` returned quick replies and SLA targets to every authenticated caller,
+  including customers. Configuration is now split into three audience tiers (§5.1, AP-17).
+
+Also corrected: the unsupported claim that a customer's email is immutable (§5.5, N-2), and two
+endpoints that traced to no requirement were removed (AP-18).
+
+**Follow-ups still open, none blocking Stage 8:**
+
+1. **Response shapes** — §6 defines five payload types; eleven returned resource types have none
+   (User, Customer, CustomerNote, Department, Branch, Task, Attachment, KnowledgeArticle,
+   Notification, AuditEntry, the report groups and the config payloads), and three request bodies
+   are unstated (`POST /auth/login`, `POST /kb/articles`, `PATCH /kb/articles/{id}`).
+   **To be completed before Stage 9**, which is where plans need them.
 2. **PF-4's metric semantics** must be pinned before story 15 is planned.
+3. **OQ-5** — whether changing `Customer.email` also changes a linked portal login's sign-in
+   email (§5.5). Must be answered before story 04 is implemented.
 
 **No new contradiction was found while writing this document.** Every rule needed was already
 present in an approved source.
@@ -563,22 +603,22 @@ present in an approved source.
 
 | Story | Endpoints |
 |---|---|
-| 01 `solution-skeleton` | `/health`, `/config`, `/config/bootstrap` |
-| 02 `auth-and-roles` | `/auth/*` (4), `/users/*` (5) |
+| 01 `solution-skeleton` | `/health`, `/config/bootstrap`, `/config`, `/config/staff` |
+| 02 `auth-and-roles` | `/auth/*` (3), `/users/*` (5) |
 | 03 `departments-branches` | `/departments`, `/branches` |
 | 04 `customer-records` | `/customers/*` (9) |
 | 05 `ticket-core` | `GET/POST /tickets`, `GET/PATCH /tickets/{id}`, `/assignment` |
 | 06 `ticket-lifecycle` | `/transition`, `/escalate`, `/activity` |
 | 07 `ticket-intake-messaging` | `/tickets/{id}/messages`, `/portal/tickets`, `/portal/tickets/{id}/messages` |
-| 08 `agent-dashboard` | `GET /tickets` with `assigneeId=me` + SLA-urgency default sort; `/config` quick replies; `/customers/{id}` |
-| 09 `sla-routing-escalation` | `/notifications/*` (3); SLA fields on the ticket payload |
+| 08 `agent-dashboard` | `GET /tickets` with `assigneeId=me` + SLA-urgency default sort; `/config/staff` quick replies; `/customers/{id}` |
+| 09 `sla-routing-escalation` | `/notifications/*` (2); SLA fields on the ticket payload |
 | 10 `ai-service-seam` | — infrastructure behind §5.8 |
 | 11 `ai-ticket-assists` | `/ai/*` (3) |
 | 12 `kb-articles-search` | `/kb/*` (6), `/tickets/{id}/suggested-articles`, `/portal/kb/*` |
 | 13 `portal-self-service` | `/portal/*` (9) |
 | 14 `tasks-internal-notes` | `/tickets/{id}/tasks*`, `/tickets/{id}/internal-notes` |
 | 15 `management-dashboard` | `/reports/dashboard` |
-| 16 `audit-configuration` | `/audit`, `/config` |
+| 16 `audit-configuration` | `/audit`, `/config`, `/config/staff` |
 | 17 `i18n-responsive-branding` | **None** — front-end concern; branding and languages ride on `/config/bootstrap` |
 | 18 `channel-erp-adapters` | **None** — internal seams by AP-11 and §8.3 |
 
@@ -593,7 +633,7 @@ it was decided rather than forgotten.
 | §2 Tickets, categories, assignment, lifecycle, history | `/tickets/*` |
 | §3.3, §3.5 Portal messaging, web form | `/portal/tickets*`, `/tickets/{id}/messages` |
 | §3.1, §3.2, §3.4 Email, WhatsApp, SMS | None — seam (§8.2) |
-| §4 Queue, customer context, quick replies, tasks, notes | `GET /tickets`, `/config`, `/tasks`, `/internal-notes` |
+| §4 Queue, customer context, quick replies, tasks, notes | `GET /tickets`, `/config/staff` (quick replies), `/tasks`, `/internal-notes` |
 | §5 SLA targets, assignment, escalation, alerts | Ticket SLA fields, `/assignment`, `/escalate`, `/notifications` |
 | §6 KB and search | `/kb/*` |
 | §7.1–7.3 AI assists | `/ai/*` |
@@ -601,7 +641,7 @@ it was decided rather than forgotten.
 | §7.5 Chatbot | None — not built (T3-C) |
 | §8 Portal | `/portal/*` |
 | §9 Reports | `/reports/dashboard` |
-| §10 Users, roles, permissions, audit, configuration | `/users/*`, `/audit`, `/config` |
+| §10 Users, roles, permissions, audit, configuration | `/users/*`, `/audit`, `/config`, `/config/staff` |
 | §11.1 API | This document; OpenAPI is generated by the app (T2-L) |
 | §11.2, §11.4 ERP, external systems | None — seam (§8.3) |
 | §12 Language, branding | `/config/bootstrap` |
@@ -625,7 +665,7 @@ data model exactly."*
 
 | Condition | Status |
 |---|---|
-| A contract for each capability the stories need | ✅ 66 distinct endpoints; all 16 endpoint-bearing stories covered; the three that introduce none are justified in §10.1 |
+| A contract for each capability the stories need | ✅ 65 distinct endpoints; all 16 endpoint-bearing stories covered; the three that introduce none are justified in §10.1 |
 | Role-based access stated per endpoint (A-4) | ✅ Every row in §5 carries a **Roles** column; §4.2 defines the three layers and their failure codes |
 | Matches the data model exactly | ✅ Every payload field in §6 exists in [data-model.md](data-model.md); no field invented, no entity implied that the model lacks |
 | Department scoping enforced server-side | ✅ §4.3, with `404` (AP-4) so the boundary does not leak existence |

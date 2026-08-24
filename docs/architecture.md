@@ -540,6 +540,7 @@ degrading at runtime — required by the `audit-configuration` intake.
 | **SLA targets** | Configuration — first-response and resolution hours **per priority** | 24/7 clock (A-3) |
 | **Quick replies** | Configuration — a small canned-response library | T1-C |
 | **Branding** | Configuration — product name, logo, primary colour | T3-E; a seam, not a theming engine |
+| **Feedback rating scale** | Configuration — the rating-scale boundaries (`min`, `max`) | Published to clients and validated server-side by the feedback endpoint (api-design §5.7). **The boundary values are deliberately not decided here — OQ-1 is open** (product-scope §9, data-model §8). The key exists so the contract has a home for the answer; inventing the answer is out of scope |
 | **JWT signing key** | Environment variable | Secret |
 
 **No configuration UI.** Changing configuration is a redeploy — [product-scope.md](product-scope.md)
