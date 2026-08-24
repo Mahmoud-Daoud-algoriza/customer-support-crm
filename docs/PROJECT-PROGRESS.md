@@ -18,12 +18,12 @@
 |---|---|
 | **Current SDD stage** | **Stage 6 complete → Stage 7 (API Design) is next, not started** |
 | **Current phase** | Design. Implementation has **not** begun |
-| **Overall status** | 🟢 On track — no blocker to Stage 7. Every contract is now designable |
+| **Overall status** | 🟢 On track — **Stage 7 pre-flight passed**. The one blocking finding (PF-1) is resolved; every API contract is designable |
 | **Overall progress** | **23%** (method in §1.1) |
 | **SDD pipeline** | **6 of 10 stages complete** (60% of the pipeline) |
 | **Code written** | **None.** `backend/` and `frontend/` are empty; `docker-compose.yml` is 0 bytes |
 | **Last updated** | 2026-08-24 |
-| **Current focus** | Stage 7 — API Design (`docs/api-design.md`). All five blocking business questions answered 2026-08-24 (A-14…A-18) |
+| **Current focus** | Stage 7 — API Design (`docs/api-design.md`). Pre-flight audit complete; all six blocking business questions answered 2026-08-24 (A-14…A-18 and the A-5 reply-driven transition) |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 23% is calculated
@@ -58,7 +58,7 @@ delivery carries the larger weight. A design-only project is not most of the way
 | 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan-overview stubs | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
 | 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
 | 6 | Data Model | ✅ Complete | [data-model.md](data-model.md) | ✅ | ✅ Met, re-verified after the four clarifications | Approved 2026-08-24. 15 entities |
-| 7 | API Design | ⬜ **Not Started** | `docs/api-design.md` | ✖ | ✖ | **Current stage.** Gate: a contract per capability, role access per endpoint (A-4, A-16), matching the data model. Fully unblocked by A-14…A-18 |
+| 7 | API Design | ⬜ **Not Started** | `docs/api-design.md` | ✖ | ✖ | **Current stage.** Gate: a contract per capability, role access per endpoint (A-4, A-16), matching the data model. **Pre-flight passed 2026-08-24**; unblocked by A-14…A-18 and R-13 |
 | 8 | UI Design | ⬜ Not Started | `docs/ui-design.md` | ✖ | ✖ | Gate: every screen for workspace, portal and admin; RTL implications; phone-width behaviour |
 | 9 | Implementation Plans | ⬜ Not Started | `.squad/plans/<feature>/NN-story-*.md` | ✖ (0 plan files) | ✖ | Generated one story at a time via `/squad-plan` |
 | 10 | Implementation / Verification | ⬜ Not Started | `backend/`, `frontend/` | ✖ (both empty) | ✖ | No code exists |
@@ -69,8 +69,9 @@ differently: its stage 2 is the requirements analysis (folded into row 1 here), 
 user-story stage (rows 3 and 4 here, since squad-kit initialization is tooling rather than a
 workflow stage). Rows 5–10 match its stages 5–10 exactly. The workflow document governs.
 
-**Blockers to the pipeline:** none. Every Stage 7 contract is designable; OQ-4, the last one that
-blocked an endpoint, was resolved on 2026-08-24 by A-18.
+**Blockers to the pipeline:** none. The Stage 7 pre-flight audit raised one blocking finding, PF-1
+(the `Pending` transition set and the effect of a customer reply); it was resolved the same day as
+R-13. Six non-blocking findings (PF-2…PF-7) are carried in §6.5.
 
 ---
 
@@ -252,8 +253,23 @@ Kept, not deleted.
 | R-8 ⚠ | Who may Cancel, Close and Escalate? **Partly superseded by R-10 — see the cancel row there.** | **Full authority matrix fixed.** Customer: create, reopen own, cancel own before work begins. Agent: open, pending, resolve, close, escalate. Manager: the same across all departments. Administrator: unrestricted. **Closure is manual only — no automatic closure.** As first recorded, this withheld cancel from agents and managers; **that half was corrected the same day — see R-10.** The rest stands | 2026-08-24 | **A-16** (superseded in part) |
 | R-9 | Does the creation contract carry a customer urgency input? | **Yes — `isUrgent`, a boolean.** Customer input only; does not set priority; agents and the AI suggestion may use it when deciding priority. Persisted on `Ticket` | 2026-08-24 | **A-17**, model §2.6 |
 | R-10 | May agents and managers cancel a ticket? | **Yes** — corrected 2026-08-24. Agents and Managers may cancel any non-terminal ticket (Manager across all departments); Administrators unrestricted. Customers may cancel their own **only while `New`**. Supersedes the first version of A-16, which withheld cancel from agents and managers | 2026-08-24 | **A-16** |
+| R-13 | **PF-1** — is `Pending -> Open` legal, and what does a customer reply do to a `Pending` ticket? | **Both answered: the transition is legal and a customer reply triggers it automatically.** The reply is the trigger; no agent action is required. It fires from `Pending` only — a reply on `New` leaves it `New`, and a reply on `Resolved` does not reopen it. Recorded as a same-transaction status change with a `StatusChanged` history entry attributed to the replying customer | 2026-08-24 | **A-5**, A-16, model 2.6 inv. 2b, 2.8, constraint 9a |
 | R-12 | Which backend module owns `CustomerFeedback`? The data model labelled it "Portal", which is not one of the ten modules | **The existing `Tickets` module.** Feedback is domain behaviour attached to a ticket, offered when the ticket reaches `Resolved`; `customer-portal` is a front-end and planning concern, not a backend module. **No new module; the ten-module architecture is unchanged**, and the entity's shape, fields and relationships are untouched — an ownership label only | 2026-08-24 | **DM-7**, model §2.15, arch §1 |
 | R-11 | **OQ-4** — what is the customer cancellation window? | **Assignment is not the start of work.** A ticket may be assigned while still `New`; `New → Open` is an agent deliberately starting work. The customer's window runs from creation until an agent picks the ticket up, so it is real rather than theoretical | 2026-08-24 | **A-18** |
+
+### 6.5 Pre-flight findings carried forward (non-blocking)
+
+Raised by the Stage 7 pre-flight audit on 2026-08-24. None blocks an API contract; each is handled
+inside the API document or deferred to the story named.
+
+| ID | Finding | Handle in |
+|---|---|---|
+| **PF-2** | `Ticket.createdByUserId` and `TicketMessage.authorUserId` are required with no System actor, but story 18's inbound fake adapter creates tickets with no human actor. `TicketActivity` and `AuditEntry` both support a System actor; these two do not | Story 18, or Stage 7 if it specifies an ingestion endpoint |
+| **PF-3** | OQ-1 leaves the CSAT scale undecided and `architecture.md` §6.3 has **no** configuration key for it. Stage 7 must add one or leave the validation range unstated | Stage 7 + OQ-1 |
+| **PF-4** | "Tickets assigned" in the agent-performance metric is undefined — currently assigned vs. ever assigned. Same response shape either way | Story 15 |
+| **PF-5** | `firstRespondedAt` is set only by the first outbound message, so a ticket resolved without a reply is permanently first-response-breached | Story 09 |
+| **PF-6** | A-15 covers registration when a **Customer profile** exists for the email, not when a **User** already does. Derivable from the unique-email constraint (409), but the contract should state it | Stage 7 |
+| **PF-7** | `TicketMessage.direction` has no stated derivation rule (customer → `Inbound`, agent → `Outbound`) and must not be client-settable | Stage 7 |
 
 ### 6.4 Decision → document → story traceability
 
@@ -272,6 +288,7 @@ needed amending, because nothing in that artifact contradicted the decision.
 | **R-8 / A-16** transition authority matrix | `product-scope.md` A-5, **new A-16**; `data-model.md` invariant 11b | `ticket-lifecycle`, `portal-self-service` |
 | **R-9 / A-17** `isUrgent` customer input | `product-scope.md` A-6, **new A-17**; `data-model.md` §2.6 (**new field**) | — |
 | **R-10** agents and managers may cancel | `product-scope.md` A-16 (cancel row + consequences) | `ticket-lifecycle`, `portal-self-service` |
+| **R-13 / A-5** customer reply reopens a `Pending` ticket | `product-scope.md` A-5 (transition graph + `Pending` bullet), A-16 (`-> Open` row); `data-model.md` §2.6 invariant 2b, §2.8 invariants, §5 constraint 9a | `ticket-lifecycle`, `ticket-intake-messaging`, `portal-self-service` |
 | **R-12 / DM-7** `CustomerFeedback` owned by `Tickets` | `data-model.md` **new DM-7**, §1 preamble, §2.15 ownership, §3 entity list; `architecture.md` §1 (`customer-portal` row) | — (no intake asserted an owning module) |
 | **R-11 / A-18** assignment is not the start of work | `product-scope.md` A-5, **new A-18**, §9 (question 8 closed); `data-model.md` §2.6 field, **new invariant 2a**, 11b, §8 | `ticket-lifecycle`, `ticket-core`, `sla-routing-escalation`, `portal-self-service` |
 
@@ -317,7 +334,7 @@ Only entries with real evidence are marked verified.
 | API verification | ⬜ Not Run | No API |
 | UI verification | ⬜ Not Run | No UI |
 | Docker startup | ⬜ Not Run | `docker-compose.yml` is empty |
-| Working tree | ⚠ Uncommitted work | **7 commits** on `main`, all pushed to `origin/main`. **3 files modified and uncommitted**: the `architecture.md` §1 wording correction, the `CustomerFeedback` ownership decision in `data-model.md` and `architecture.md`, and this tracker |
+| Working tree | ⚠ Uncommitted work | **8 commits** on `main`; 7 pushed to `origin/main`, **1 ahead**. **6 files modified and uncommitted**: the PF-1 propagation across `product-scope.md`, `data-model.md`, three story intakes, and this tracker |
 
 ---
 
@@ -327,6 +344,28 @@ Newest first. Every meaningful project change gets an entry.
 
 ### 2026-08-24
 
+- **Resolved PF-1 — a customer reply reopens a `Pending` ticket.** The Stage 7 pre-flight found
+  that `Pending -> Open` appeared in no source, while `Pending` means "awaiting customer input",
+  A-13 defines a `CustomerReplied` notification, and A-3 keeps the SLA clock running — so a replied-to
+  ticket could not leave `Pending`. **Decision: the transition is legal and the customer's reply
+  triggers it automatically**, in the same transaction as the message, from `Pending` only.
+  Two contracts were blocked and are now designable: the ticket transition endpoint's legal-transition
+  table, and the post-message endpoint's status side effect.
+  *Consistency re-checked after propagation:* transition graph, A-16 authority matrix (the customer
+  still cannot invoke `-> Open` directly), notification behaviour (no new type — A-13's four stand,
+  and the transition raises none of its own), SLA behaviour (unchanged; `Pending` never paused the
+  clock), and a search for the old three-arrow transition set, which no longer appears anywhere.
+  *Derived detail, flagged not invented:* A-5 requires every transition to carry an actor, so the
+  automatic `StatusChanged` row is attributed to the **replying customer**.
+  *Files:* `docs/product-scope.md` (A-5 graph and `Pending` bullet, A-16 `-> Open` row),
+  `docs/data-model.md` (§2.6 invariant 2b, §2.8 invariants, §5 constraint 9a), three story intakes
+  (`ticket-lifecycle`, `ticket-intake-messaging`, `portal-self-service`), `docs/PROJECT-PROGRESS.md`.
+- **Ran the Stage 7 pre-flight audit.** Re-read every authoritative source and checked traceability
+  end to end, all 18 stories against the architecture and data model, and the fifteen named subject
+  areas. Verdict at the time: 🔴 NOT READY on one blocking finding (PF-1, above). Six non-blocking
+  findings recorded in §6.5; three cosmetic ones noted. All numbering, stage numbering, module
+  ownership, active-vs-resolved question state and story blockers verified consistent.
+  *Files:* none — the audit modified nothing.
 - **Resolved the `CustomerFeedback` module-ownership mismatch.** The data model labelled the entity
   as owned by a "Portal" module, which does not exist — [architecture.md](architecture.md) §1
   defines ten backend modules and `customer-portal` is a front-end area. **Decision: the existing
