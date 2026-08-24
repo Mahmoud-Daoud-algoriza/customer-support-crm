@@ -108,7 +108,7 @@ Ticket history (§2.5):
 
 - Repos/roots: `backend`, `frontend`.
 - Transition rules belong in one place on the server. Do not scatter them across UI components.
-- **Do not invent** tables or endpoints here; Stage 5 and Stage 6 fix those first.
+- **Do not invent** tables or endpoints here; Stage 6 (Data Model) and Stage 7 (API Design) fix those first.
 
 ## Out of scope
 

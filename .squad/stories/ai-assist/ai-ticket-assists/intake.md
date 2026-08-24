@@ -102,7 +102,7 @@ committed without a human action.
 - Repos/roots: `backend`, `frontend`. Front end is Angular + PrimeNG.
 - All three features call the abstraction from `ai-service-seam`. Do not call a provider SDK
   directly from a controller or a component.
-- **Do not invent** endpoints here; Stage 6 (API Design) fixes how assists are exposed.
+- **Do not invent** endpoints here; Stage 7 (API Design) fixes how assists are exposed.
 
 ## Out of scope
 

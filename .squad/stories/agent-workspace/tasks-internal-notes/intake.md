@@ -89,7 +89,7 @@ Team collaboration (§4.5) — internal notes ONLY:
 ## Technical hints (optional)
 
 - Repos/roots: `backend`, `frontend`. Front end is Angular + PrimeNG.
-- **Do not invent** tables or endpoints here; Stage 5 and Stage 6 fix those first.
+- **Do not invent** tables or endpoints here; Stage 6 (Data Model) and Stage 7 (API Design) fix those first.
 
 ## Out of scope
 

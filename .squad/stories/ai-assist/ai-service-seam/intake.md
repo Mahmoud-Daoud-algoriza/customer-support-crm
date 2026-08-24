@@ -100,7 +100,7 @@ Guardrails (A-8) — enforced at this layer so no consumer can bypass them:
 
 - Repos/roots: `backend`. Provider credentials come from environment configuration and are never
   committed (`.squad/secrets.yaml` is already git-ignored; apply the same discipline to app secrets).
-- **Do not invent** endpoints here; Stage 6 (API Design) fixes how assists are exposed.
+- **Do not invent** endpoints here; Stage 7 (API Design) fixes how assists are exposed.
 
 ## Out of scope
 

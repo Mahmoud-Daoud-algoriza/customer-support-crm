@@ -101,7 +101,7 @@ System configuration (§10.5, T2-I):
 - Repos/roots: `backend`, `frontend`.
 - One audit-write service, called from the places that need it. Do not scatter audit writes
   across controllers.
-- **Do not invent** tables or endpoints here; Stage 5 and Stage 6 fix those first.
+- **Do not invent** tables or endpoints here; Stage 6 (Data Model) and Stage 7 (API Design) fix those first.
 
 ## Out of scope
 

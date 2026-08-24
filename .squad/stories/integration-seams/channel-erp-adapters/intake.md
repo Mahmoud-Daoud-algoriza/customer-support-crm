@@ -103,8 +103,8 @@ Also documented here as future consumers of these seams, and NOT built:
 
 - Repos/roots: `backend`.
 - Keep the fakes in the application, not in test-only code — the demo runs against them.
-- **Do not invent** endpoints, provider SDK usage, or webhook routes; Stage 4 (Architecture) and
-  Stage 6 (API Design) fix the boundary first.
+- **Do not invent** endpoints, provider SDK usage, or webhook routes; Stage 5 (Architecture) and
+  Stage 7 (API Design) fix the boundary first.
 
 ## Out of scope
 

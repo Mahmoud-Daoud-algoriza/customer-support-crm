@@ -89,7 +89,7 @@ Departments and branches are independent attributes, not a hierarchy.
 ## Technical hints (optional)
 
 - Repos/roots: `backend`, `frontend`.
-- **Do not invent** tables or endpoints here; Stage 5 and Stage 6 fix those.
+- **Do not invent** tables or endpoints here; Stage 6 (Data Model) and Stage 7 (API Design) fix those.
 
 ## Out of scope
 

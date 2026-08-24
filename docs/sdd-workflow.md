@@ -5,7 +5,7 @@ stage, where it lives, and what must be true before the next stage starts.
 
 **Method:** spec-driven development, executed with [squad-kit](https://github.com/AzmSquad/squad-kit) v0.2.0
 (workspace at [.squad/](../.squad/)).
-**Status date:** 2026-08-24
+**Status date:** 2026-08-24 (stage 5 complete)
 
 ---
 
@@ -34,8 +34,8 @@ is recorded in this document rather than left silent."*
 | 2 | Requirements analysis | FRs, NFRs, actors, workflows, ambiguities | Conversation record; distilled into stage 3 | ✅ Done |
 | 3 | Product scope | Tiered scope + assumptions + exclusions | [docs/product-scope.md](product-scope.md) | ✅ Done |
 | 4 | **User stories / functional requirements** | 18 story intakes | [.squad/stories/](../.squad/stories/) + [docs/story-backlog.md](story-backlog.md) | ✅ Done |
-| 5 | Architecture | Architecture decision record | `docs/architecture.md` | ⬜ **Next** |
-| 6 | Data model | Conceptual → logical model | `docs/data-model.md` | ⬜ Pending |
+| 5 | Architecture | Architecture decision record | [docs/architecture.md](architecture.md) | ✅ Done |
+| 6 | Data model | Conceptual → logical model | `docs/data-model.md` | ⬜ **Next** |
 | 7 | API design | Endpoint contracts | `docs/api-design.md` | ⬜ Pending |
 | 8 | UI design | Screen inventory + flows | `docs/ui-design.md` | ⬜ Pending |
 | 9 | Implementation plans | `NN-story-*.md` per story | [.squad/plans/](../.squad/plans/) | ⬜ Pending |
@@ -84,7 +84,7 @@ A stage is not finished when its document exists — it is finished when the gat
 **Gate 4 → 5 (met).** Every requirement line has a story; every story cites its requirement
 section and scope tier; no story introduces a feature absent from [product-scope.md](product-scope.md).
 
-**Gate 5 → 6.** `docs/architecture.md` states the layering inside the single backend, where the
+**Gate 5 → 6 (met).** [architecture.md](architecture.md) states the layering inside the single backend, where the
 T3 seams sit (AI service, channel adapter, ERP boundary), how department scoping is enforced
 server-side, and where configuration is read. It must explicitly restate the technical exclusions
 so the constraint survives into planning.

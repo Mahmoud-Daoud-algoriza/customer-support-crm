@@ -78,7 +78,7 @@ It exists so that later stories are pure feature work.
 ## Extra notes (optional)
 
 - Cut order: this story cannot be cut — all others depend on it.
-- Requires Stage 4 (Architecture) to be agreed before planning, since it fixes the project layout.
+- Requires Stage 5 (Architecture) to be agreed before planning, since it fixes the project layout.
 
 ## Technical hints (optional)
 
@@ -87,7 +87,7 @@ It exists so that later stories are pure feature work.
 - Explicitly excluded by product-scope §8: microservices, message brokers, CQRS, event sourcing,
   Kubernetes, caching layers, distributed systems.
 - **Do not invent** database tables or business endpoints in this intake. Those are fixed by
-  SDD Stage 5 (Data Model) and Stage 6 (API Design) before any plan is generated.
+  SDD Stage 6 (Data Model) and Stage 7 (API Design) before any plan is generated.
 
 ## Out of scope
 

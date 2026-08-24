@@ -102,7 +102,7 @@ Suggested solutions (§7.4):
 - Repos/roots: `backend`, `frontend`. Front end is Angular + PrimeNG.
 - Use SQL Server's built-in text matching. Do not add a search engine or a vector store
   (product-scope §8 technical exclusions).
-- **Do not invent** tables or endpoints here; Stage 5 and Stage 6 fix those first.
+- **Do not invent** tables or endpoints here; Stage 6 (Data Model) and Stage 7 (API Design) fix those first.
 
 ## Out of scope
 

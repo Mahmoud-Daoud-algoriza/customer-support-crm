@@ -111,7 +111,7 @@ not seconds). Timing precision is explicitly not a goal. No job queue, no messag
 
 - Repos/roots: `backend`, `frontend`.
 - SLA computation belongs on the server in one place, consumed by dashboard, portal and reports.
-- **Do not invent** tables or endpoints here; Stage 5 and Stage 6 fix those first.
+- **Do not invent** tables or endpoints here; Stage 6 (Data Model) and Stage 7 (API Design) fix those first.
 
 ## Out of scope
 

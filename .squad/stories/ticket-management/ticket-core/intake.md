@@ -101,7 +101,7 @@ Assignment (§2.3):
 ## Technical hints (optional)
 
 - Repos/roots: `backend`, `frontend`. Front end is Angular + PrimeNG.
-- **Do not invent** tables or endpoints here; Stage 5 (Data Model) and Stage 6 (API Design)
+- **Do not invent** tables or endpoints here; Stage 6 (Data Model) and Stage 7 (API Design)
   fix the ticket shape before any plan is generated.
 
 ## Out of scope

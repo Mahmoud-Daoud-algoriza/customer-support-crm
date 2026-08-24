@@ -95,7 +95,7 @@ Authentication (product-scope A-9):
 ## Technical hints (optional)
 
 - Repos/roots: `backend`, `frontend`.
-- **Do not invent** endpoints or tables in this intake — Stage 5 (Data Model) and Stage 6
+- **Do not invent** endpoints or tables in this intake — Stage 6 (Data Model) and Stage 7
   (API Design) fix those first.
 
 ## Out of scope

@@ -94,7 +94,7 @@ Access and scoping:
 - Repos/roots: `backend`, `frontend`. Front end is Angular + PrimeNG — use its chart/table
   components rather than adding a charting dependency.
 - Aggregate on the server; do not ship raw ticket lists to the browser to be counted there.
-- **Do not invent** endpoints here; Stage 6 (API Design) fixes the metric contracts first.
+- **Do not invent** endpoints here; Stage 7 (API Design) fixes the metric contracts first.
 
 ## Out of scope
 

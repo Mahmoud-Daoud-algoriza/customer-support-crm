@@ -99,7 +99,7 @@ Submit feedback (§8.5):
 
 - Repos/roots: `backend`, `frontend`. One Angular application may host both surfaces; the
   separation is by route and role, not by a second deployable.
-- **Do not invent** endpoints here; Stage 6 (API Design) and Stage 7 (UI Design) fix the portal
+- **Do not invent** endpoints here; Stage 7 (API Design) and Stage 8 (UI Design) fix the portal
   contracts and screens first.
 
 ## Out of scope

@@ -93,7 +93,7 @@ Quick replies (§4.4):
 
 - Repos/roots: `backend`, `frontend`. Front end is Angular + PrimeNG — use PrimeNG components
   rather than hand-rolled equivalents.
-- **Do not invent** endpoints here; Stage 6 (API Design) and Stage 7 (UI Design) fix the queue
+- **Do not invent** endpoints here; Stage 7 (API Design) and Stage 8 (UI Design) fix the queue
   and ticket-view contracts first.
 
 ## Out of scope

@@ -96,7 +96,7 @@ Channel-agnostic message model:
 ## Technical hints (optional)
 
 - Repos/roots: `backend`, `frontend`. Front end is Angular + PrimeNG.
-- **Do not invent** tables or endpoints here; Stage 5 and Stage 6 fix the message shape first.
+- **Do not invent** tables or endpoints here; Stage 6 (Data Model) and Stage 7 (API Design) fix the message shape first.
 
 ## Out of scope
 

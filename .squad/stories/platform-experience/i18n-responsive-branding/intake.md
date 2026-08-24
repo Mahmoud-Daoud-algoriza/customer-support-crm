@@ -102,7 +102,7 @@ Custom branding (§12, T3-E):
   prefer returning codes the front end translates.
 - Front end is Angular + PrimeNG; PrimeNG has RTL considerations of its own — verify components
   in Arabic rather than assuming.
-- **Do not invent** endpoints here; Stage 7 (UI Design) fixes the screen inventory this story
+- **Do not invent** endpoints here; Stage 8 (UI Design) fixes the screen inventory this story
   must cover.
 
 ## Out of scope
