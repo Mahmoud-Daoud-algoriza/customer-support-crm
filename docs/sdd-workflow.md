@@ -5,7 +5,7 @@ stage, where it lives, and what must be true before the next stage starts.
 
 **Method:** spec-driven development, executed with [squad-kit](https://github.com/AzmSquad/squad-kit) v0.2.0
 (workspace at [.squad/](../.squad/)).
-**Status date:** 2026-08-24 (stage 7 complete)
+**Status date:** 2026-08-25 (stage 8 complete)
 
 ---
 
@@ -37,8 +37,8 @@ is recorded in this document rather than left silent."*
 | 5 | Architecture | Architecture decision record | [docs/architecture.md](architecture.md) | ✅ Done |
 | 6 | Data model | Conceptual → logical model | [docs/data-model.md](data-model.md) | ✅ Done |
 | 7 | API design | Endpoint contracts | [docs/api-design.md](api-design.md) | ✅ Done |
-| 8 | UI design | Screen inventory + flows | `docs/ui-design.md` | ⬜ **Next** |
-| 9 | Implementation plans | `NN-story-*.md` per story | [.squad/plans/](../.squad/plans/) | ⬜ Pending |
+| 8 | UI design | Screen inventory + flows | [docs/ui-design.md](ui-design.md) | ✅ Done |
+| 9 | Implementation plans | `NN-story-*.md` per story | [.squad/plans/](../.squad/plans/) | ⬜ **Next** |
 | 10 | Implementation | Application code | `backend/`, `frontend/` | ⬜ Not started |
 
 Stages 5–8 are ordinary Markdown documents in `docs/`. Stage 9 is squad-kit's generated plan
@@ -96,7 +96,7 @@ migrations are written during implementation, not during design.
 **Gate 7 → 8 (met).** [api-design.md](api-design.md) gives a contract for each capability the stories need, with
 role-based access stated per endpoint (A-4), and matches the data model exactly.
 
-**Gate 8 → 9.** `docs/ui-design.md` lists every screen for the agent workspace, the customer
+**Gate 8 → 9 (met).** [ui-design.md](ui-design.md) lists every screen for the agent workspace, the customer
 portal and the admin surfaces, notes RTL implications (T2-J), and confirms phone-width behaviour
 (T3-F).
 

@@ -16,14 +16,14 @@
 
 | | |
 |---|---|
-| **Current SDD stage** | **Stage 7 complete → Stage 8 (UI Design) is next, not started** |
+| **Current SDD stage** | **Stage 8 complete → Stage 9 (Implementation Plans) is next, not started** |
 | **Current phase** | Design. Implementation has **not** begun |
 | **Overall status** | 🟢 On track — **Stage 7 pre-flight passed**. The one blocking finding (PF-1) is resolved; every API contract is designable |
-| **Overall progress** | **27%** (method in §1.1) |
-| **SDD pipeline** | **7 of 10 stages complete** (70% of the pipeline) |
+| **Overall progress** | **31%** (method in §1.1) |
+| **SDD pipeline** | **8 of 10 stages complete** (80% of the pipeline) |
 | **Code written** | **None.** `backend/` and `frontend/` are empty; `docker-compose.yml` is 0 bytes |
-| **Last updated** | 2026-08-24 |
-| **Current focus** | Stage 8 — UI Design (`docs/ui-design.md`). Stage 7 delivered 65 endpoints across 12 modules and passed its post-flight review |
+| **Last updated** | 2026-08-25 |
+| **Current focus** | Stage 9 — Implementation Plans, one story at a time via `/squad-plan`. **N-1 (response shapes) should be closed first** |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 23% is calculated
@@ -33,9 +33,9 @@ recorded here so the number is reproducible rather than invented.
 
 | Track | Contents | Weight | Complete | Contribution |
 |---|---|---|---|---|
-| **Design & planning** | Tracker rows 1–9 (§2), equally weighted at 3.89% each | 35% | 7 of 9 rows | 7 ÷ 9 × 35 = **27.2%** |
+| **Design & planning** | Tracker rows 1–9 (§2), equally weighted at 3.89% each | 35% | 8 of 9 rows | 8 ÷ 9 × 35 = **31.1%** |
 | **Delivery** | Row 10 — the 18 stories implemented *and* verified | 65% | 0 of 18 | 0 ÷ 18 × 65 = **0%** |
-| | | **100%** | | **≈ 27%** |
+| | | **100%** | | **≈ 31%** |
 
 **Why 35/65.** [product-scope.md](product-scope.md) §10 defines done in five items, four of which
 concern running software. The SDD chain is the method; the working system is the deliverable, so
@@ -59,8 +59,8 @@ delivery carries the larger weight. A design-only project is not most of the way
 | 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
 | 6 | Data Model | ✅ Complete | [data-model.md](data-model.md) | ✅ | ✅ Met, re-verified after the four clarifications | Approved 2026-08-24. 15 entities |
 | 7 | API Design | ✅ Complete | [api-design.md](api-design.md) | ✅ | ✅ Met | **65** endpoints, 12 modules, 18 API decisions (AP-1…AP-18). Pre-flight passed 2026-08-24; **post-flight review 2026-08-25 closed two blocking defects** |
-| 8 | UI Design | ⬜ **Not Started** | `docs/ui-design.md` | ✖ | ✖ | **Current stage.** Gate: every screen for workspace, portal and admin; RTL implications; phone-width behaviour |
-| 9 | Implementation Plans | ⬜ Not Started | `.squad/plans/<feature>/NN-story-*.md` | ✖ (0 plan files) | ✖ | Generated one story at a time via `/squad-plan` |
+| 8 | UI Design | ✅ Complete | [ui-design.md](ui-design.md) | ✅ | ✅ Met | 24 screens across 4 surfaces, 12 UI decisions (UI-1…UI-12), every screen mapped to endpoints that exist |
+| 9 | Implementation Plans | ⬜ **Not Started** | `.squad/plans/<feature>/NN-story-*.md` | ✖ (0 plan files) | ✖ | **Current stage.** Generated one story at a time via `/squad-plan`. **Blocked on nothing, but N-1 should close first** |
 | 10 | Implementation / Verification | ⬜ Not Started | `backend/`, `frontend/` | ✖ (both empty) | ✖ | No code exists |
 
 **Numbering note.** These ten rows are this dashboard's structure.
@@ -288,6 +288,8 @@ The post-flight review of `api-design.md` found two blocking defects and five no
 | **N-4** | `hasFeedback` on the portal ticket payload is derived but was not declared as such | ✅ **Closed** — added to the server-derived field table (api-design §7) |
 | **N-5** | `data-model.md` §2.15 types `rating` as "an ordinal value" while OQ-1's own candidate list includes a binary thumbs up/down | 🟡 **Recorded, not fixed.** Resolving it would either retype an approved field or narrow an open question — both would pre-empt OQ-1. It predates `api-design.md` |
 
+| **F-1** | The ticket payload does not expose `allowedTransitions`, so the transition menu must reimplement the A-5 legality set and the A-16 authority matrix client-side (ui-design UI-3, §12). The server remains the authority; a wrong offer gets `403`/`409` | 🟡 **Non-blocking, raised 2026-08-25 by Stage 8.** Recommendation: add a read-only `allowedTransitions` array to the ticket response. That is an API change — **reported, not applied** |
+
 Endpoint count moved **66 → 65**: `/config/staff` added, `/auth/me/permissions` and
 `/notifications/read-all` removed.
 
@@ -308,6 +310,7 @@ needed amending, because nothing in that artifact contradicted the decision.
 | **R-8 / A-16** transition authority matrix | `product-scope.md` A-5, **new A-16**; `data-model.md` invariant 11b | `ticket-lifecycle`, `portal-self-service` |
 | **R-9 / A-17** `isUrgent` customer input | `product-scope.md` A-6, **new A-17**; `data-model.md` §2.6 (**new field**) | — |
 | **R-10** agents and managers may cancel | `product-scope.md` A-16 (cancel row + consequences) | `ticket-lifecycle`, `portal-self-service` |
+| **Stage 8 UI design** | `ui-design.md` (new); `sdd-workflow.md` | All 18 — §13 maps every story to its screens (10 and 18 have none) |
 | **B-1** feedback rating-scale config key | `architecture.md` §6.3 | — (story 13 consumes it) |
 | **B-2 / AP-17** configuration split by audience | `api-design.md` §5.1, §3 | — (stories 01, 08, 13, 16 consume it) |
 | **N-2 / OQ-5** customer email is patchable | `api-design.md` §5.5 | — (story 04 blocked on OQ-5) |
@@ -368,6 +371,24 @@ Newest first. Every meaningful project change gets an entry.
 
 ### 2026-08-25
 
+- **Completed Stage 8 — UI Design.** `docs/ui-design.md`: **24 screens** across four surfaces —
+  2 auth, 8 workspace, 7 admin, 4 portal, 3 status — with a route tree, three shells, a shared
+  component inventory, and empty/loading/error conventions. Every screen carries its route, roles,
+  responsibilities and **the API endpoints it consumes**; all of them verified to exist in
+  `api-design.md` (the two endpoints removed by AP-18 appear nowhere). Twelve UI decisions
+  (UI-1…UI-12) recorded with rationale.
+  **Lifecycle rules honoured visibly:** the transition menu offers only what A-5 and A-16 allow;
+  assignment does not change the status chip (A-18); replying to a `Pending` request reopens it
+  automatically from the response (R-13) and the activity region shows the **customer** as the
+  actor (R-14); portal cancel is offered only while `New`, which A-18 makes a real window.
+  RTL (§10.2) and phone-width behaviour for the three T3-F surfaces (§10.3) are specified.
+  **Open questions were not resolved:** §11 marks seven dependencies — OQ-1 (the feedback control's
+  shape), OQ-3 (what the escalate dialog may claim), OQ-5 (the email field), PF-4, PF-5, N-1, and
+  OQ-2 which turns out to have no UI dependency at all.
+  **One finding, F-1 (non-blocking):** the ticket payload exposes no `allowedTransitions`, so the
+  menu duplicates the authority matrix client-side. Reported, not applied.
+  Gate 8 -> 9 met.
+  *Files:* `docs/ui-design.md` (new), `docs/sdd-workflow.md`, `docs/PROJECT-PROGRESS.md`.
 - **Stage 7 post-flight review, and the corrections it required.** Reviewed `api-design.md` against
   every authoritative source. **Two blocking defects found and closed:**
   **B-1** — the feedback contract depended on a `Feedback:RatingScale` configuration key that
@@ -551,10 +572,13 @@ Newest first. Every meaningful project change gets an entry.
 
 ## 10. Current Next Steps
 
-1. **Stage 8 — UI Design** → `docs/ui-design.md`. Every screen for workspace, portal and admin;
-   RTL implications; phone-width behaviour.
-3. **Decide OQ-1, OQ-2, OQ-3** — needed before stories 09, 13 and 15 are implemented, not before
-   stages 7 and 8. Raising them early avoids a stall mid-implementation.
+1. **Close N-1** — the eleven undefined response shapes and three unstated request bodies in
+   `api-design.md` §6. Agreed at the Stage 7 post-flight to land **before Stage 9**, because plans
+   need them.
+2. **Consider F-1** — add a read-only `allowedTransitions` array to the ticket response so the UI
+   stops duplicating the A-16 authority matrix (`ui-design.md` §12). API change; reported, not applied.
+3. **Decide OQ-1, OQ-2, OQ-3 and OQ-5** — needed before stories 04, 09, 13 and 15 are
+   implemented, not before Stage 9 planning begins.
 4. **Stage 9 — plan story 01** (`solution-skeleton`) via `/squad-plan`, then plan forward in the
    backlog order.
 5. **Stage 10 — implement story 01**, then 02–06 (the T1 core) in sequence.
