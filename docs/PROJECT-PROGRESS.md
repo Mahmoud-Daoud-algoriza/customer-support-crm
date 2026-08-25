@@ -23,7 +23,7 @@
 | **SDD pipeline** | **8 of 10 stages complete** (80% of the pipeline) |
 | **Code written** | **None.** `backend/` and `frontend/` are empty; `docker-compose.yml` is 0 bytes |
 | **Last updated** | 2026-08-25 |
-| **Current focus** | Stage 9 — Implementation Plans, one story at a time via `/squad-plan`. **N-1 (response shapes) should be closed first** |
+| **Current focus** | Stage 9 — Implementation Plans, one story at a time via `/squad-plan`. N-1 is closed; the API contract is plan-ready |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 23% is calculated
@@ -58,9 +58,9 @@ delivery carries the larger weight. A design-only project is not most of the way
 | 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan-overview stubs | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
 | 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
 | 6 | Data Model | ✅ Complete | [data-model.md](data-model.md) | ✅ | ✅ Met, re-verified after the four clarifications | Approved 2026-08-24. 15 entities |
-| 7 | API Design | ✅ Complete | [api-design.md](api-design.md) | ✅ | ✅ Met | **65** endpoints, 12 modules, 18 API decisions (AP-1…AP-18). Pre-flight passed 2026-08-24; **post-flight review 2026-08-25 closed two blocking defects** |
+| 7 | API Design | ✅ Complete | [api-design.md](api-design.md) | ✅ | ✅ Met | **66** endpoints, 12 modules, 19 API decisions (AP-1…AP-19). Pre-flight passed 2026-08-24; post-flight 2026-08-25 closed two blocking defects; **N-1 refinement 2026-08-25 added the full payload catalogue** |
 | 8 | UI Design | ✅ Complete | [ui-design.md](ui-design.md) | ✅ | ✅ Met | 24 screens across 4 surfaces, 12 UI decisions (UI-1…UI-12), every screen mapped to endpoints that exist |
-| 9 | Implementation Plans | ⬜ **Not Started** | `.squad/plans/<feature>/NN-story-*.md` | ✖ (0 plan files) | ✖ | **Current stage.** Generated one story at a time via `/squad-plan`. **Blocked on nothing, but N-1 should close first** |
+| 9 | Implementation Plans | ⬜ **Not Started** | `.squad/plans/<feature>/NN-story-*.md` | ✖ (0 plan files) | ✖ | **Current stage.** Generated one story at a time via `/squad-plan`. **Unblocked — N-1 closed 2026-08-25** |
 | 10 | Implementation / Verification | ⬜ Not Started | `backend/`, `frontend/` | ✖ (both empty) | ✖ | No code exists |
 
 **Numbering note.** These ten rows are this dashboard's structure.
@@ -282,13 +282,14 @@ The post-flight review of `api-design.md` found two blocking defects and five no
 |---|---|---|
 | **B-1** | `api-design` made the feedback contract depend on a `Feedback:RatingScale` config key that architecture §6.3 did not have — the contract was not implementable from the approved documents | ✅ **Closed** — key approved and added, values left open (OQ-1) |
 | **B-2** | `GET /config` returned **quick replies and SLA targets to every authenticated caller, including Customers**. No source authorizes that: customers do not set priority (A-6), do not choose a department (A-14), and their ticket payload carries no SLA field | ✅ **Closed** — configuration split into three audience tiers (public / customer-safe / staff-only), AP-17 |
-| **N-1** | Response shapes defined for 5 payload types; **eleven** returned resource types have none, and three request bodies are unstated | 🟡 **Tracked — to be completed before Stage 9**, where plans need them. Does not block Stage 8 |
+| **N-1** | Response shapes defined for 5 payload types; **eleven** returned resource types have none, and three request bodies are unstated | ✅ **Closed 2026-08-25.** `api-design.md` §6 is now a full payload catalogue — 29 shapes across 12 subsections, plus the three missing request bodies. Closing it exposed **F-2** (below) |
 | **N-2** | `api-design` asserted that a customer's `email` is immutable. **No approved source supports it** — A-10 makes email an identifier, not an immutable one | ✅ **Closed** — rule removed; uniqueness validation (`409 customer-email-in-use`) kept, since that *is* in the model. Raised **OQ-5** rather than inventing the linked-login consequence |
 | **N-3** | `GET /auth/me/permissions` and `POST /notifications/read-all` traced to no requirement | ✅ **Closed** — both removed (AP-18). Roles are fixed and hierarchical (A-4), so a client derives capability from the role `/auth/me` already returns; A-13 asks for a list and a badge, not a bulk action |
 | **N-4** | `hasFeedback` on the portal ticket payload is derived but was not declared as such | ✅ **Closed** — added to the server-derived field table (api-design §7) |
 | **N-5** | `data-model.md` §2.15 types `rating` as "an ordinal value" while OQ-1's own candidate list includes a binary thumbs up/down | 🟡 **Recorded, not fixed.** Resolving it would either retype an approved field or narrow an open question — both would pre-empt OQ-1. It predates `api-design.md` |
 
-| **F-1** | The ticket payload does not expose `allowedTransitions`, so the transition menu must reimplement the A-5 legality set and the A-16 authority matrix client-side (ui-design UI-3, §12). The server remains the authority; a wrong offer gets `403`/`409` | 🟡 **Non-blocking, raised 2026-08-25 by Stage 8.** Recommendation: add a read-only `allowedTransitions` array to the ticket response. That is an API change — **reported, not applied** |
+| **F-2** | **AP-13 promised an authorized attachment download endpoint that the catalogue never defined**, while story 04 requires a file to be "downloaded again". A genuine contradiction, found while closing N-1 | ✅ **Closed 2026-08-25** — `GET /attachments/{attachmentId}/content` added as **AP-19**, one endpoint for every role, authorizing through the owning ticket or customer. Endpoint count 65 → 66 |
+| **F-1** | The ticket payload does not expose `allowedTransitions`, so the transition menu must reimplement the A-5 legality set and the A-16 authority matrix client-side (ui-design UI-3, §12). The server remains the authority; a wrong offer gets `403`/`409` | 🟡 **Non-blocking. Re-checked 2026-08-25 during the N-1 refinement and deliberately left open.** The contract is *sufficient* — the server is the authority and a wrong offer gets `403`/`409` — but the client still duplicates the matrix. Adding it was in reach while §6 was being rewritten; **not applied, because it changes what an endpoint returns and that is a decision to take explicitly, not a side effect of a documentation pass** |
 
 Endpoint count moved **66 → 65**: `/config/staff` added, `/auth/me/permissions` and
 `/notifications/read-all` removed.
@@ -371,6 +372,24 @@ Newest first. Every meaningful project change gets an entry.
 
 ### 2026-08-25
 
+- **Closed N-1 — the API payload catalogue.** A focused Stage 7 refinement, not Stage 9.
+  `api-design.md` §6 grew from 5 payload shapes to **29 across 12 subsections**: identity and
+  access, organization, customers, tickets, knowledge base, notifications, attachments, reporting,
+  administration and configuration, AI assists, the three previously unstated request bodies
+  (`POST /auth/login`, `POST /kb/articles`, `PATCH /kb/articles/{id}`), and Problem Details.
+  Every field traces to `data-model.md`; display-name projections are labelled as projections.
+  Three fields are stated as never appearing in any response: `passwordHash`, `storagePath`, and
+  raw actor ids where a display name suffices.
+  **A genuine contradiction surfaced and was fixed (F-2):** AP-13 promised an authorized attachment
+  download endpoint that the catalogue never defined, while story 04 requires "downloaded again".
+  `GET /attachments/{attachmentId}/content` was added as **AP-19** — one endpoint for every role,
+  the single deliberate exception to AP-5's portal split, because a byte stream has no DTO to vary
+  and the authorization question is identical. Endpoint count **65 → 66**.
+  **No open question was resolved:** the `ratingScale` values in the config example are labelled
+  illustrative placeholders (OQ-1), `assignedCount` stays unqualified (PF-4), `firstRespondedAt` is
+  documented as possibly null on a resolved ticket (PF-5).
+  **F-1 re-checked and deliberately left open** — see §6.6.
+  *Files:* `docs/api-design.md`, `docs/PROJECT-PROGRESS.md`.
 - **Completed Stage 8 — UI Design.** `docs/ui-design.md`: **24 screens** across four surfaces —
   2 auth, 8 workspace, 7 admin, 4 portal, 3 status — with a route tree, three shells, a shared
   component inventory, and empty/loading/error conventions. Every screen carries its route, roles,
@@ -572,17 +591,15 @@ Newest first. Every meaningful project change gets an entry.
 
 ## 10. Current Next Steps
 
-1. **Close N-1** — the eleven undefined response shapes and three unstated request bodies in
-   `api-design.md` §6. Agreed at the Stage 7 post-flight to land **before Stage 9**, because plans
-   need them.
-2. **Consider F-1** — add a read-only `allowedTransitions` array to the ticket response so the UI
-   stops duplicating the A-16 authority matrix (`ui-design.md` §12). API change; reported, not applied.
-3. **Decide OQ-1, OQ-2, OQ-3 and OQ-5** — needed before stories 04, 09, 13 and 15 are
-   implemented, not before Stage 9 planning begins.
-4. **Stage 9 — plan story 01** (`solution-skeleton`) via `/squad-plan`, then plan forward in the
-   backlog order.
-5. **Stage 10 — implement story 01**, then 02–06 (the T1 core) in sequence.
-6. **Consider scope realism before stage 9.** 18 stories against a 9–12 hour budget is ambitious;
+1. **Decide F-1** — whether to add a read-only `allowedTransitions` array to the ticket response so
+   the UI stops duplicating the A-16 authority matrix (`ui-design.md` §12). Re-checked and left open
+   during the N-1 refinement; the contract works without it.
+2. **Decide OQ-1, OQ-2, OQ-3 and OQ-5** — needed before stories 04, 09, 13 and 15 are implemented,
+   not before Stage 9 planning begins.
+3. **Stage 9 — plan story 01** (`solution-skeleton`) via `/squad-plan`, then plan forward in the
+   backlog order. **Unblocked.**
+4. **Stage 10 — implement story 01**, then 02–06 (the T1 core) in sequence.
+5. **Consider scope realism before stage 9.** 18 stories against a 9–12 hour budget is ambitious;
    generating plans only for stories 01–11 and treating 12–18 as planned-not-built is a live
    option. Any such cut is recorded in [product-scope.md](product-scope.md) and reflected here.
 

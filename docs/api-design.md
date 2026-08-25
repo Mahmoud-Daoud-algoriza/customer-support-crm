@@ -27,7 +27,7 @@ alternative.
 | Auth & identity | 3 | 02 |
 | Users | 5 | 02 |
 | Organization | 2 | 03 |
-| Customers | 9 | 04 |
+| Customers | 10 | 04 |
 | Tickets (staff) | 17 | 05, 06, 07, 14 |
 | Portal (customer) | 11 | 07, 13 |
 | AI assists | 3 | 10, 11 |
@@ -35,7 +35,7 @@ alternative.
 | Notifications | 2 | 09 |
 | Reporting | 1 | 15 |
 | Administration | 1 | 16 |
-| **Total** | **65 distinct endpoints** | **all T1/T2 stories** |
+| **Total** | **66 distinct endpoints** | **all T1/T2 stories** |
 
 The two portal knowledge-base endpoints are listed in both §5.7 and §5.9 for readability; they are
 counted once here.
@@ -115,6 +115,7 @@ ignored.
 | **AP-15** | Sort and filter fields are per-endpoint whitelists; unknown values are `400` | Prevents clients depending on incidental orderings, and keeps the indexes of [data-model.md](data-model.md) §6 sufficient | Free-form sorting on any field |
 | **AP-17** | **Configuration is split into three audience tiers** — public, customer-safe, staff-only (§5.1) | Quick replies are agent content and SLA targets are internal policy; no requirement gives a customer either. A single authenticated `/config` would hand both to the Customer role, which A-4 includes | One `/config` for every authenticated caller — leaks staff content across the role boundary |
 | **AP-18** | **Surface that traces to no requirement is not published** — `/auth/me/permissions` and `/notifications/read-all` were removed | Roles are four, fixed and hierarchical (A-4), so a client derives capability from the role `/auth/me` already returns; A-13 asks for a list and an unread badge, not a bulk action. Unrequested surface is scope creep dressed as convenience | Keeping them as conveniences — they would become contract obligations no story asked for |
+| **AP-19** | **One download endpoint, `GET /attachments/{attachmentId}/content`, serves every role** — the single deliberate exception to AP-5's portal path split | AP-13 promised an authorized download and the catalogue never defined one, while story 04 requires a file to be "downloaded again". A byte stream has no DTO to vary by audience, and the authorization question is identical for both — *may this caller reach the owning ticket or customer?* — so a second portal endpoint would duplicate a rule rather than separate one. Out-of-scope or missing → `404` (AP-4) | Three parent-scoped download endpoints; or exposing `storagePath` and letting the client fetch the file, which [architecture.md](architecture.md) §4.4 forbids |
 | **AP-16** | The customer's ticket DTO **omits** assignee identity | No requirement gives a customer the name of their agent. Omitting is the smaller surface; adding later is additive | Returning the assignee to the portal |
 
 ---
@@ -254,8 +255,9 @@ category, never a department.
 | `GET` | `/customers/{id}/timeline` | Agent | The §1.3 interaction history |
 | `GET` | `/customers/{id}/notes` | Agent | Paged |
 | `POST` | `/customers/{id}/notes` | Agent | `{ body }` — author and timestamp are server-set |
-| `GET` | `/customers/{id}/attachments` | Agent | |
+| `GET` | `/customers/{id}/attachments` | Agent | Metadata list (§6.7) |
 | `POST` | `/customers/{id}/attachments` | Agent | `multipart/form-data` (AP-13) |
+| `GET` | `/attachments/{attachmentId}/content` | Authenticated | **Download.** Streams the bytes; authorization resolves through the owning ticket or customer (AP-19) |
 
 **`GET /customers/{id}/timeline`** is a **read projection** over that customer's tickets and ticket
 activity ([data-model.md](data-model.md) §2.4) — it is not a stored entity, and it **excludes
@@ -469,36 +471,308 @@ Distinct from `/tickets/{id}/activity`, which is the per-ticket trail for agents
 
 ---
 
-## 6. Core payload shapes
+## 6. Payload shapes
 
-Illustrative field lists, matching [data-model.md](data-model.md) exactly. Not schemas.
+Every field below exists in [data-model.md](data-model.md). Nothing is invented; where a response
+carries a **display name** alongside an id, that is a projection of `User.displayName` or
+`Customer.fullName` so a screen can render a person without a second call — not a new stored field.
 
-**Ticket (staff)**
+**Three fields never appear in any response, ever:** `passwordHash`, `storagePath`
+([architecture.md](architecture.md) §4.4 — downloads go through §6.7's endpoint, never a path), and
+any raw actor id where only a display name is needed.
+
+### 6.1 Identity and access
+
+**AuthToken** — `POST /auth/login`, `POST /auth/register` response
+
+```json
+{ "accessToken": "...", "expiresAt": "2026-08-25T18:00:00Z", "user": { … Identity … } }
+```
+
+**Identity** — `GET /auth/me`, and embedded above. The **per-request resolved** values (AP-9), not
+token claims.
+
+```json
+{ "id": "...", "displayName": "...", "email": "...", "role": "Agent",
+  "departmentId": "...", "branchId": "...", "customerId": null, "isActive": true }
+```
+
+`departmentId` is present for staff roles and null for `Customer`; `customerId` is the reverse
+(DM-1). `isActive` is always `true` in a successful response — an inactive user gets `401` (§4.1).
+
+**User** — `GET /users/{id}`, and the row shape of `GET /users`
+
+```json
+{ "id": "...", "email": "...", "displayName": "...", "role": "Agent",
+  "departmentId": "...", "branchId": "...", "isActive": true, "createdAt": "..." }
+```
+
+**UserSummary** — embedded wherever a person is referenced: `{ "id": "...", "displayName": "..." }`.
+
+### 6.2 Organization
+
+**Department** — `{ "id": "...", "name": "...", "managerUserId": "..." }`. `managerUserId` may be
+absent — a department need not have a manager ([data-model.md](data-model.md) §2.2, **OQ-3**).
+
+**Branch** — `{ "id": "...", "name": "..." }`.
+
+### 6.3 Customers
+
+**Customer** — `GET /customers/{id}`
+
+```json
+{ "id": "...", "fullName": "...", "email": "...", "phone": "...",
+  "branch": { "id": "...", "name": "..." },
+  "externalReference": null, "createdAt": "..." }
+```
+
+`externalReference` is the ERP seam field (DM-6) — read-only, unused by default, never settable.
+
+**CustomerListItem** — the row shape of `GET /customers`
+
+```json
+{ "id": "...", "fullName": "...", "email": "...", "phone": "...",
+  "branch": { "id": "...", "name": "..." }, "openTicketCount": 3 }
+```
+
+> `openTicketCount` is an aggregate over that customer's non-terminal tickets. It is not a stored
+> field; it is here because [ui-design.md](ui-design.md) §5.4 specifies it on the customer
+> directory, and computing it in the client would mean one query per row.
+
+**CustomerNote** — `{ "id": "...", "author": { UserSummary }, "body": "...", "createdAt": "..." }`.
+Immutable once written ([data-model.md](data-model.md) §2.5), so no `updatedAt` exists.
+
+**TimelineEntry** — `GET /customers/{id}/timeline`. A **read projection** over the customer's
+tickets and ticket activity (§1.3, [data-model.md](data-model.md) §2.4), never a stored row:
+
+```json
+{ "occurredAt": "...", "ticketId": "...", "ticketSubject": "...",
+  "activityType": "StatusChanged", "actorKind": "User",
+  "actor": { UserSummary }, "oldValue": "New", "newValue": "Open" }
+```
+
+**Internal entries are excluded from this projection** — the endpoint never returns an entry whose
+visibility is `Internal`, and customer notes are a separate collection that does not appear here.
+
+### 6.4 Tickets
+
+**Ticket (staff)** — `GET /tickets/{id}`
 
 ```json
 { "id": "...", "subject": "...", "description": "...",
   "customer": { "id": "...", "fullName": "...", "email": "..." },
   "departmentId": "...", "categoryCode": "billing", "priority": "High",
   "status": "Open", "isUrgent": true,
-  "assignedUserId": "...", "createdByUserId": "...", "createdAt": "...",
+  "assignee": { UserSummary } | null, "createdBy": { UserSummary }, "createdAt": "...",
   "firstResponseDueAt": "...", "resolutionDueAt": "...",
   "firstRespondedAt": null, "resolvedAt": null, "closedAt": null,
   "firstResponseBreached": false, "resolutionBreached": false }
 ```
 
-**Ticket (portal)** — the same ticket, narrowed: `id`, `subject`, `description`, `categoryCode`,
-`status`, `isUrgent`, `createdAt`, `resolvedAt`, `hasFeedback`. **No** assignee (AP-16), **no**
-department, **no** SLA or breach fields, **no** internal anything.
+`assignee` is null until assignment — **and may be non-null while `status` is `New`**, because
+assignment is not the start of work (A-18). `firstRespondedAt` stays null until the first outbound
+message and may remain null on a resolved ticket (**PF-5**).
 
-**Message** — `{ id, ticketId, authorDisplayName, authorRole, direction, channel, body, postedAt }`.
-`direction` and `channel` are **server-derived and read-only** (§7).
+**TicketListItem** — the row shape of `GET /tickets`. Everything the queue renders
+([ui-design.md](ui-design.md) §5.1) and nothing more:
 
-**Activity entry** — `{ id, occurredAt, activityType, actorKind, actorDisplayName?, oldValue?,
-newValue?, visibility, messageId?, internalNoteId? }`.
+```json
+{ "id": "...", "subject": "...", "customer": { "id": "...", "fullName": "..." },
+  "status": "Open", "priority": "High", "categoryCode": "billing",
+  "departmentId": "...", "assignee": { UserSummary } | null, "createdAt": "...",
+  "resolutionDueAt": "...", "firstResponseBreached": false, "resolutionBreached": false }
+```
 
-**Problem Details** — `{ type, title, status, detail, instance, errors? }`, where `type` is a
-stable slug such as `illegal-transition`, `transition-not-permitted`, `assignee-out-of-department`,
-`feedback-already-submitted`, `user-already-exists`, `ai-unavailable`, `attachment-too-large`.
+**Ticket (portal)** — `GET /portal/tickets/{id}` and the row shape of `GET /portal/tickets`
+
+```json
+{ "id": "...", "subject": "...", "description": "...", "categoryCode": "billing",
+  "status": "Pending", "isUrgent": true, "createdAt": "...", "resolvedAt": null,
+  "hasFeedback": false }
+```
+
+**No** assignee (AP-16), **no** department, **no** priority, **no** SLA or breach fields, **no**
+internal anything. `hasFeedback` is computed from the existence of a feedback row (§7).
+
+**Message** — `{ "id", "ticketId", "author": { UserSummary }, "authorRole", "direction",
+"channel", "body", "postedAt" }`. The portal variant omits `channel` and `authorRole`, keeping
+`direction` so the thread can distinguish the two sides.
+
+**`POST /portal/tickets/{id}/messages` response** — the created message **plus the ticket's current
+status**, because posting it may have transitioned the ticket (R-13):
+
+```json
+{ "message": { … Message … }, "ticketStatus": "Open", "statusChanged": true }
+```
+
+`statusChanged` is true only when the automatic `Pending → Open` fired. The client never has to
+guess, and never has to re-fetch to find out.
+
+**InternalNote** — `{ "id", "ticketId", "author": { UserSummary }, "body", "createdAt" }`.
+Returned **only** by `/tickets/{id}/internal-notes`, which no portal path reaches (T2-C, AP-5).
+
+**Activity entry** — `GET /tickets/{id}/activity`
+
+```json
+{ "id": "...", "occurredAt": "...", "activityType": "StatusChanged",
+  "actorKind": "User", "actor": { UserSummary } | null,
+  "oldValue": "Pending", "newValue": "Open", "visibility": "CustomerVisible",
+  "messageId": null, "internalNoteId": null }
+```
+
+`actor` is null exactly when `actorKind` is `System` — which is the SLA monitor only. The automatic
+`Pending → Open` carries `actorKind: "User"` and the **replying customer** as `actor` (**R-14**).
+
+**Task** — `{ "id", "ticketId", "title", "dueAt", "assignee": { UserSummary }, "isDone",
+"completedAt", "createdBy": { UserSummary }, "createdAt" }`.
+
+**Feedback** — `{ "id", "ticketId", "rating", "comment", "submittedAt" }`. `rating` is an ordinal
+whose permitted range comes from configuration; **this contract fixes no range** (**OQ-1**).
+
+### 6.5 Knowledge base
+
+**Article** — `GET /kb/articles/{id}`
+
+```json
+{ "id": "...", "title": "...", "body": "...", "type": "Faq",
+  "visibility": "Public", "isPublished": true,
+  "author": { UserSummary }, "createdAt": "...", "updatedAt": "..." }
+```
+
+**ArticleListItem** — `{ "id", "title", "type", "visibility", "isPublished", "updatedAt" }`. No
+body, so a list does not ship every article's full text.
+
+**Portal article** — `{ "id", "title", "body", "type", "updatedAt" }`. No `visibility`, no
+`isPublished`, no author: the portal only ever receives public, published articles, so returning
+those fields would state the obvious and leak the taxonomy.
+
+**SuggestedArticle** — `GET /tickets/{id}/suggested-articles` —
+`{ "id", "title", "type", "matchScore" }`. `matchScore` is the database's own text-match ranking
+(AD-13), exposed so a screen can order results; it is a query artefact, not a stored field.
+
+### 6.6 Notifications
+
+**Notification** — `{ "id", "type", "ticketId", "ticketSubject", "createdAt", "readAt" }`.
+`type` is one of the four of A-13. `ticketSubject` is projected so a list row is readable without a
+call per notification.
+
+**`GET /notifications` envelope** — the standard paged envelope plus `"unreadCount": 3` at the top
+level, which is what the shell's badge renders.
+
+### 6.7 Attachments
+
+**AttachmentMetadata** — returned by every attachment list and by a successful upload
+
+```json
+{ "id": "...", "fileName": "...", "contentType": "application/pdf",
+  "sizeBytes": 184320, "uploadedBy": { UserSummary }, "uploadedAt": "..." }
+```
+
+**`storagePath` is never returned.** The bytes come from `GET /attachments/{attachmentId}/content`
+(AP-19), which authorizes through the owning ticket or customer and returns `404` when the caller
+cannot reach it. The response is the file stream with `Content-Type` and a `Content-Disposition`
+filename; there is no JSON body.
+
+### 6.8 Reporting
+
+**DashboardReport** — `GET /reports/dashboard`. Four groups, matching T2-G exactly:
+
+```json
+{ "ticketCounts": {
+    "byStatus":     [ { "key": "Open",    "count": 42 } ],
+    "byPriority":   [ { "key": "High",    "count": 11 } ],
+    "byCategory":   [ { "key": "billing", "count": 30 } ],
+    "byDepartment": [ { "key": "<departmentId>", "name": "Billing", "count": 30 } ] },
+  "slaAttainment": [ { "priority": "High", "met": 18, "breached": 3, "attainmentPercent": 85.7 } ],
+  "agentPerformance": [ { "agent": { UserSummary }, "assignedCount": 12,
+                          "resolvedCount": 9, "averageResolutionHours": 6.4 } ],
+  "satisfaction": { "averageRating": 4.2, "responseCount": 17 } }
+```
+
+**Empty is not zero.** When no ratings exist, `satisfaction` returns
+`{ "averageRating": null, "responseCount": 0 }` — never `0.0`, which would read as universal
+dissatisfaction. The same rule applies to `averageResolutionHours` for an agent who has resolved
+nothing.
+
+> `assignedCount` is deliberately unqualified — whether "assigned" means currently or ever assigned
+> is **PF-4**, still undecided. The field name and shape are stable either way.
+
+### 6.9 Administration and configuration
+
+**AuditEntry** — `GET /audit`
+
+```json
+{ "id": "...", "occurredAt": "...", "actor": { UserSummary } | null,
+  "actorDescriptor": "someone@example.com", "action": "SignInFailed",
+  "targetType": "User", "targetId": "...", "outcome": "Failure" }
+```
+
+`actor` is null when no user could be resolved — a failed sign-in — and `actorDescriptor` then
+carries the submitted identifier ([data-model.md](data-model.md) §2.14).
+
+**BootstrapConfig** — `GET /config/bootstrap`, anonymous
+
+```json
+{ "productName": "...", "logoUrl": "...", "primaryColor": "#0B5FFF",
+  "languages": ["en", "ar"], "defaultLanguage": "en" }
+```
+
+**CustomerConfig** — `GET /config`, every authenticated role
+
+```json
+{ "categories": [ { "code": "billing", "name": "Billing" } ],
+  "feedback": { "ratingScale": { "min": 1, "max": 5 } } }
+```
+
+> The `ratingScale` **values shown are illustrative placeholders, not a decision.** They come from
+> the `Feedback rating scale` configuration key ([architecture.md](architecture.md) §6.3) and
+> **OQ-1 is still open** — no scale is fixed by this contract.
+
+**StaffConfig** — `GET /config/staff`, Agent and above
+
+```json
+{ "priorities": ["Low", "Medium", "High", "Urgent"],
+  "quickReplies": [ { "id": "...", "title": "...", "body": "..." } ],
+  "slaTargets": [ { "priority": "High", "firstResponseHours": 4, "resolutionHours": 24 } ],
+  "categoryDepartmentMap": [ { "categoryCode": "billing", "departmentId": "..." } ] }
+```
+
+The SLA hour values are illustrative; the real ones are configuration (A-3).
+
+### 6.10 AI assists
+
+All three return a result plus the label A-8 requires, and none of them mutates a ticket (AD-12):
+
+- **Summary** — `{ "summary": "...", "generatedBy": "ai", "generatedAt": "..." }`
+- **Suggested reply** — `{ "draft": "...", "generatedBy": "ai", "generatedAt": "..." }`
+- **Classification suggestion** — `{ "categoryCode": "billing", "priority": "High",
+  "generatedBy": "ai", "generatedAt": "..." }`
+
+A suggested `categoryCode` outside the configured list is rejected server-side before it is
+returned, so a client never receives an unusable suggestion.
+
+### 6.11 Request bodies not stated elsewhere
+
+- **`POST /auth/login`** — `{ "email": "...", "password": "..." }` → **AuthToken**. A wrong
+  credential is `401` with `type: invalid-credentials`; a deactivated user gets the same response,
+  because distinguishing them would confirm which emails have accounts.
+- **`POST /kb/articles`** — `{ "title", "body", "type", "visibility", "isPublished"? }`.
+  `isPublished` defaults to false, so an article is drafted before it is visible. `author` is the
+  authenticated Administrator, never supplied.
+- **`PATCH /kb/articles/{id}`** — any of `{ "title", "body", "type", "visibility" }`.
+  **`isPublished` is not patchable here** — publishing is the dedicated `/publish` and `/unpublish`
+  action pair (AP-1), so publication state changes through one path only.
+
+### 6.12 Problem Details
+
+`{ "type", "title", "status", "detail", "instance", "errors"? }`, where `type` is a stable slug:
+`illegal-transition`, `transition-not-permitted`, `assignee-out-of-department`,
+`feedback-already-submitted`, `user-already-exists`, `customer-email-in-use`,
+`invalid-credentials`, `ai-unavailable`, `attachment-too-large`. `illegal-transition` additionally
+carries `allowedTransitions`.
+
+The front end renders a **translated** string chosen by `type`; the server's `detail` is never shown
+raw (T2-J, [ui-design.md](ui-design.md) §9).
 
 ---
 
@@ -583,11 +857,11 @@ endpoints that traced to no requirement were removed (AP-18).
 
 **Follow-ups still open, none blocking Stage 8:**
 
-1. **Response shapes** — §6 defines five payload types; eleven returned resource types have none
-   (User, Customer, CustomerNote, Department, Branch, Task, Attachment, KnowledgeArticle,
-   Notification, AuditEntry, the report groups and the config payloads), and three request bodies
-   are unstated (`POST /auth/login`, `POST /kb/articles`, `PATCH /kb/articles/{id}`).
-   **To be completed before Stage 9**, which is where plans need them.
+1. ~~**Response shapes**~~ — **closed 2026-08-25.** §6 is now a full payload catalogue: every
+   resource type the API returns has a shape, and the three missing request bodies are stated.
+   Closing it surfaced a real contradiction — AP-13 promised an authorized attachment download
+   that the catalogue never defined, while story 04 requires one. `GET
+   /attachments/{attachmentId}/content` was added (AP-19), taking the count 65 → 66.
 2. **PF-4's metric semantics** must be pinned before story 15 is planned.
 3. **OQ-5** — whether changing `Customer.email` also changes a linked portal login's sign-in
    email (§5.5). Must be answered before story 04 is implemented.
@@ -606,7 +880,7 @@ present in an approved source.
 | 01 `solution-skeleton` | `/health`, `/config/bootstrap`, `/config`, `/config/staff` |
 | 02 `auth-and-roles` | `/auth/*` (3), `/users/*` (5) |
 | 03 `departments-branches` | `/departments`, `/branches` |
-| 04 `customer-records` | `/customers/*` (9) |
+| 04 `customer-records` | `/customers/*` (9), `/attachments/{id}/content` |
 | 05 `ticket-core` | `GET/POST /tickets`, `GET/PATCH /tickets/{id}`, `/assignment` |
 | 06 `ticket-lifecycle` | `/transition`, `/escalate`, `/activity` |
 | 07 `ticket-intake-messaging` | `/tickets/{id}/messages`, `/portal/tickets`, `/portal/tickets/{id}/messages` |
@@ -665,7 +939,7 @@ data model exactly."*
 
 | Condition | Status |
 |---|---|
-| A contract for each capability the stories need | ✅ 65 distinct endpoints; all 16 endpoint-bearing stories covered; the three that introduce none are justified in §10.1 |
+| A contract for each capability the stories need | ✅ 66 distinct endpoints; all 16 endpoint-bearing stories covered; the three that introduce none are justified in §10.1 |
 | Role-based access stated per endpoint (A-4) | ✅ Every row in §5 carries a **Roles** column; §4.2 defines the three layers and their failure codes |
 | Matches the data model exactly | ✅ Every payload field in §6 exists in [data-model.md](data-model.md); no field invented, no entity implied that the model lacks |
 | Department scoping enforced server-side | ✅ §4.3, with `404` (AP-4) so the boundary does not leak existence |
