@@ -1,13 +1,34 @@
 # sla-automation — plan overview
 
-Entry point for the **sla-automation** feature. Stories execute in order by their `NN` prefix.
+Entry point for the **sla-automation** feature. Stories execute in order by their `NN` prefix,
+which is the **global** execution sequence across all feature folders
+(`naming.globalSequence: true`). The programme-level view is
+[00-implementation-plan.md](../00-implementation-plan.md).
 
 ## Stories
 
 | NN | File | Title | Tracker id | Depends on |
 |----|------|-------|------------|------------|
-| _add rows as stories are planned_ |
+| 09 | [09-story-sla-routing-escalation.md](09-story-sla-routing-escalation.md) | SLA targets, auto-assignment, escalation and notifications | — | Stories 03, 05, 06, 16 Part A |
+
+Tracker integration is `none`; story ids are the folder names under
+[`.squad/stories/sla-automation/`](../../stories/sla-automation/).
 
 ## Dependency notes
 
-_Describe sequencing, shared contracts, or cross-feature dependencies here._
+**Phase 5.**
+
+- **Reuses [Story 06](../ticket-management/06-story-ticket-lifecycle.md)'s `EscalateAsync` rather
+  than duplicating it**, as the intake requires, and **replaces** the temporary
+  `LoggingNotificationPublisher` with the persistent one — the swap Story 06's plan promised to
+  record.
+- Also replaces Story 05's no-op `IAutoAssignmentPolicy` with round-robin. **Auto-assignment does
+  not change status** (A-18).
+- ⚠ **OQ-2 must be answered before task 4.** Its answer lives in exactly one method,
+  `SlaClock.OnPriorityChanged`, which throws until then.
+- ⚠ **OQ-3** — no fallback recipient is invented when a department has no manager; the flag and the
+  priority raise still occur.
+- ⚠ **PF-5 stays open** — a ticket resolved without a reply is permanently first-response breached.
+  Implemented as A-3 words it and **reported**, not silently changed.
+- T2. If cut, the queue keeps its ordering (S9-8) and
+  [Story 15](../reporting/15-story-management-dashboard.md) loses its SLA tile.

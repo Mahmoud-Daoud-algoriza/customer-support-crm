@@ -16,26 +16,30 @@
 
 | | |
 |---|---|
-| **Current SDD stage** | **Stage 8 complete → Stage 9 (Implementation Plans) is next, not started** |
-| **Current phase** | Design. Implementation has **not** begun |
-| **Overall status** | 🟢 On track — **Stage 7 pre-flight passed**. The one blocking finding (PF-1) is resolved; every API contract is designable |
-| **Overall progress** | **31%** (method in §1.1) |
-| **SDD pipeline** | **8 of 10 stages complete** (80% of the pipeline) |
+| **Current SDD stage** | **Stage 9 complete → Stage 10 (Implementation) is next, not started** |
+| **Current phase** | Design and planning **complete**. Implementation has **not** begun |
+| **Overall status** | 🟡 On track with **four blocked acceptance criteria**. The SDD chain is finished end to end; the stage 9 audit found two genuine contradictions (S9-1, S9-4) and scheduled two carried findings (PF-2, PF-4). **None blocks stories 01–04** |
+| **Overall progress** | **35%** (method in §1.1) |
+| **SDD pipeline** | **9 of 10 stages complete** (90% of the pipeline) |
 | **Code written** | **None.** `backend/` and `frontend/` are empty; `docker-compose.yml` is 0 bytes |
 | **Last updated** | 2026-08-25 |
-| **Current focus** | Stage 9 — Implementation Plans, one story at a time via `/squad-plan`. N-1 is closed; the API contract is plan-ready |
+| **Current focus** | Stage 10 — implement story 01 (`solution-skeleton`) from [.squad/plans/platform-foundation/01-story-solution-skeleton.md](../.squad/plans/platform-foundation/01-story-solution-skeleton.md), then phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
 | **Next immediate step** | See §10, item 1 |
 
-### 1.1 How the 23% is calculated
+### 1.1 How the 35% is calculated
 
 Two weighted tracks. The weighting is a **stated planning convention, not a measurement** — it is
 recorded here so the number is reproducible rather than invented.
 
 | Track | Contents | Weight | Complete | Contribution |
 |---|---|---|---|---|
-| **Design & planning** | Tracker rows 1–9 (§2), equally weighted at 3.89% each | 35% | 8 of 9 rows | 8 ÷ 9 × 35 = **31.1%** |
+| **Design & planning** | Tracker rows 1–9 (§2), equally weighted at 3.89% each | 35% | **9 of 9 rows** | 9 ÷ 9 × 35 = **35.0%** |
 | **Delivery** | Row 10 — the 18 stories implemented *and* verified | 65% | 0 of 18 | 0 ÷ 18 × 65 = **0%** |
-| | | **100%** | | **≈ 31%** |
+| | | **100%** | | **= 35%** |
+
+**The design-and-planning track is now fully consumed.** Every remaining percentage point is
+delivery. This is the point the weighting was chosen to make honest: **a fully planned project with
+no running code is 35% done, not 90%.**
 
 **Why 35/65.** [product-scope.md](product-scope.md) §10 defines done in five items, four of which
 concern running software. The SDD chain is the method; the working system is the deliverable, so
@@ -55,13 +59,13 @@ delivery carries the larger weight. A design-only project is not most of the way
 | 1 | Requirements | ✅ Complete | [requirements.md](requirements.md) — 56 requirement lines | ✅ | n/a — given input | Never edited. Includes the stage-2 requirements analysis, delivered in conversation and distilled into scope |
 | 2 | Product Scope | ✅ Complete | [product-scope.md](product-scope.md) | ✅ | n/a | T1–T4 tiers, A-1…A-18, 7 open questions. Approved 2026-08-24; A-14…A-18 added 2026-08-24 |
 | 3 | Story Intake / Backlog | ✅ Complete | 18 intakes + [story-backlog.md](story-backlog.md) | ✅ | ✅ Met | All 56 requirement lines mapped to a story |
-| 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan-overview stubs | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
+| 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan overviews (**filled at stage 9**) | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
 | 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
 | 6 | Data Model | ✅ Complete | [data-model.md](data-model.md) | ✅ | ✅ Met, re-verified after the four clarifications | Approved 2026-08-24. 15 entities |
 | 7 | API Design | ✅ Complete | [api-design.md](api-design.md) | ✅ | ✅ Met | **66** endpoints, 12 modules, 19 API decisions (AP-1…AP-19). Pre-flight passed 2026-08-24; post-flight 2026-08-25 closed two blocking defects; **N-1 refinement 2026-08-25 added the full payload catalogue** |
 | 8 | UI Design | ✅ Complete | [ui-design.md](ui-design.md) | ✅ | ✅ Met | 24 screens across 4 surfaces, 12 UI decisions (UI-1…UI-12), every screen mapped to endpoints that exist |
-| 9 | Implementation Plans | ⬜ **Not Started** | `.squad/plans/<feature>/NN-story-*.md` | ✖ (0 plan files) | ✖ | **Current stage.** Generated one story at a time via `/squad-plan`. **Unblocked — N-1 closed 2026-08-25** |
-| 10 | Implementation / Verification | ⬜ Not Started | `backend/`, `frontend/` | ✖ (both empty) | ✖ | No code exists |
+| 9 | Implementation Plans | ✅ Complete | **18** × `.squad/plans/<feature>/NN-story-*.md` + [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) + 14 updated `00-overview.md` + [00-index.md](../.squad/plans/00-index.md) | ✅ | ✅ Met for story 01; per-story thereafter | Completed 2026-08-25. `squad status`: 18 stories, **18 plan files**, next `NN` 19. A full traceability and consistency audit produced **13 findings (S9-1…S9-13)**, of which **4 block a named acceptance criterion** (§6.7) |
+| 10 | Implementation / Verification | ⬜ **Not Started** | `backend/`, `frontend/` | ✖ (both empty) | ✖ | **Current stage.** No code exists. Begins with story 01 |
 
 **Numbering note.** These ten rows are this dashboard's structure.
 [sdd-workflow.md](sdd-workflow.md) is the canonical pipeline and numbers its stages slightly
@@ -69,9 +73,14 @@ differently: its stage 2 is the requirements analysis (folded into row 1 here), 
 user-story stage (rows 3 and 4 here, since squad-kit initialization is tooling rather than a
 workflow stage). Rows 5–10 match its stages 5–10 exactly. The workflow document governs.
 
-**Blockers to the pipeline:** none. The Stage 7 pre-flight audit raised one blocking finding, PF-1
-(the `Pending` transition set and the effect of a customer reply); it was resolved the same day as
-R-13. Six non-blocking findings (PF-2…PF-7) are carried in §6.5.
+**Blockers to the pipeline:** none — the pipeline itself is complete. **Blockers inside stage 10
+exist:** four acceptance criteria cannot be met until a decision is recorded (S9-1, S9-4, PF-4,
+PF-2 — §6.7), and four open questions gate individual stories (OQ-1, OQ-2, OQ-3, OQ-5 — §6.1).
+**None of the eight blocks stories 01–04**; the earliest is **OQ-2, which blocks story 05**.
+
+The Stage 7 pre-flight audit raised one blocking finding, PF-1 (the `Pending` transition set and
+the effect of a customer reply); it was resolved the same day as R-13. The remaining pre-flight and
+post-flight findings are carried in §6.5 and §6.6.
 
 ---
 
@@ -80,37 +89,48 @@ R-13. Six non-blocking findings (PF-2…PF-7) are carried in §6.5.
 All 18 stories from [story-backlog.md](story-backlog.md). Sequence is the intended execution order;
 squad-kit assigns the real `NN` when each plan is generated.
 
-**Every story is at `Intake Complete`.** No plan has been generated, no code written, nothing
-verified. The uniformity is real, not a placeholder.
+**Every story is at `Plan Complete`.** All 18 plans exist; no code is written and nothing is
+verified. The `Depends on` column below is the **execution** dependency from
+[00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §4, which supersedes the
+earlier reading in three places (S9-7, S9-8, S9-12).
 
 | Seq | Story | Feature | Tier | SDD | Plan | Impl | Verified | Depends on | Blocker |
 |---|---|---|---|---|---|---|---|---|---|
-| 01 | `solution-skeleton` | platform-foundation | T2 | Intake Complete | Not Started | Not Started | Not Started | — | — |
-| 02 | `auth-and-roles` | identity-access | **T1** | Intake Complete | Not Started | Not Started | Not Started | 01 | — |
-| 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | Not Started | Not Started | Not Started | 01 | — |
-| 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | Not Started | Not Started | Not Started | 01–03 | — |
-| 05 | `ticket-core` | ticket-management | **T1** | Intake Complete | Not Started | Not Started | Not Started | 01–04 | — |
-| 06 | `ticket-lifecycle` | ticket-management | **T1** | Intake Complete | Not Started | Not Started | Not Started | 05 | — |
-| 07 | `ticket-intake-messaging` | ticket-management | T2 | Intake Complete | Not Started | Not Started | Not Started | 05, 06 | — |
-| 08 | `agent-dashboard` | agent-workspace | **T1** | Intake Complete | Not Started | Not Started | Not Started | 04–07, 09 | — |
-| 09 | `sla-routing-escalation` | sla-automation | T2 | Intake Complete | Not Started | Not Started | Not Started | 03, 05, 06 | ⚠ **OQ-2, OQ-3** |
-| 10 | `ai-service-seam` | ai-assist | **T1** | Intake Complete | Not Started | Not Started | Not Started | 01 | — |
-| 11 | `ai-ticket-assists` | ai-assist | **T1** | Intake Complete | Not Started | Not Started | Not Started | 05–08, 10 | — |
-| 12 | `kb-articles-search` | knowledge-base | T2 | Intake Complete | Not Started | Not Started | Not Started | 02 | — |
-| 13 | `portal-self-service` | customer-portal | T2 | Intake Complete | Not Started | Not Started | Not Started | 02, 05–07, 12 | ⚠ **OQ-1** |
-| 14 | `tasks-internal-notes` | agent-workspace | T2 | Intake Complete | Not Started | Not Started | Not Started | 06, 08 | — |
-| 15 | `management-dashboard` | reporting | T2 | Intake Complete | Not Started | Not Started | Not Started | 03, 05, 06, 09, 13 | ⚠ **OQ-1, OQ-2** |
-| 16 | `audit-configuration` | administration | T2 | Intake Complete | Not Started | Not Started | Not Started | 02, 06 | — |
-| 17 | `i18n-responsive-branding` | platform-experience | T2+T3 | Intake Complete | Not Started | Not Started | Not Started | 01 | — |
-| 18 | `channel-erp-adapters` | integration-seams | T3 | Intake Complete | Not Started | Not Started | Not Started | 04, 07, 09 | — |
+| 01 | `solution-skeleton` | platform-foundation | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | — | — |
+| 02 | `auth-and-roles` | identity-access | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01, **03 data** | — |
+| 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 01 | — |
+| 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–03, **16 A** | ⚠ **OQ-5** |
+| 05 | `ticket-core` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–04, **16 A** | ⚠ **OQ-2** |
+| 06 | `ticket-lifecycle` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 05 | ⚠ OQ-3 *(no-manager branch only)* |
+| 07 | `ticket-intake-messaging` | ticket-management | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 05, 06, 04, 16 A | — |
+| 08 | `agent-dashboard` | agent-workspace | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 04–07, 16 A | ⛔ **S9-1** *(task region only)* |
+| 09 | `sla-routing-escalation` | sla-automation | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 03, 05, 06, 16 A | ⚠ **OQ-2**, OQ-3, PF-5 |
+| 10 | `ai-service-seam` | ai-assist | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01 — **parallel** | — |
+| 11 | `ai-ticket-assists` | ai-assist | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 10, 05–08 | ⛔ **S9-4** |
+| 12 | `kb-articles-search` | knowledge-base | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 02; task 4 needs 05 | — |
+| 13 | `portal-self-service` | customer-portal | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 02, 04–07, 12 | ⚠ **OQ-1** |
+| 14 | `tasks-internal-notes` | agent-workspace | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 06, 08 | ⛔ **S9-1** |
+| 15 | `management-dashboard` | reporting | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 03, 05, 06, 09, 13 | ⛔ **PF-4**, ⚠ OQ-1 |
+| 16 | `audit-configuration` | administration | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | **A:** 01, 03 · **B:** 02, 06 | — |
+| 17 | `i18n-responsive-branding` | platform-experience | T2+T3 | Intake Complete | **Plan Complete** | Not Started | Not Started | **A:** 01 · **B:** 02–16 | — |
+| 18 | `channel-erp-adapters` | integration-seams | T3 | Intake Complete | **Plan Complete** | Not Started | Not Started | 04, 07, 09 | ⛔ **PF-2** |
 
 **Split-in-time exceptions** ([story-backlog.md](story-backlog.md)): story 17's i18n/RTL
 *scaffolding* belongs with story 01 (retrofitting every component later costs more); story 16's
-*configuration* half is consumed by 05, 08, 09 and 17 and must be defined early. Only the
-translation pass and the audit-log UI sit at their listed positions.
+*configuration* half must be defined early. Only the translation pass and the audit-log UI sit at
+their listed positions. **The stage 9 audit widened story 16's consumer list** — story 04 needs the
+default branch (A-15) and the attachment cap, and story 13 needs the rating-scale key — so
+configuration executes in **phase 2, before story 04**.
+
+**Execution order differs from `NN` order in three places**, each a dependency the approved
+documents already imply, none a business change: **03's data layer runs before 02** (S9-12),
+**16 Part A runs before 04 and 05** (S9-13), and **`POST /auth/register` is implemented in 04, not
+02** (S9-7). **Story 08 does *not* depend on 09** — the earlier reading was wrong, because SLA due
+dates are required at creation (S9-8).
 
 **Nothing is Cut.** If a story is cut under time pressure, the cut order in
-[story-backlog.md](story-backlog.md) applies, the cut is recorded in
+[story-backlog.md](story-backlog.md) applies — **note the S9-8 correction recorded there: cutting
+story 09 does not cost the queue its SLA ordering**, only the population of the breach flags — the cut is recorded in
 [product-scope.md](product-scope.md) per its §10 rule, and the row above changes to
 `Cut / Not Building` with a change-log entry.
 
@@ -120,50 +140,85 @@ translation pass and the audit-log UI sit at their listed positions.
 
 Progress view only — [product-scope.md](product-scope.md) holds the definitions.
 
-**Read the Design column carefully.** ✅ means architecture (stage 5) *and* the data model
-(stage 6) cover the item. **API design and UI design are pending for every single item**, so
-nothing is fully designed yet. `n/a` means the item has no data-model footprint by design
-(front-end or configuration only).
+**The Design column is now fully earned.** ✅ means all four design stages — architecture (5),
+data model (6), API design (7) and UI design (8) — cover the item. `n/a` means the item has no
+data-model footprint by design (front-end or configuration only).
+
+**The Plan column is complete for every item.** ✅ means a stage-9 plan file covers it, with the
+plan named in §4.1 below. **Impl and Verified remain ⬜ everywhere** — no code exists.
 
 ### T1 — must genuinely work (6 items)
 
 | Item | Story | Design | Plan | Impl | Verified |
 |---|---|---|---|---|---|
-| T1-A Customer management | 04 | ✅ | ⬜ | ⬜ | ⬜ |
-| T1-B Ticket management | 05, 06 | ✅ | ⬜ | ⬜ | ⬜ |
-| T1-C Agent dashboard | 08 | ✅ | ⬜ | ⬜ | ⬜ |
-| T1-D Users, roles, permissions | 02 | ✅ | ⬜ | ⬜ | ⬜ |
-| T1-E Multi-department routing | 03 | ✅ | ⬜ | ⬜ | ⬜ |
-| T1-F Ticket-facing AI | 10, 11 | ✅ (no entity — DM-5) | ⬜ | ⬜ | ⬜ |
+| T1-A Customer management | 04 | ✅ | ✅ | ⬜ | ⬜ |
+| T1-B Ticket management | 05, 06 | ✅ | ✅ | ⬜ | ⬜ |
+| T1-C Agent dashboard | 08 | ✅ | ✅ | ⬜ | ⬜ |
+| T1-D Users, roles, permissions | 02 | ✅ | ✅ | ⬜ | ⬜ |
+| T1-E Multi-department routing | 03 | ✅ | ✅ | ⬜ | ⬜ |
+| T1-F Ticket-facing AI | 10, 11 | ✅ (no entity — DM-5) | ✅ | ⬜ | ⬜ |
 
 ### T2 — simplified but real (12 items)
 
 | Item | Story | Design | Plan | Impl | Verified |
 |---|---|---|---|---|---|
-| T2-A Attachments | 04 | ✅ | ⬜ | ⬜ | ⬜ |
-| T2-B Web form + portal messaging | 07 | ✅ | ⬜ | ⬜ | ⬜ |
-| T2-C Tasks & internal notes | 14 | ✅ | ⬜ | ⬜ | ⬜ |
-| T2-D SLA & automation | 09 | ✅ | ⬜ | ⬜ | ⬜ |
-| T2-E Knowledge base | 12 | ✅ | ⬜ | ⬜ | ⬜ |
-| T2-F Customer portal | 13 | ✅ | ⬜ | ⬜ | ⬜ |
-| T2-G Reports & dashboards | 15 | ✅ (aggregates, no entity) | ⬜ | ⬜ | ⬜ |
-| T2-H Audit logs | 16 | ✅ | ⬜ | ⬜ | ⬜ |
-| T2-I System configuration | 16 | ✅ (config, n/a to model) | ⬜ | ⬜ | ⬜ |
-| T2-J Arabic & English | 17 | ✅ (front end, n/a to model) | ⬜ | ⬜ | ⬜ |
-| T2-K Multi-branch | 03 | ✅ | ⬜ | ⬜ | ⬜ |
-| T2-L Public API | 01 | ✅ (n/a to model) | ⬜ | ⬜ | ⬜ |
+| T2-A Attachments | 04 | ✅ | ✅ | ⬜ | ⬜ |
+| T2-B Web form + portal messaging | 07 | ✅ | ✅ | ⬜ | ⬜ |
+| T2-C Tasks & internal notes | 14 | ✅ | ✅ | ⬜ | ⬜ |
+| T2-D SLA & automation | 09 | ✅ | ✅ | ⬜ | ⬜ |
+| T2-E Knowledge base | 12 | ✅ | ✅ | ⬜ | ⬜ |
+| T2-F Customer portal | 13 | ✅ | ✅ | ⬜ | ⬜ |
+| T2-G Reports & dashboards | 15 | ✅ (aggregates, no entity) | ✅ | ⬜ | ⬜ |
+| T2-H Audit logs | 16 | ✅ | ✅ | ⬜ | ⬜ |
+| T2-I System configuration | 16 | ✅ (config, n/a to model) | ✅ | ⬜ | ⬜ |
+| T2-J Arabic & English | 17 | ✅ (front end, n/a to model) | ✅ | ⬜ | ⬜ |
+| T2-K Multi-branch | 03 | ✅ | ✅ | ⬜ | ⬜ |
+| T2-L Public API | 01 | ✅ (n/a to model) | ✅ | ⬜ | ⬜ |
 
 ### T3 — seam plus fake, designed not delivered (7 items)
 
 | Item | Story | Design | Plan | Impl | Verified |
 |---|---|---|---|---|---|
-| T3-A External channels | 18 | ✅ | ⬜ | ⬜ | ⬜ |
+| T3-A External channels | 18 | ✅ | ✅ | ⬜ | ⬜ |
 | T3-B Live chat | 18 | ✅ documented, not building | — | — | — |
 | T3-C AI chatbot | 10 (seam), 18 (doc) | ✅ documented, not building | — | — | — |
-| T3-D ERP & external systems | 18 | ✅ | ⬜ | ⬜ | ⬜ |
-| T3-E Custom branding | 17 | ✅ (config) | ⬜ | ⬜ | ⬜ |
-| T3-F Mobile / responsive | 17 (asserted in 08, 13) | ✅ | ⬜ | ⬜ | ⬜ |
+| T3-D ERP & external systems | 18 | ✅ | ✅ | ⬜ | ⬜ |
+| T3-E Custom branding | 17 | ✅ (config) | ✅ | ⬜ | ⬜ |
+| T3-F Mobile / responsive | 17 (asserted in 08, 13) | ✅ | ✅ | ⬜ | ⬜ |
 | T3-G Multi-tenancy | 03 | ✅ boundary noted, not building | — | — | — |
+
+### 4.1 Scope item → plan file
+
+Every T1, T2 and T3 item now has a named plan. The full matrix, including endpoints, entities and
+screens per story, is [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §8.2.
+
+| Scope item | Plan(s) |
+|---|---|
+| T1-A | 04 |
+| T1-B | 05, 06 |
+| T1-C | 08 |
+| T1-D | 02 (+ ticket scoping in 05) |
+| T1-E | 03 (+ enforcement in 05) |
+| T1-F | 10, 11 |
+| T2-A | 04 (+ ticket endpoints in 05) |
+| T2-B | 07 |
+| T2-C | 14 |
+| T2-D | 09 |
+| T2-E | 12 |
+| T2-F | 13 |
+| T2-G | 15 |
+| T2-H | **02** (write path) + **16 Part B** (read surface) |
+| T2-I | **16 Part A** |
+| T2-J | **17 Part A** + **17 Part B** |
+| T2-K | 03, 04, 15 |
+| T2-L | 01 |
+| T3-A | 18 |
+| T3-B | 18 (documented) |
+| T3-C | 10 (extension point documented), 18 (documented) |
+| T3-D | 18 |
+| T3-E | 01 (loader) + 17 Part B (proof) |
+| T3-F | 08, 13, 17 Part B |
+| T3-G | 03 (boundary noted, not built) |
 
 ### T4 — excluded
 
@@ -223,13 +278,18 @@ R-12 in §6.3. It is no longer an open issue.)*
 | ID | Question | Impact | Blocks | Status |
 |---|---|---|---|---|
 | **OQ-1** | What is the CSAT rating scale? T2-F says "a one-question satisfaction rating" and fixes no scale | Determines portal control, server validation, and what the §9.4 average means. The model **encodes no range** | Story 13, and the satisfaction tile in story 15 | 🔴 Open — product decision |
-| **OQ-2** | On a priority change, do SLA due dates recompute from `createdAt` or stay frozen? A-3 is silent, and T2-D escalation changes priority routinely | Materially different §9.2 attainment numbers; recompute can breach a ticket as a consequence of the escalation the breach triggered | Story 09, and §9.2 in story 15 | 🔴 Open — business rule |
-| **OQ-3** | Who is notified on breach when a department has no manager? T2-D says "notify the department manager"; absence is uncovered | Breach flag and priority raise are unaffected; only the recipient is undetermined. **No fallback invented** | Story 09 | 🔴 Open — product decision |
+| **OQ-2** | On a priority change, do SLA due dates recompute from `createdAt` or stay frozen? A-3 is silent, and T2-D escalation changes priority routinely | Materially different §9.2 attainment numbers; recompute can breach a ticket as a consequence of the escalation the breach triggered | **Story 05** *(its `PATCH /tickets/{id}` is the **first** code path that changes a priority — widened by **S9-3**)*, story 09, and §9.2 in story 15 | 🔴 Open — business rule. **The earliest blocker in the whole implementation sequence** |
+| **OQ-3** | Who is notified on breach when a department has no manager? T2-D says "notify the department manager"; absence is uncovered | Breach flag and priority raise are unaffected; only the recipient is undetermined. **No fallback invented** | **Story 06** *(the **manual** escalation action has the same undefined recipient — widened by **S9-3**)* and story 09 | 🔴 Open — product decision. **Non-blocking on the happy path:** every seeded department has a manager |
 
 | **OQ-5** | When `Customer.email` is changed, does a linked portal login's sign-in email change with it? | A customer profile and its portal login are separate entities, each with a unique email (DM-1, A-15). No source covers a divergence | Raised 2026-08-25 by the N-2 correction. Blocks nothing in Stage 8; must be answered before **story 04** is implemented | 🔴 Open |
 
-**None of these blocks Stage 7 or Stage 8.** All four are implementation-time decisions. OQ-4, which
-did block one contract, was resolved on 2026-08-24 — see R-11 below.
+**None of these blocked Stage 7, 8 or 9.** All four are implementation-time decisions, and stage 9
+scheduled each against the story and the single method that encodes it. OQ-4, which did block one
+contract, was resolved on 2026-08-24 — see R-11 below.
+
+**Earliest-first order for stage 10:** **OQ-2** (story 05) → **OQ-5** (story 04, but story 04 runs
+first, so in practice OQ-5 is needed sooner) → **S9-4** (story 11) → **OQ-1** (story 13) →
+**S9-1** (story 14) → **PF-4** (story 15) → **PF-2** (story 18). Restated in §10.
 
 ### 6.2 Carried from product scope — non-blocking by design
 
@@ -267,10 +327,10 @@ inside the API document or deferred to the story named.
 
 | ID | Finding | Handle in |
 |---|---|---|
-| **PF-2** | `Ticket.createdByUserId` and `TicketMessage.authorUserId` are required with no System actor, but story 18's inbound fake adapter creates tickets with no human actor | **Avoided in Stage 7** (AP-11 publishes no ingestion endpoint) but **still open for story 18** |
+| **PF-2** | `Ticket.createdByUserId` and `TicketMessage.authorUserId` are required with no System actor, but story 18's inbound fake adapter creates tickets with no human actor | **Avoided in Stage 7** (AP-11 publishes no ingestion endpoint); **still open, and now scheduled: it blocks story 18 AC 3** (**S9-10**). Three options are set out in [18-story-channel-erp-adapters.md](../.squad/plans/integration-seams/18-story-channel-erp-adapters.md); **none is chosen**. The ingestion implementation throws with the reason and its test is skipped with the reason |
 | **PF-3** | OQ-1 leaves the CSAT scale undecided and `architecture.md` §6.3 had **no** configuration key for it | ✅ **Closed 2026-08-25** — the `Feedback rating scale` key is now an approved entry in architecture §6.3, with its **values deliberately undecided** because OQ-1 remains open. `GET /config` publishes it; the feedback endpoint validates against it |
-| **PF-4** | "Tickets assigned" in the agent-performance metric is undefined — currently assigned vs. ever assigned. Same response shape either way | Story 15 |
-| **PF-5** | `firstRespondedAt` is set only by the first outbound message, so a ticket resolved without a reply is permanently first-response-breached | Story 09 |
+| **PF-4** | "Tickets assigned" in the agent-performance metric is undefined — currently assigned vs. ever assigned. Same response shape either way | **Still open, and it blocks story 15's `agentPerformance.assignedCount`** (**S9-9**). [api-design.md](api-design.md) §9 item 2 required it to be pinned **before story 15 was planned**; it was not, so the plan isolates the decision to `AgentPerformanceQuery.AssignedCount`, which throws until it is recorded. **The label stays exactly as T2-G words it, with no clarifying tooltip** |
+| **PF-5** | `firstRespondedAt` is set only by the first outbound message, so a ticket resolved without a reply is permanently first-response-breached | **Still open and non-blocking.** Story 09 implements the sweep **exactly as A-3 words it** and **reports** the consequence rather than changing it — changing it would be a change to A-3. Story 08 renders `null` as **"—"**, never "breached" and never "0" ([ui-design.md](ui-design.md) §11) |
 | **PF-6** | A-15 covers registration when a **Customer profile** exists for the email, not when a **User** already does | ✅ **Closed** — api-design §5.2 states `409 user-already-exists` |
 | **PF-7** | `TicketMessage.direction` has no stated derivation rule and must not be client-settable | ✅ **Closed** — api-design §7 derives it from author role and omits it from every request model |
 
@@ -293,6 +353,44 @@ The post-flight review of `api-design.md` found two blocking defects and five no
 
 Endpoint count moved **66 → 65**: `/config/staff` added, `/auth/me/permissions` and
 `/notifications/read-all` removed.
+
+### 6.7 Stage 9 audit findings (2026-08-25)
+
+A full traceability and consistency audit was run while generating the eighteen plans, across
+[product-scope.md](product-scope.md), [architecture.md](architecture.md),
+[data-model.md](data-model.md), [api-design.md](api-design.md), [ui-design.md](ui-design.md),
+[story-backlog.md](story-backlog.md), [sdd-workflow.md](sdd-workflow.md) and all 18 intakes.
+**Thirteen findings. Nothing was resolved by invention.** Full detail in
+[00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §7.
+
+**Blocking — a named acceptance criterion cannot be met until a decision is recorded**
+
+| ID | Finding | Blocks | Nature |
+|---|---|---|---|
+| **S9-1** | **The dashboard task region has no endpoint.** [ui-design.md](ui-design.md) §5.1 and §13, story 14's own AC, and [data-model.md](data-model.md) §6's index `TicketTask(assignedUserId, isDone, dueAt)` *"Open and overdue tasks on the dashboard"* all assume a **cross-ticket** task list. [api-design.md](api-design.md) §5.6 publishes only ticket-scoped task endpoints | Story 14 AC 2; story 08's queue region | 🔴 **Contradiction.** Either publish `GET /tasks?assignedUserId=me&isDone=false` (a Stage 7 change, 66 → 67) **or** drop the region (a Stage 8 change, recorded per product-scope §10) |
+| **S9-4** | **No contract path records AI suggestion acceptance or override.** Story 11's AC requires it, [data-model.md](data-model.md) §2.7 provides `AiSuggestionOffered`/`AiSuggestionResolved`, and [api-design.md](api-design.md) §5.8 says it happens *"when the agent saves the ticket"* — but `POST /tickets` accepts **no field** that could carry it, §6.11 adds none, and §7 lists none | Story 11 AC 4 | 🔴 **Contradiction.** Either add a request field or a recording endpoint. Both are Stage 7 changes |
+| **S9-9** | **PF-4 was required to be pinned *before* story 15 was planned** ([api-design.md](api-design.md) §9 item 2) and was not | Story 15 `agentPerformance.assignedCount` | 🟠 **Process gap.** Isolated to one method, which throws until decided |
+| **S9-10** | **PF-2 comes due in story 18.** The fake inbound adapter has **no actor**, while `Ticket.createdByUserId` and `TicketMessage.authorUserId` are required and `actorKind = System` is reserved for the SLA monitor (R-14) | Story 18 AC 3 | 🟠 **Carried finding, now scheduled.** Three options set out; none chosen |
+
+**Non-blocking — resolved from the approved documents, recorded for visibility**
+
+| ID | Finding | Resolution |
+|---|---|---|
+| **S9-2** | `GET`/`POST /tickets/{id}/attachments` is assigned to **no story** in [api-design.md](api-design.md) §10.1, though §5.6 lists both and story 04's AC requires them | Shared service and the AP-19 download in story 04; the two ticket-scoped endpoints in story 05. Read from the intakes |
+| **S9-3** | **OQ-2 and OQ-3 reach further than §6.1 records.** OQ-2's first code path is story 05's `PATCH` priority, not story 09's escalation. OQ-3 reaches story 06's **manual** escalation | Both stories carry the block. **Neither question is answered.** §6.1 updated |
+| **S9-5** | Three entity placements deviate from [data-model.md](data-model.md) §7's story→entity map: `AuditEntry` (→ 02), `TicketActivity` (→ 05), SLA due-date computation (→ 05) | Placement rule adopted: **the entity lands with the story that first writes it; the read surface with the story that owns it.** No business rule and no schema changed |
+| **S9-6** | `GET /tickets` has no `customerId` filter, yet [ui-design.md](ui-design.md) §5.3's customer panel shows *"recent tickets"* | Derived client-side from the timeline response, which carries `ticketId` and `ticketSubject`. **No filter invented** |
+| **S9-7** | `POST /auth/register` cannot be implemented in story 02 — A-15 needs a `Customer`, a `Branch` and a default branch | Implemented in story 04 |
+| **S9-8** | **Story 08 does not depend on story 09**, contrary to §3's earlier reading. Due dates are required at creation, so SLA ordering is available from story 05 | Queue built once, correctly. **No fallback ordering and no swap to record.** §3 and the [story-backlog.md](story-backlog.md) cut order corrected |
+| **S9-11** | **[ui-design.md](ui-design.md)'s header is stale** — it cites *"65 endpoints, AP-1…AP-18"* while [api-design.md](api-design.md) has **66** and **AP-19** | 🟡 **Documentation staleness only.** Every screen maps to an endpoint that exists. **A one-line header correction, not applied — it is an edit to an approved document and is offered rather than taken** |
+| **S9-12** | Story 02 depends on story 03's entities (`POST /users` needs a `departmentId`) | Phase 1 executes them as an **adjacent interleaved pair**. Both intakes already say *"planned together or in immediate sequence"* |
+| **S9-13** | [api-design.md](api-design.md) §10.1 assigns `/config` and `/config/staff` to story 01, whose AC forbids endpoints beyond health — and both need authentication story 01 lacks | Story 01 delivers `/health` and the anonymous `/config/bootstrap`; the two authenticated tiers land in **story 16 Part A**, which §10.1 also lists |
+
+**F-1 is deliberately still open.** [ui-design.md](ui-design.md) **UI-3** is approved and says the
+transition menu is computed client-side; the server remains the authority and a wrong offer gets
+`403`/`409`. [sdd-workflow.md](sdd-workflow.md) gate 9 → 10 requires no decision here. Story 06's
+plan confines the duplicated matrix to **one file**, `shared/lifecycle/transition-matrix.ts`, so
+closing F-1 later deletes exactly one file.
 
 ### 6.4 Decision → document → story traceability
 
@@ -327,7 +425,12 @@ No decision so far has changed [requirements.md](requirements.md), which is neve
 
 ## 7. Implementation Progress
 
-**No implementation exists.** Verified against the repository on 2026-08-24, not inferred.
+**No implementation exists.** Re-verified against the repository on 2026-08-25, not inferred:
+`backend/` and `frontend/` contain 0 files and `docker-compose.yml` is 0 bytes.
+
+**Stage 9 changed nothing here, and must not appear to.** Eighteen plans describing files to create
+are **not** files created. Every row below stays ⬜ until `dotnet build` and `npm run build`
+succeed against real source.
 
 | Area | Status | Evidence |
 |---|---|---|
@@ -337,10 +440,12 @@ No decision so far has changed [requirements.md](requirements.md), which is neve
 | Tests | ⬜ Not Started | No test project |
 | Docker / infrastructure | ⬜ Not Started | `docker-compose.yml` exists but is **0 bytes** |
 
-Design documents describe all five. **A design document is not an implementation** and must never
-be counted as one in this section.
+Design documents describe all five, and stage-9 plans now specify them file by file.
+**A design document is not an implementation, and neither is a plan** — neither may ever be counted
+as one in this section.
 
-Implementation begins after stage 9 produces a plan for story 01.
+**Implementation begins now**, with
+[01-story-solution-skeleton.md](../.squad/plans/platform-foundation/01-story-solution-skeleton.md).
 
 ---
 
@@ -351,7 +456,10 @@ Only entries with real evidence are marked verified.
 | Check | Status | Evidence / date |
 |---|---|---|
 | `squad doctor` | ✅ Passing | Re-run 2026-08-24: **6 ok · 0 warn · 0 fail · 7 skip** (skips are planner and tracker, both disabled by design) |
-| `squad status` | ✅ Consistent | 18 stories, 0 plan files, next NN 01 |
+| `squad status` | ✅ Consistent | Re-run 2026-08-25: **18 stories, 18 plan files, next `NN` 19** |
+| Stage gate 8 → 9 | ✅ Met | [ui-design.md](ui-design.md) covers all 24 screens with RTL and phone-width behaviour |
+| **Stage gate 9 → 10** | ✅ **Met for story 01** | All 18 plans cite concrete paths and runnable verification commands. The third clause — *prerequisites already implemented* — is **per story** and is satisfied one story at a time during stage 10 |
+| **Stage 9 traceability audit** | ✅ Run 2026-08-25 | 18 intakes × 66 endpoints × 15 entities × 24 screens reconciled. **13 findings (S9-1…S9-13)**, 4 blocking. Endpoint, entity and screen totals in the plans match the design documents exactly |
 | Stage gate 3 → 4 | ✅ Met | All 56 requirement lines mapped to a story |
 | Stage gate 5 → 6 | ✅ Met | Re-verified after the AD-15 correction |
 | Stage gate 6 → 7 | ✅ Met | Re-verified after the four clarifications |
@@ -372,6 +480,44 @@ Newest first. Every meaningful project change gets an entry.
 
 ### 2026-08-25
 
+- **Stage 9 complete — the implementation plans exist.** Eighteen `NN-story-*.md` plan files
+  generated into `.squad/plans/<feature>/`, one per story, in the backlog's execution order, so the
+  generated `NN` prefixes match the intended sequence exactly. Each plan follows squad-kit's story
+  document pattern — `Prerequisites`, `Story Goal`, `Context — Read These Files First`,
+  `Product rules (from story)`, `Backend Tasks` / `Frontend Tasks`, `Verification Steps`,
+  `Done Criteria` — with concrete file paths, type names, signatures and runnable commands.
+  `squad status`: **18 stories, 18 plan files, next `NN` 19**; `squad doctor`:
+  **6 ok · 0 warn · 0 fail · 7 skip**.
+- **Added `.squad/plans/00-implementation-plan.md`** — the programme-level artifact squad-kit does
+  not model: 14 workstreams, 9 phases, the dependency graph, what may run in parallel and what may
+  not (**EF Core migrations are the serialization constraint** — one `DbContext`, one migration
+  chain), the conventions all eighteen plans share, the audit findings, and full traceability from
+  each plan back to stories, endpoints, entities and screens.
+- **Filled all 14 `00-overview.md` stubs** and rewrote `.squad/plans/00-index.md`.
+- **Ran a full traceability and consistency audit** across every approved document and all 18
+  intakes. **13 findings, S9-1…S9-13** (§6.7). **Four block a named acceptance criterion:**
+  - **S9-1** — the dashboard task region assumed by `ui-design.md` §5.1/§13, story 14's AC and
+    `data-model.md` §6's index has **no endpoint** in `api-design.md`. **Contradiction.**
+  - **S9-4** — story 11's AC requires AI suggestion acceptance/override to reach ticket history,
+    and **no request field or endpoint exists to carry it**. **Contradiction.**
+  - **S9-9 / PF-4** — `api-design.md` §9 required PF-4 to be pinned *before* story 15 was planned;
+    it was not.
+  - **S9-10 / PF-2** — the inbound channel adapter has **no actor**; the finding comes due in
+    story 18.
+  **None was resolved by invention.** Each is isolated to a single named method or region, which
+  throws or stays empty until the decision is recorded.
+- **Nine non-blocking findings resolved from the approved documents and recorded** — S9-2, S9-3,
+  S9-5, S9-6, S9-7, S9-8, S9-11, S9-12, S9-13 (§6.7). Three of them corrected statements elsewhere
+  in this tracker and in `story-backlog.md`: OQ-2 and OQ-3 reach one story earlier than recorded
+  (S9-3); story 08 does **not** depend on story 09 (S9-8); story 16's configuration half is
+  consumed by stories 04 and 13 as well (recorded in `story-backlog.md`).
+- **No open question was answered and no business decision was changed.** OQ-1, OQ-2, OQ-3, OQ-5,
+  F-1, PF-2, PF-4, PF-5 and N-5 all stand exactly as they did before stage 9.
+- **`sdd-workflow.md` updated** — stage 9 marked complete, gate 9 → 10 restated as a per-story gate
+  and its programme-plan artifact recorded. **`story-backlog.md` updated** — plan and phase columns,
+  the execution-order refinements, the S9-8 correction to the cut order, and the story-state table.
+- **Overall progress 31% → 35%.** The design-and-planning track is now fully consumed; every
+  remaining point is delivery.
 - **Closed N-1 — the API payload catalogue.** A focused Stage 7 refinement, not Stage 9.
   `api-design.md` §6 grew from 5 payload shapes to **29 across 12 subsections**: identity and
   access, organization, customers, tickets, knowledge base, notifications, attachments, reporting,
@@ -591,17 +737,36 @@ Newest first. Every meaningful project change gets an entry.
 
 ## 10. Current Next Steps
 
-1. **Decide F-1** — whether to add a read-only `allowedTransitions` array to the ticket response so
-   the UI stops duplicating the A-16 authority matrix (`ui-design.md` §12). Re-checked and left open
-   during the N-1 refinement; the contract works without it.
-2. **Decide OQ-1, OQ-2, OQ-3 and OQ-5** — needed before stories 04, 09, 13 and 15 are implemented,
-   not before Stage 9 planning begins.
-3. **Stage 9 — plan story 01** (`solution-skeleton`) via `/squad-plan`, then plan forward in the
-   backlog order. **Unblocked.**
-4. **Stage 10 — implement story 01**, then 02–06 (the T1 core) in sequence.
-5. **Consider scope realism before stage 9.** 18 stories against a 9–12 hour budget is ambitious;
-   generating plans only for stories 01–11 and treating 12–18 as planned-not-built is a live
-   option. Any such cut is recorded in [product-scope.md](product-scope.md) and reflected here.
+1. **Stage 10 — implement story 01** (`solution-skeleton`) from
+   [01-story-solution-skeleton.md](../.squad/plans/platform-foundation/01-story-solution-skeleton.md)
+   in a fresh, scoped session with **only that plan attached** (working agreement: *plan once,
+   execute cheap*). It has **no prerequisites and no blockers**. Then follow the phase order of
+   [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3.
+
+2. **Answer the outstanding decisions, earliest first.** None blocks story 01, and none blocks
+   phase 0 or phase 1:
+
+   | When needed | Decision | Kind |
+   |---|---|---|
+   | Before **story 04** | **OQ-5** — does changing `Customer.email` change a linked portal login's sign-in email? | Product |
+   | Before **story 05** | **OQ-2** — do SLA due dates recompute or freeze on a priority change? **The earliest blocker.** | Business rule |
+   | Before **story 11** | **S9-4** — how is AI suggestion acceptance/override carried to the server? | Contract (Stage 7) |
+   | Before **story 13** | **OQ-1** — what is the CSAT rating scale? | Product |
+   | Before **story 14** | **S9-1** — publish a cross-ticket task endpoint, or drop the dashboard task region? | Contract (Stage 7) **or** Stage 8 cut |
+   | Before **story 15** | **PF-4 / S9-9** — "tickets assigned": currently or ever? | Metric semantics |
+   | Before **story 18** | **PF-2 / S9-10** — who is the actor on an inbound channel message? | Product |
+   | Non-blocking | **OQ-3** (no-manager branch), **PF-5** (`firstRespondedAt` null), **F-1**, **N-5**, **S9-11** | — |
+
+3. **Optionally apply the S9-11 header correction** to `ui-design.md` — it cites *"65 endpoints,
+   AP-1…AP-18"* where `api-design.md` now has **66** and **AP-19**. It is an edit to an approved
+   document, so it is **offered, not taken**. Nothing depends on it.
+
+4. **Consider scope realism.** 18 stories against a 9–12 hour budget is ambitious. Now that the
+   plans exist, the honest option is to **implement 01–11 (the T1 core plus the AI slice) and treat
+   12–18 as planned-not-built**, which is a stronger SDD demonstration than eighteen half-finished
+   stories. The cut order in [story-backlog.md](story-backlog.md) already ranks them, and four of
+   the seven cuttable stories are the ones carrying blocked decisions. **Any cut is recorded in
+   [product-scope.md](product-scope.md) per its §10 rule and reflected here.**
 
 ---
 

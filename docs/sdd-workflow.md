@@ -5,7 +5,7 @@ stage, where it lives, and what must be true before the next stage starts.
 
 **Method:** spec-driven development, executed with [squad-kit](https://github.com/AzmSquad/squad-kit) v0.2.0
 (workspace at [.squad/](../.squad/)).
-**Status date:** 2026-08-25 (stage 8 complete)
+**Status date:** 2026-08-25 (stage 9 complete)
 
 ---
 
@@ -38,11 +38,18 @@ is recorded in this document rather than left silent."*
 | 6 | Data model | Conceptual → logical model | [docs/data-model.md](data-model.md) | ✅ Done |
 | 7 | API design | Endpoint contracts | [docs/api-design.md](api-design.md) | ✅ Done |
 | 8 | UI design | Screen inventory + flows | [docs/ui-design.md](ui-design.md) | ✅ Done |
-| 9 | Implementation plans | `NN-story-*.md` per story | [.squad/plans/](../.squad/plans/) | ⬜ **Next** |
-| 10 | Implementation | Application code | `backend/`, `frontend/` | ⬜ Not started |
+| 9 | Implementation plans | 18 × `NN-story-*.md` + a programme plan | [.squad/plans/](../.squad/plans/) | ✅ Done |
+| 10 | Implementation | Application code | `backend/`, `frontend/` | ⬜ **Next** |
 
 Stages 5–8 are ordinary Markdown documents in `docs/`. Stage 9 is squad-kit's generated plan
 format and is produced by `/squad-plan`, one story at a time.
+
+**Stage 9 also produced one artifact squad-kit does not model:**
+[.squad/plans/00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) — the
+programme-level view. squad-kit plans are per story by design; the workstreams, the phase order,
+the dependency graph, what may run in parallel, the conventions the eighteen plans share, and the
+Stage 9 audit findings have no per-story home. It sits alongside
+[00-index.md](../.squad/plans/00-index.md), which the tool does model.
 
 ---
 
@@ -57,7 +64,7 @@ docs/requirements.md ─┐
 docs/product-scope.md ─┴─▶ .squad/stories/<feature>/<id>/intake.md      (stage 4 · done)
                                        │
      docs/architecture.md ┐            │
-     docs/data-model.md   ├─ context ──┤                                (stages 5–8 · next)
+     docs/data-model.md   ├─ context ──┤                                (stages 5–8 · done)
      docs/api-design.md   │            │
      docs/ui-design.md   ─┘            ▼
                             /squad-plan <intake>
@@ -100,8 +107,19 @@ role-based access stated per endpoint (A-4), and matches the data model exactly.
 portal and the admin surfaces, notes RTL implications (T2-J), and confirms phone-width behaviour
 (T3-F).
 
-**Gate 9 → 10.** A story's plan exists, cites concrete paths and verification commands, and its
-prerequisites are already implemented.
+**Gate 9 → 10 (met for story 01; per-story thereafter).** A story's plan exists, cites concrete
+paths and verification commands, and its prerequisites are already implemented.
+
+All eighteen plans exist, each with concrete file paths, type names, signatures and runnable
+verification commands. The third clause — *prerequisites already implemented* — is a **per-story**
+condition that can only be satisfied one story at a time during stage 10. It is met **now** for
+story 01, which has no prerequisites, and is met for each later story as its predecessor completes.
+The dependency table that decides "predecessor" is
+[00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §4.
+
+**Four decisions are outstanding before the stories that need them** — S9-1, S9-4, PF-4 and PF-2,
+recorded in that plan's §7. **None blocks story 01 or the first two phases.** The earliest is
+OQ-2, which blocks story 05.
 
 ---
 
