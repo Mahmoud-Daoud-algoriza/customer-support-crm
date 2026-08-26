@@ -278,9 +278,14 @@ backend/
   `Tickets`, `TicketMessages`, `Notifications`, `KnowledgeArticles`, `CustomerFeedback`,
   `TasksAndInternalNotes`.
 - **Seeder order** as listed in §5.
+- **String column lengths come from `data-model.md` §6.1** — five tiers (`Code` 64 · `Name` 200 ·
+  `Email` 256 · `Line` 512 · `Text` max), with a tier assigned to every string field in the model.
+  **No story picks a length.** A column in an index key must be `Code`, `Name` or `Email`;
+  `Text` is never indexed. Added by amendment 2026-08-26, after Story 03 hit the gap.
 - **One unit of work per request, committed once** (architecture §3).
 - Toolchain verified present: **.NET SDK 10.0.202**, **Node 22.21**, **Angular CLI 20.3.7**,
-  **Docker 28.5.1**.
+  **Docker 28.5.1**. `dotnet-ef` **10.0.11** is pinned as a local tool in
+  `backend/dotnet-tools.json` (added during Story 03; `dotnet ef` had nothing to run before).
 
 ### Front end
 

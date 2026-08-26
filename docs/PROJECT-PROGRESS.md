@@ -62,7 +62,7 @@ delivery carries the larger weight. A design-only project is not most of the way
 | 3 | Story Intake / Backlog | ✅ Complete | 18 intakes + [story-backlog.md](story-backlog.md) | ✅ | ✅ Met | All 56 requirement lines mapped to a story |
 | 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan overviews (**filled at stage 9**) | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
 | 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
-| 6 | Data Model | ✅ Complete | [data-model.md](data-model.md) | ✅ | ✅ Met, re-verified after the four clarifications | Approved 2026-08-24. 15 entities |
+| 6 | Data Model | ✅ Complete | [data-model.md](data-model.md) | ✅ | ✅ Met, re-verified after the four clarifications and after the §6.1 amendment | Approved 2026-08-24. 15 entities. **Amended 2026-08-26:** §6.1 fixes string lengths and collation — the one physical decision this document makes, because the unique indexes it declares cannot be built without it |
 | 7 | API Design | ✅ Complete | [api-design.md](api-design.md) | ✅ | ✅ Met | **66** endpoints, 12 modules, 19 API decisions (AP-1…AP-19). Pre-flight passed 2026-08-24; post-flight 2026-08-25 closed two blocking defects; **N-1 refinement 2026-08-25 added the full payload catalogue** |
 | 8 | UI Design | ✅ Complete | [ui-design.md](ui-design.md) | ✅ | ✅ Met | 24 screens across 4 surfaces, 12 UI decisions (UI-1…UI-12), every screen mapped to endpoints that exist |
 | 9 | Implementation Plans | ✅ Complete | **18** × `.squad/plans/<feature>/NN-story-*.md` + [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) + 14 updated `00-overview.md` + [00-index.md](../.squad/plans/00-index.md) | ✅ | ✅ Met for story 01; per-story thereafter | Completed 2026-08-25. `squad status`: 18 stories, **18 plan files**, next `NN` 19. A full traceability and consistency audit produced **13 findings (S9-1…S9-13)**, of which **4 block a named acceptance criterion** (§6.7) |
@@ -101,7 +101,7 @@ earlier reading in three places (S9-7, S9-8, S9-12).
 |---|---|---|---|---|---|---|---|---|---|
 | 01 | `solution-skeleton` | platform-foundation | T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-25, re-run 2026-08-26 | — | — |
 | 02 | `auth-and-roles` | identity-access | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01, **03 data** | — |
-| 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | 🟡 **Data partial** — tasks 1–2 | Partial — build/model only | 01 | Migration + seeder wait on Story 02 task 3 |
+| 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | 🟡 **Data partial** — tasks 1–2 | Partial — build/model only | 01 | Migration + seeder wait on Story 02 task 3 · string-length gap **closed** (data-model §6.1) |
 | 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–03, **16 A** | ⚠ **OQ-5** |
 | 05 | `ticket-core` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–04, **16 A** | ⚠ **OQ-2** |
 | 06 | `ticket-lifecycle` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 05 | ⚠ OQ-3 *(no-manager branch only)* |
@@ -482,6 +482,44 @@ below record a reproducible outcome, not a one-off.
 ## 9. Change Log
 
 Newest first. Every meaningful project change gets an entry.
+
+### 2026-08-26 (latest) — string-length convention closed
+
+- **[data-model.md](data-model.md) §6.1 added — string column length, collation and index
+  eligibility.** Closes the finding raised by story 03: no approved document stated a string length
+  anywhere, yet the model declares four *unique* indexes on string columns, and SQL Server cannot
+  build one over `nvarchar(max)`. Every story would have invented its own widths, and nothing kept
+  `User.email` and `Customer.email` — the same address in two tables — the same size.
+- **Five tiers, and a tier for every one of the 39 string fields in §2.** `Code` 64 · `Name` 200 ·
+  `Email` 256 · `Line` 512 · `Text` max. Implementers pick a tier, never a number. Verified
+  mechanically: 39 string fields declared in §2, 39 assigned, **no field unassigned and no stale
+  entry**.
+- **The index-key rule is the point of the section.** A column in an index key must be `Code`,
+  `Name` or `Email`; `Text` can never be indexed. Checked against every index the model requires —
+  §6's list plus the four §2 unique constraints — the widest key is `User(email)`/`Customer(email)`
+  at **512 bytes, 30% of SQL Server's 1700-byte limit**, and `Ticket.status` is the only string
+  inside a composite key.
+- **This amends the document's own scope, and the amendment is recorded rather than slipped in.**
+  The header previously said physical lengths were deliberately left to implementation, and the §8
+  gate row asserted "conceptual and logical only". Both now state the single exception and why it
+  was unavoidable. §2 is untouched; no DDL was added.
+- **Collation decided:** `User.email` and `Customer.email` declare
+  `SQL_Latin1_General_CP1_CI_AS` explicitly. The SQL Server 2022 image already defaults to
+  case-insensitive, so this changes no behaviour — it is declared because "two addresses differing
+  only in case are the same address" is a **product rule** (A-9, A-10) and must not depend on a
+  server default a different deployment could change.
+- **Three tier choices carry a stated reason** where the obvious pick was wrong:
+  `Attachment.contentType` is `Name` not `Code`, because real MIME types exceed 64 characters;
+  `AuditEntry.actorDescriptor` is `Email` but the recorder **truncates rather than throws**, since a
+  failed sign-in with an absurd identifier must still be recorded; `User.passwordHash` is `Line` for
+  headroom against a future hashing algorithm.
+- **[00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §6 now points at §6.1**
+  so no plan re-invents lengths, and records the pinned `dotnet-ef` local tool.
+- **Two comments in story 03's EF configurations corrected.** They said the length was an
+  implementation choice not fixed by the data model — no longer true. They now cite the `Name` tier
+  and say *"do not pick a length here; pick a tier."* No behaviour changed: 200 was already the
+  value, which is why the `Name` tier was set to 200.
+- **No migration was created and story 02 was not started.**
 
 ### 2026-08-26 (later) — story 03 data layer
 

@@ -11,10 +11,10 @@ namespace SupportCrm.Infrastructure.Persistence.Configurations;
 public sealed class DepartmentConfiguration : IEntityTypeConfiguration<Department>
 {
     /// <summary>
-    /// Not fixed by docs/data-model.md, which states only that the name is unique. A bound is
-    /// nevertheless required: SQL Server cannot build a unique index over <c>nvarchar(max)</c>.
-    /// 200 characters is ample for a department name and is an implementation choice, not a
-    /// product rule.
+    /// The <b>Name</b> tier of docs/data-model.md §6.1 — <c>nvarchar(200)</c>, a single-line
+    /// human-readable label. Index-key eligible, which this column needs: the name is unique
+    /// (§2.2), and SQL Server cannot build a unique index over <c>nvarchar(max)</c>.
+    /// <para>Do not pick a length here. Pick a tier from §6.1.</para>
     /// </summary>
     private const int NameMaxLength = 200;
 

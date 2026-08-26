@@ -15,11 +15,11 @@ namespace SupportCrm.Infrastructure.Persistence.Configurations;
 /// </summary>
 public sealed class BranchConfiguration : IEntityTypeConfiguration<Branch>
 {
-    /// <inheritdoc cref="DepartmentConfiguration" path="/summary"/>
-    /// <remarks>
-    /// Not fixed by docs/data-model.md; bounded because a unique index requires it. See
-    /// <see cref="DepartmentConfiguration"/>.
-    /// </remarks>
+    /// <summary>
+    /// The <b>Name</b> tier of docs/data-model.md §6.1 — <c>nvarchar(200)</c>. Index-key eligible,
+    /// which this column needs: the name is unique (§2.3).
+    /// <para>Do not pick a length here. Pick a tier from §6.1.</para>
+    /// </summary>
     private const int NameMaxLength = 200;
 
     public void Configure(EntityTypeBuilder<Branch> builder)

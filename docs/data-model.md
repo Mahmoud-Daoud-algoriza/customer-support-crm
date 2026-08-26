@@ -2,15 +2,23 @@
 
 > **Source of truth:** [requirements.md](requirements.md) · [product-scope.md](product-scope.md) T1–T4, A-1…A-18 · [architecture.md](architecture.md) §2.1, §2.4, §2.5, §4.1.1, §4.3, §5, §6.3 · [story-backlog.md](story-backlog.md) and the 18 story intakes
 > **SDD stage:** 6 of 10. Gate 6 → 7 per [sdd-workflow.md](sdd-workflow.md) §4.
-> **Status:** Conceptual and logical model only. No SQL, no EF Core entities, no `DbContext`, no migrations, no endpoints, no UI.
+> **Status:** Conceptual and logical model, plus the string-column convention of §6.1 (amended 2026-08-26). No SQL, no EF Core entities, no `DbContext`, no migrations, no endpoints, no UI.
 
 **What this document decides:** which entities exist, what each one owns, how they relate, which
 fields are required, which invariants hold, where indexes are justified, and which entities are
 mutable versus append-only.
 
-**What it deliberately leaves out:** physical types and lengths, EF Core configuration, migration
-ordering, and index fill factors. Those belong to implementation (stage 10). Endpoint shapes are
-stage 7; screens are stage 8.
+**What it deliberately leaves out:** EF Core configuration, migration ordering, and index fill
+factors. Those belong to implementation (stage 10). Endpoint shapes are stage 7; screens are
+stage 8.
+
+**One deliberate exception, added by amendment on 2026-08-26: §6.1 fixes string column lengths and
+collation.** Physical types were originally left out too. That proved untenable: this document
+declares four *unique* indexes on string columns, and SQL Server cannot build one over an unbounded
+string — so the declaration silently obliged every story to invent a length, and nothing would have
+kept `User.email` and `Customer.email` the same width. §6.1 is the smallest addition that makes the
+uniqueness this document already asserts actually implementable. Nothing else physical is decided
+here.
 
 **Discipline applied.** Every entity and every field below traces to a requirement line, a scope
 item, an assumption, or an approved architectural decision. Fields that a CRM *usually* has —
@@ -819,6 +827,100 @@ not a new component, so taking it would not breach §8. The model requires nothi
 and always queried alongside `departmentId` or `status`, which the composite indexes already cover.
 Reporting aggregates at this data volume do not justify more.
 
+### 6.1 String columns — length, collation and index eligibility
+
+> **Amendment, 2026-08-26.** This subsection is the one place where this document descends to a
+> physical type, and it does so deliberately. The rest of the document remains conceptual and
+> logical; see the amended scope note in the header and the §8 gate row.
+>
+> **Why it had to be decided here rather than left to implementation.** A unique index is a
+> *logical* statement — this document makes it about `User.email`, `Customer.email`,
+> `Department.name` and `Branch.name`. SQL Server cannot build one over `nvarchar(max)`, so
+> declaring uniqueness silently obliges every implementer to pick a length. Left unstated, eighteen
+> stories would pick eighteen different ones, and `Customer.email` and `User.email` — the same
+> address, compared across two tables — could end up different widths. The convention below is
+> therefore a consequence of decisions this document already made, not a new one.
+
+**Every string column takes one of five tiers.** An implementer picks a tier, never a number.
+
+| Tier | Type | Use | Index key? |
+|---|---|---|---|
+| **Code** | `nvarchar(64)` | A short token from a fixed enumeration or a configured list, persisted as a stable string code (api-design §2) — and compact identifier-like values | ✅ Yes |
+| **Name** | `nvarchar(200)` | A single-line human-readable label, title or subject | ✅ Yes |
+| **Email** | `nvarchar(256)` | An email address. RFC 5321 caps a forward path at 254 characters; 256 is that plus headroom | ✅ Yes |
+| **Line** | `nvarchar(512)` | Single-line free text too long for a name — file names, storage paths, opaque hashes | ⚠️ Avoid |
+| **Text** | `nvarchar(max)` | Multi-line authored content | ❌ **Never** |
+
+**Lengths are in characters, not bytes.** Every string column is `NVARCHAR`: the product stores
+Arabic and English user-generated content side by side (A-11), and user content is never
+transliterated or normalized.
+
+#### The index-key rule
+
+**A column in an index key must be `Code`, `Name` or `Email`.**
+
+SQL Server limits a non-clustered index key to **1700 bytes**, and `NVARCHAR` costs 2 bytes per
+character — so a single-column key tops out at **850 characters**, and `nvarchar(max)` cannot be an
+index key at all. Composite keys must fit the same budget across all their columns.
+
+Checked against every index this model requires — the table above plus the four unique constraints
+declared in §2:
+
+| Index | Key bytes |
+|---|---|
+| `User(email)` unique · `Customer(email)` unique | **512** — the widest in the model |
+| `Department(name)` unique · `Branch(name)` unique (§2.2, §2.3) | 400 |
+| `Ticket(departmentId, status)` · `Ticket(assignedUserId, status)` | 144 |
+| Every other index (all keys are `uniqueidentifier`, `datetimeoffset` or `bit`) | ≤ 27 |
+
+**The widest key uses 30% of the 1700-byte budget**, and `Ticket.status` — a `Code` at 128 bytes —
+is the only string that ever appears inside a composite key. A future index that would not fit is a
+signal that the wrong column is being indexed, not that a tier needs widening.
+
+`Text` columns are searched but never indexed: T2-E fixes knowledge-base search as the database's
+built-in matching over `KnowledgeArticle.title` and `.body`, which is a scan, not an index seek.
+
+#### Collation
+
+The two case-insensitive unique columns — `User.email` (A-9) and `Customer.email` (A-10) — declare
+**`SQL_Latin1_General_CP1_CI_AS`** explicitly on the column.
+
+The SQL Server 2022 image's default collation is already case-insensitive, so this changes no
+behaviour today. It is declared anyway because *"two addresses differing only in case are the same
+address"* is a **product rule**, and a product rule must not depend on a server-level default that
+a different deployment could set otherwise. No other column declares a collation.
+
+#### Tier per field
+
+Every string field in §2, so none is left to be invented:
+
+| Tier | Fields |
+|---|---|
+| **Code** (64) | `User.role` · `Department`/`Branch` — none · `Customer.phone` · `Ticket.categoryCode`, `.priority`, `.status` · `TicketActivity.activityType`, `.actorKind`, `.visibility` · `TicketMessage.direction`, `.channel` · `Notification.type` · `KnowledgeArticle.type`, `.visibility` · `AuditEntry.action`, `.targetType`, `.outcome` |
+| **Name** (200) | `User.displayName` · **`Department.name`** · **`Branch.name`** · `Customer.fullName`, `.externalReference` · `Ticket.subject` · `TicketActivity.oldValue`, `.newValue` · `TicketTask.title` · `Attachment.contentType` · `KnowledgeArticle.title` |
+| **Email** (256) | **`User.email`** · **`Customer.email`** · `AuditEntry.actorDescriptor` |
+| **Line** (512) | `User.passwordHash` · `Attachment.fileName`, `.storagePath` |
+| **Text** (max) | `CustomerNote.body` · `Ticket.description` · `TicketMessage.body` · `TicketInternalNote.body` · `KnowledgeArticle.body` · `CustomerFeedback.comment` |
+
+Bold marks the four columns carrying a unique index.
+
+Three entries earn a word of explanation:
+
+- **`Attachment.contentType` is `Name`, not `Code`.** Real MIME types exceed 64 characters —
+  `application/vnd.openxmlformats-officedocument.wordprocessingml.document` is 73 — so the `Code`
+  tier would reject a legitimate `.docx` upload.
+- **`AuditEntry.actorDescriptor` is `Email`** because it holds the submitted identifier of a failed
+  sign-in (§2.14), which is an email address in every flow this product has. It is nevertheless
+  **unvalidated client input**, so the audit recorder **truncates to fit rather than throwing** — a
+  sign-in attempt with an absurd identifier must still be recorded, since recording it is the whole
+  point of the column.
+- **`User.passwordHash` is `Line`.** ASP.NET Core's `PasswordHasher` v3 format is 84 characters
+  today; the tier leaves room for a future algorithm without a migration. It is never indexed and
+  never leaves the server.
+
+**A field that seems to fit no tier is a modelling question, not a licence to invent a number.**
+Raise it against this section.
+
 ---
 
 ## 7. Traceability summary
@@ -911,7 +1013,7 @@ design."*
 | Every T1/T2 story's entities covered | ✅ Eleven stories introduce entities; seven introduce none, each named in §7 with the reason |
 | A-5 status set represented | ✅ Six statuses on `Ticket.status`; escalation modelled as an activity, not a status (§2.6, §2.7) |
 | A-2 department/branch asymmetry represented | ✅ `Ticket.departmentId` required and authorization-bearing; `Ticket` has no branch at all (§2.3, §4) |
-| Conceptual and logical only | ✅ No SQL, no EF configuration, no migration, no DDL |
+| Conceptual and logical only | ✅ No SQL, no EF configuration, no migration, no DDL. **One amendment (2026-08-26):** §6.1 fixes string lengths and collation, because the unique indexes this document declares cannot be built over an unbounded string. Column widths only — still no DDL, and §2 is untouched |
 | Ticket history separate from audit log | ✅ `TicketActivity` and `AuditEntry`, §2.14 states why (AD-10) |
 | Department-based authorization preserved | ✅ §5 constraints 4–5; the two columns the scoping helper reads named in §7 |
 | Branch is reporting-only | ✅ §2.3 invariant; no `Ticket.branchId`; derived `Ticket → Customer → Branch` with a source audit confirming no requirement asks for a ticket-level branch (§2.3); §5 constraint 6 |
