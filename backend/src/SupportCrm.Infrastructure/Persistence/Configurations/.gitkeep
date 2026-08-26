@@ -1,2 +1,0 @@
-# Folder fixed by .squad/plans/00-implementation-plan.md §6. Infrastructure is organized by
-# concern, not by module (docs/architecture.md §1). Contents arrive with the owning story.

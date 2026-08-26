@@ -17,7 +17,7 @@
 | | |
 |---|---|
 | **Current SDD stage** | **Stage 10 (Implementation) in progress — story 01 of 18 complete and verified** |
-| **Current phase** | Design and planning **complete**. Implementation **begun**: phase 0 foundation delivered |
+| **Current phase** | Design and planning **complete**. Phase 0 foundation delivered; **phase 1 begun** — story 03's data layer is in, story 02 not started |
 | **Overall status** | 🟡 On track with **four blocked acceptance criteria**. The SDD chain is finished end to end; the stage 9 audit found two genuine contradictions (S9-1, S9-4) and scheduled two carried findings (PF-2, PF-4). **None blocks stories 01–04** |
 | **Overall progress** | **38.6%** (method in §1.1) |
 | **SDD pipeline** | **9 of 10 stages complete** (90% of the pipeline) |
@@ -90,7 +90,10 @@ post-flight findings are carried in §6.5 and §6.6.
 All 18 stories from [story-backlog.md](story-backlog.md). Sequence is the intended execution order;
 squad-kit assigns the real `NN` when each plan is generated.
 
-**Story 01 is Implemented and Verified; stories 02–18 are at `Plan Complete`.** All 18 plans exist. The `Depends on` column below is the **execution** dependency from
+**Story 01 is Implemented and Verified. Story 03's data layer is partially implemented** — its two
+entities and their EF configuration, the part S9-12 identifies as Story 02's prerequisite. Its
+migration, seeder, endpoints and front end are not built. **Stories 02 and 04–18 are at
+`Plan Complete`.** All 18 plans exist. The `Depends on` column below is the **execution** dependency from
 [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §4, which supersedes the
 earlier reading in three places (S9-7, S9-8, S9-12).
 
@@ -98,7 +101,7 @@ earlier reading in three places (S9-7, S9-8, S9-12).
 |---|---|---|---|---|---|---|---|---|---|
 | 01 | `solution-skeleton` | platform-foundation | T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-25, re-run 2026-08-26 | — | — |
 | 02 | `auth-and-roles` | identity-access | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01, **03 data** | — |
-| 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 01 | — |
+| 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | 🟡 **Data partial** — tasks 1–2 | Partial — build/model only | 01 | Migration + seeder wait on Story 02 task 3 |
 | 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–03, **16 A** | ⚠ **OQ-5** |
 | 05 | `ticket-core` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–04, **16 A** | ⚠ **OQ-2** |
 | 06 | `ticket-lifecycle` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 05 | ⚠ OQ-3 *(no-manager branch only)* |
@@ -435,13 +438,14 @@ actually produced are marked ✅.
 |---|---|---|
 | Backend | ✅ Story 01 only | `backend/SupportCrm.sln` — 5 projects on `net10.0`. `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. `SupportCrm.Domain` has **0 project and 0 package references** (AD-2, AD-4) |
 | Frontend | ✅ Story 01 only | Angular 20.1.2 + PrimeNG 20.0.0 on the PrimeNG Sakai template (tag `20.0.0`, MIT). `npm ci && npm run build` succeeds; four lazy area chunks emitted |
-| Database | 🟡 Mechanism only | SQL Server 2022 runs in Compose and is reachable. **No migration and no seeder exists yet** — story 01 introduces no entity; the first migration is story 03. `DatabaseInitializer` applies migrations then `IDataSeeder`s at startup (AD-8) |
+| Database | 🟡 Model started, **schema still empty** | SQL Server 2022 runs in Compose and is reachable. `Department` and `Branch` are mapped (story 03 tasks 1–2), but **no migration and no seeder exists yet**, so the database still has no application tables. The single `InitialSchema` migration is generated once story 02 adds `User` and `AuditEntry` — both plans say so, and `00-implementation-plan.md` §6 lists no separate Organization or Identity migration. `DatabaseInitializer` applies migrations then `IDataSeeder`s at startup (AD-8) |
 | Tests | ✅ Story 01 only | `tests/SupportCrm.Tests` — **2 of 2 passing**. Coverage is targeted, not exhaustive (product-scope §8) |
 | Docker / infrastructure | ✅ Complete for the stack | `docker compose up --build` brings **db, api, web** up; `db` reports healthy and `api` waits for it |
 
 The database row is deliberately **not** ✅: a reachable empty database is not a schema.
 
-**Next:** story 02 (`auth-and-roles`) — **not started, and blocked on explicit user approval.**
+**Next:** story 02 (`auth-and-roles`) — **not started, and blocked on explicit user approval.** It
+unblocks the `InitialSchema` migration, which in turn unblocks story 03's seeder and endpoints.
 
 ---
 
@@ -478,6 +482,39 @@ below record a reproducible outcome, not a one-off.
 ## 9. Change Log
 
 Newest first. Every meaningful project change gets an entry.
+
+### 2026-08-26 (later) — story 03 data layer
+
+- **Story 03 tasks 1–2 implemented** — `Department` and `Branch` domain entities plus their EF
+  configuration and `DbSet`s. This is the slice S9-12 names as Story 02's prerequisite: `POST /users`
+  needs a `departmentId` that already exists. Nothing else of story 03 was built, and no story 02
+  code was written.
+- **The `InitialSchema` migration was deliberately *not* generated, and story 03's
+  `OrganizationSeeder` was deliberately *not* written.** Both plans place the migration after story
+  02 task 3 so that one migration creates all four tables (`Departments`, `Branches`, `Users`,
+  `AuditEntries`), and
+  [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §6 lists no separate
+  Organization or Identity migration. The seeder follows the migration because it queries
+  `Departments`: registering it against a database with no tables would crash the API at startup and
+  regress story 01. **This is a sequencing consequence of the approved plans, not a deviation** —
+  see §10 item 1.
+- **Schema verified without committing a migration.** A throwaway migration was generated, its
+  `Up()` read — `Departments` and `Branches`, `nvarchar(200)` unique names, nullable
+  `ManagerUserId` **with no foreign key** — and then reverted, leaving the tree migration-free.
+- **`Department.ManagerUserId` carries no foreign key**, per data-model §2.2: the real rule (exists,
+  active, role `Manager` or `Administrator`) is cross-row and conditional, which an FK cannot
+  express, and a second FK would create a create-order cycle with `User.DepartmentId`. Reasoning is
+  in `DepartmentConfiguration`, at the point a reader would ask.
+- **Implementation choice, flagged because no document fixes it:** entity name columns are
+  `nvarchar(200)`. **No approved document states a string length anywhere**, and SQL Server cannot
+  build a unique index over `nvarchar(max)`, so a bound was unavoidable. If a length convention is
+  wanted, it belongs in [data-model.md](data-model.md) §6 and should be applied consistently before
+  story 04 adds `Customer`.
+- **Added `backend/dotnet-tools.json`** pinning `dotnet-ef` **10.0.11** as a local tool. The tool was
+  not installed, so the plans' own `dotnet ef migrations add` command had nothing to run. A pinned
+  local manifest keeps it reproducible for a fresh clone.
+- **OQ-3 remains open and unanswered.** No fallback escalation recipient exists in the code. The
+  `Department.ManagerUserId` doc comment states the gap and names story 09 as the deadline.
 
 ### 2026-08-26
 
@@ -791,21 +828,21 @@ Newest first. Every meaningful project change gets an entry.
 
 ## 10. Current Next Steps
 
-1. **Story 01 is complete and verified — awaiting explicit approval before story 02.** The plan's
-   closing instruction and the user's standing constraint both require it. Nothing about story 02
-   (`auth-and-roles`) has been started.
+1. **Story 03's data layer is in; story 02 is the next implementation step — awaiting explicit
+   approval.** Phase 1 runs as the interleaved pair S9-12 describes:
 
-   When approval comes, the prerequisite reading is
-   [02-story-auth-and-roles.md](../.squad/plans/identity-access/02-story-auth-and-roles.md). Note
-   its dependency: it needs the **`Department` shape** from story 03 to give `User` a
-   `departmentId`, which is why the phase table of
-   [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 pairs them. **Story 03
-   also owns the first EF Core migration** (`InitialSchema`) — story 01 deliberately generated none,
-   because it introduces no entity.
+   | Order | Work | State |
+   |---|---|---|
+   | 1 | Story 03 tasks 1–2 — `Department`, `Branch`, EF configuration | ✅ **Done** |
+   | 2 | Story 02 tasks 1–3 — `User`, `AuditEntry`, their configuration | ⏭ **Next** |
+   | 3 | **`InitialSchema` migration** — one migration, all four tables | Blocked on step 2 |
+   | 4 | Story 03 task 3 — `OrganizationSeeder` (`Order = 10`) | Blocked on step 3 |
+   | 5 | Story 02 `IdentitySeeder` (`Order = 20`) + the manager second pass | Blocked on step 4 |
+   | 6 | Story 02 tasks 4+ — auth, endpoints, front end | Blocked on step 5 |
+   | 7 | Story 03 tasks 4–8 — `Agent`-gated endpoints, filters | Blocked on step 6 |
 
-   Two things story 01 leaves for story 02 to remove or fill, both marked `TODO` at their call
-   sites: the temporary `features/platform/health-check.component.ts` landing screen (replaced by
-   the role redirect) and the empty navigation model in `app/layout/component/app.menu.ts`.
+   Steps 3 and 4 are the ones worth watching: **story 03 cannot be finished, or even seeded, before
+   story 02's entities land.** That is the plans' design, not an obstacle discovered late.
 
 2. **Commit the story-01 working tree.** ~145 files across `backend/`, `frontend/` and the
    infrastructure and documentation changes are implemented and verified but **not yet committed**
