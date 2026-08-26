@@ -1,4 +1,0 @@
-# Folder fixed by docs/architecture.md §2.2. Contents arrive with the owning story:
-#   core/auth, core/guards  -> Story 02 (auth-and-roles)
-#   core/notifications      -> Story 09 (sla-routing-escalation)
-#   shared/*                -> the first story that needs the piece

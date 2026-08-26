@@ -1,7 +1,13 @@
 {
     "actions": {
         "retry": "Try again",
-        "backHome": "Back to start"
+        "backHome": "Back to start",
+        "apply": "Apply",
+        "cancel": "Cancel",
+        "create": "Create",
+        "save": "Save",
+        "open": "Open",
+        "back": "Back"
     },
     "health": {
         "title": "System status",
@@ -37,7 +43,11 @@
         "validation-failed": "Some of the details you entered aren't valid.",
         "internal-error": "Something went wrong on the server.",
         "http-500": "Something went wrong on the server.",
-        "http-503": "The service is temporarily unavailable."
+        "http-503": "The service is temporarily unavailable.",
+        "invalid-credentials": "Email or password is incorrect.",
+        "user-already-exists": "A user with that email already exists.",
+        "http-401": "Your session has ended. Please sign in again.",
+        "http-403": "You don't have access to this."
     },
     "primeng": {
         "accept": "Yes",
@@ -46,5 +56,49 @@
         "apply": "Apply",
         "emptyMessage": "No results found",
         "emptyFilterMessage": "No results found"
+    },
+    "auth": {
+        "signIn": "Sign in",
+        "signOut": "Sign out",
+        "email": "Email",
+        "password": "Password",
+        "register": "Create an account",
+        "registerPrompt": "New customer? Create an account",
+        "registerComingSoon": "Self-registration arrives with the customer records story. Ask an administrator for an account for now.",
+        "backToSignIn": "Back to sign in"
+    },
+    "roles": {
+        "Customer": "Customer",
+        "Agent": "Agent",
+        "Manager": "Manager",
+        "Administrator": "Administrator"
+    },
+    "nav": {
+        "workspace": "Workspace",
+        "admin": "Administration",
+        "users": "Users"
+    },
+    "admin": {
+        "users": {
+            "title": "Users",
+            "create": "Create user",
+            "search": "Search name or email",
+            "anyRole": "Any role",
+            "anyState": "Any state",
+            "selectRole": "Select a role",
+            "name": "Name",
+            "email": "Email",
+            "role": "Role",
+            "state": "State",
+            "departmentId": "Department id",
+            "departmentRequired": "A staff role requires a department.",
+            "active": "Active",
+            "inactive": "Inactive",
+            "deactivate": "Deactivate",
+            "deactivateConfirm": "This user will no longer be able to sign in, and their next request will be refused. Nothing is deleted.",
+            "saved": "Changes saved.",
+            "emptyTitle": "No users match",
+            "emptyMessage": "Adjust the filters, or create a user."
+        }
     }
 }

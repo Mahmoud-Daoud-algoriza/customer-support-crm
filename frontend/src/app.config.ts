@@ -9,12 +9,14 @@ import { appRoutes } from './app.routes';
 import { RuntimeConfigService } from './app/core/config/runtime-config.service';
 import { DirectionService } from './app/core/i18n/direction.service';
 import { TranslocoHttpLoader } from './app/core/i18n/transloco-http-loader';
+import { AuthService } from './app/core/auth/auth.service';
+import { authInterceptor } from './app/core/interceptors/auth.interceptor';
 import { errorInterceptor } from './app/core/interceptors/error.interceptor';
 
 export const appConfig: ApplicationConfig = {
     providers: [
         provideRouter(appRoutes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
-        provideHttpClient(withFetch(), withInterceptors([errorInterceptor])),
+        provideHttpClient(withFetch(), withInterceptors([authInterceptor, errorInterceptor])),
         provideAnimationsAsync(),
         providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } }),
 
@@ -34,8 +36,11 @@ export const appConfig: ApplicationConfig = {
         // Branding and the language set are resolved before the first screen renders
         // (docs/architecture.md §6.3).
         provideAppInitializer(async () => {
+            // Every inject() must happen before the first await: the injection context is gone
+            // afterwards, and calling inject() late throws NG0203 at bootstrap.
             const runtimeConfig = inject(RuntimeConfigService);
             const direction = inject(DirectionService);
+            const auth = inject(AuthService);
 
             try {
                 await runtimeConfig.load();
@@ -47,6 +52,11 @@ export const appConfig: ApplicationConfig = {
             const available = runtimeConfig.languages();
             const chosen = direction.storedLanguage(available) ?? (runtimeConfig.defaultLanguage() || 'en');
             await direction.use(chosen);
+
+            // A stored token is re-validated against the server before the first screen renders, so
+            // role, department and active status are the authoritative ones rather than whatever was
+            // true when the token was minted (AD-15). An expired or revoked token simply clears.
+            await auth.loadMe();
         })
     ]
 };

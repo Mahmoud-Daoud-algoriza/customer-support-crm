@@ -57,6 +57,7 @@ public sealed class ProblemDetailsExceptionHandler(
 
     private static (int Status, string Slug, string Title) Map(Exception exception) => exception switch
     {
+        UnauthorizedException e        => (StatusCodes.Status401Unauthorized, e.ProblemType, "Unauthorized"),
         NotFoundException e            => (StatusCodes.Status404NotFound, e.ProblemType, "Not found"),
         ForbiddenException e           => (StatusCodes.Status403Forbidden, e.ProblemType, "Forbidden"),
         ConflictException e            => (StatusCodes.Status409Conflict, e.ProblemType, "Conflict"),

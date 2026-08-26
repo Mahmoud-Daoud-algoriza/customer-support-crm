@@ -18,6 +18,14 @@ public abstract class AppException : Exception
 public sealed class NotFoundException(string message = "Resource not found.")
     : AppException("not-found", message);
 
+/// <summary>
+/// 401 — no valid identity. Sign-in with a wrong password <b>and</b> sign-in to a deactivated
+/// account both use this with <c>invalid-credentials</c>: distinguishing them would confirm which
+/// emails have accounts (docs/api-design.md §6.11).
+/// </summary>
+public sealed class UnauthorizedException(string problemType, string message)
+    : AppException(problemType, message);
+
 /// <summary>403 — authenticated, role known, and the role may not use this capability.</summary>
 public sealed class ForbiddenException(string problemType, string message)
     : AppException(problemType, message);
