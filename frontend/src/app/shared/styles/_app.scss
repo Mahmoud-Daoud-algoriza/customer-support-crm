@@ -1,0 +1,128 @@
+// Application-owned global styles. Logical properties only (docs/ui-design.md §10.2).
+@use 'breakpoints' as bp;
+
+// Wide content scrolls inside its own container so the page body never scrolls sideways
+// (docs/architecture.md §2.3, docs/ui-design.md §10.3). Later stories put report tables and
+// activity streams inside this.
+.app-scroll-x {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+// Numerals, timestamps and SLA countdowns stay LTR-embedded inside RTL text (ui-design §10.2).
+.app-ltr-numeric {
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+.app-centered-card-shell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding-block: 2rem;
+    padding-inline: 1rem;
+    background: var(--surface-ground);
+}
+
+.app-centered-card {
+    inline-size: 100%;
+    max-inline-size: 30rem;
+
+    @include bp.phone-only {
+        max-inline-size: 100%;
+    }
+}
+
+// The three shared states of docs/ui-design.md §9 and the status screens share this presentation.
+.app-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding-block: 2.5rem;
+    padding-inline: 1.5rem;
+    text-align: center;
+
+    &--loading {
+        align-items: stretch;
+    }
+
+    &__icon {
+        font-size: 2rem;
+        color: var(--p-text-muted-color);
+    }
+
+    &__title {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    &__message {
+        margin: 0;
+        max-inline-size: 34rem;
+        color: var(--p-text-muted-color);
+    }
+}
+
+.app-auth-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 2rem;
+    border-radius: var(--p-content-border-radius);
+    background: var(--p-content-background);
+    border: 1px solid var(--p-content-border-color);
+
+    &__brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+
+    &__logo {
+        block-size: 2.5rem;
+        inline-size: auto;
+    }
+
+    &__name {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    &__footer {
+        display: flex;
+        justify-content: center;
+    }
+}
+
+.app-health {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: start;
+
+    &__title {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    &__facts {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.5rem 1rem;
+        margin: 0;
+        align-items: center;
+
+        dt {
+            color: var(--p-text-muted-color);
+        }
+
+        dd {
+            margin: 0;
+        }
+    }
+}

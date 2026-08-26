@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- AD-4: this project ends Story 01 with zero PackageReference and zero ProjectReference.
+       That emptiness is the dependency rule (AD-2) made checkable. Do not add either. -->
+
+</Project>

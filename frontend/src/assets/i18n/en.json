@@ -1,0 +1,50 @@
+{
+    "actions": {
+        "retry": "Try again",
+        "backHome": "Back to start"
+    },
+    "health": {
+        "title": "System status",
+        "api": "API",
+        "serverTime": "Server time (UTC)",
+        "status": {
+            "ok": "Reachable",
+            "degraded": "Degraded"
+        },
+        "databaseLabel": "Database",
+        "db": {
+            "reachable": "Reachable",
+            "unreachable": "Unreachable"
+        }
+    },
+    "status": {
+        "forbidden": {
+            "title": "No access",
+            "message": "You don't have access to this."
+        },
+        "notFound": {
+            "title": "Not found",
+            "message": "We couldn't find what you were looking for."
+        },
+        "error": {
+            "title": "Something went wrong",
+            "message": "The page couldn't be loaded. Try again in a moment."
+        }
+    },
+    "errors": {
+        "network-unavailable": "The server could not be reached.",
+        "not-found": "Not found.",
+        "validation-failed": "Some of the details you entered aren't valid.",
+        "internal-error": "Something went wrong on the server.",
+        "http-500": "Something went wrong on the server.",
+        "http-503": "The service is temporarily unavailable."
+    },
+    "primeng": {
+        "accept": "Yes",
+        "reject": "No",
+        "clear": "Clear",
+        "apply": "Apply",
+        "emptyMessage": "No results found",
+        "emptyFilterMessage": "No results found"
+    }
+}

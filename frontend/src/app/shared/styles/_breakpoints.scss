@@ -1,0 +1,32 @@
+// The three breakpoints of docs/ui-design.md §10.3, declared once. Every later screen uses these
+// mixins rather than re-typing a media query.
+// They deliberately mirror the Tailwind theme breakpoints declared in src/assets/tailwind.css, so
+// a utility class and a mixin agree about where a layout changes.
+
+$breakpoint-phone: 576px; // below this: phone
+$breakpoint-tablet: 992px; // below this: tablet — also where the staff sidebar becomes a drawer
+$breakpoint-desktop: 1200px;
+
+@mixin phone-only {
+    @media (max-width: #{$breakpoint-phone - 0.02px}) {
+        @content;
+    }
+}
+
+@mixin tablet-down {
+    @media (max-width: #{$breakpoint-tablet - 0.02px}) {
+        @content;
+    }
+}
+
+@mixin tablet-up {
+    @media (min-width: $breakpoint-phone) {
+        @content;
+    }
+}
+
+@mixin desktop-up {
+    @media (min-width: $breakpoint-tablet) {
+        @content;
+    }
+}

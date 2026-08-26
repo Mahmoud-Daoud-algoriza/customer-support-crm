@@ -1,0 +1,37 @@
+{
+    "extends": [
+        "stylelint-config-standard-scss"
+    ],
+    "ignoreFiles": [
+        "src/assets/layout/**/*.scss",
+        "node_modules/**",
+        "dist/**"
+    ],
+    "rules": {
+        "property-disallowed-list": [
+            [
+                "margin-left",
+                "margin-right",
+                "padding-left",
+                "padding-right",
+                "left",
+                "right",
+                "border-left",
+                "border-right",
+                "border-left-width",
+                "border-right-width",
+                "border-left-color",
+                "border-right-color",
+                "border-left-style",
+                "border-right-style"
+            ],
+            {
+                "message": "Use logical properties (margin-inline-start, padding-inline-end, inset-inline, border-inline-start, text-align: start/end) so Arabic mirrors rather than merely re-aligning \u2014 docs/ui-design.md \u00a710.2."
+            }
+        ],
+        "scss/at-extend-no-missing-placeholder": null,
+        "no-descending-specificity": null,
+        "selector-class-pattern": null,
+        "custom-property-pattern": null
+    }
+}

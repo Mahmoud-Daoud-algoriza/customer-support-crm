@@ -1,0 +1,17 @@
+# The build context is the repository root for both images (docker-compose.yml).
+# Host build output must never be copied in: it would overwrite the restore each image does for
+# its own SDK and platform.
+
+.git
+.env
+
+backend/**/bin
+backend/**/obj
+
+frontend/node_modules
+frontend/dist
+frontend/.angular
+
+docs
+.squad
+README.md

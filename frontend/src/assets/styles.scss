@@ -1,0 +1,10 @@
+/* Global styles.
+ *
+ * Physical CSS properties (margin-left, right, …) are banned by .stylelintrc.json so that Arabic
+ * (dir="rtl") mirrors rather than merely re-aligning — docs/ui-design.md §10.2. Use logical
+ * properties: margin-inline-start, padding-inline-end, inset-inline.
+ */
+@use './tailwind.css';
+@use './layout/layout';
+@use 'primeicons/primeicons.css';
+@use '../app/shared/styles/app';

@@ -16,14 +16,14 @@
 
 | | |
 |---|---|
-| **Current SDD stage** | **Stage 9 complete → Stage 10 (Implementation) is next, not started** |
-| **Current phase** | Design and planning **complete**. Implementation has **not** begun |
+| **Current SDD stage** | **Stage 10 (Implementation) in progress — story 01 of 18 complete and verified** |
+| **Current phase** | Design and planning **complete**. Implementation **begun**: phase 0 foundation delivered |
 | **Overall status** | 🟡 On track with **four blocked acceptance criteria**. The SDD chain is finished end to end; the stage 9 audit found two genuine contradictions (S9-1, S9-4) and scheduled two carried findings (PF-2, PF-4). **None blocks stories 01–04** |
-| **Overall progress** | **35%** (method in §1.1) |
+| **Overall progress** | **38.6%** (method in §1.1) |
 | **SDD pipeline** | **9 of 10 stages complete** (90% of the pipeline) |
-| **Code written** | **None.** `backend/` and `frontend/` are empty; `docker-compose.yml` is 0 bytes |
+| **Code written** | **Story 01 skeleton.** `backend/` holds the five-project solution, `frontend/` the Angular + PrimeNG app (built on PrimeNG Sakai `20.0.0`), `docker-compose.yml` runs three services. Two endpoints exist: `/api/v1/health` and `/api/v1/config/bootstrap` — **no business entity, screen or endpoint beyond those** |
 | **Last updated** | 2026-08-25 |
-| **Current focus** | Stage 10 — implement story 01 (`solution-skeleton`) from [.squad/plans/platform-foundation/01-story-solution-skeleton.md](../.squad/plans/platform-foundation/01-story-solution-skeleton.md), then phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
+| **Current focus** | Story 01 complete and verified. **Awaiting explicit approval before story 02** (`auth-and-roles`); the plan's own stop instruction is honoured. Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 35% is calculated
@@ -34,12 +34,13 @@ recorded here so the number is reproducible rather than invented.
 | Track | Contents | Weight | Complete | Contribution |
 |---|---|---|---|---|
 | **Design & planning** | Tracker rows 1–9 (§2), equally weighted at 3.89% each | 35% | **9 of 9 rows** | 9 ÷ 9 × 35 = **35.0%** |
-| **Delivery** | Row 10 — the 18 stories implemented *and* verified | 65% | 0 of 18 | 0 ÷ 18 × 65 = **0%** |
-| | | **100%** | | **= 35%** |
+| **Delivery** | Row 10 — the 18 stories implemented *and* verified | 65% | **1 of 18** | 1 ÷ 18 × 65 = **3.6%** |
+| | | **100%** | | **= 38.6%** |
 
-**The design-and-planning track is now fully consumed.** Every remaining percentage point is
-delivery. This is the point the weighting was chosen to make honest: **a fully planned project with
-no running code is 35% done, not 90%.**
+**The design-and-planning track is fully consumed.** Every remaining percentage point is delivery.
+This is the point the weighting was chosen to make honest: **a fully planned project with no running
+code is 35% done, not 90%** — and one enabling story that carries no business behaviour moves it by
+exactly one eighteenth of the delivery track, not more.
 
 **Why 35/65.** [product-scope.md](product-scope.md) §10 defines done in five items, four of which
 concern running software. The SDD chain is the method; the working system is the deliverable, so
@@ -89,14 +90,13 @@ post-flight findings are carried in §6.5 and §6.6.
 All 18 stories from [story-backlog.md](story-backlog.md). Sequence is the intended execution order;
 squad-kit assigns the real `NN` when each plan is generated.
 
-**Every story is at `Plan Complete`.** All 18 plans exist; no code is written and nothing is
-verified. The `Depends on` column below is the **execution** dependency from
+**Story 01 is Implemented and Verified; stories 02–18 are at `Plan Complete`.** All 18 plans exist. The `Depends on` column below is the **execution** dependency from
 [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §4, which supersedes the
 earlier reading in three places (S9-7, S9-8, S9-12).
 
 | Seq | Story | Feature | Tier | SDD | Plan | Impl | Verified | Depends on | Blocker |
 |---|---|---|---|---|---|---|---|---|---|
-| 01 | `solution-skeleton` | platform-foundation | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | — | — |
+| 01 | `solution-skeleton` | platform-foundation | T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-25, re-run 2026-08-26 | — | — |
 | 02 | `auth-and-roles` | identity-access | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01, **03 data** | — |
 | 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 01 | — |
 | 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–03, **16 A** | ⚠ **OQ-5** |
@@ -425,33 +425,34 @@ No decision so far has changed [requirements.md](requirements.md), which is neve
 
 ## 7. Implementation Progress
 
-**No implementation exists.** Re-verified against the repository on 2026-08-25, not inferred:
-`backend/` and `frontend/` contain 0 files and `docker-compose.yml` is 0 bytes.
+**Story 01 is implemented.** Stories 02–18 are not. Every claim below was re-verified by running the
+commands in §8 against the repository on 2026-08-25, not inferred from the plan.
 
-**Stage 9 changed nothing here, and must not appear to.** Eighteen plans describing files to create
-are **not** files created. Every row below stays ⬜ until `dotnet build` and `npm run build`
-succeed against real source.
+**Eighteen plans describing files to create are still not files created.** Only the rows a build
+actually produced are marked ✅.
 
 | Area | Status | Evidence |
 |---|---|---|
-| Backend | ⬜ Not Started | `backend/` contains 0 files |
-| Frontend | ⬜ Not Started | `frontend/` contains 0 files |
-| Database | ⬜ Not Started | No migrations, no schema; the model is a design document |
-| Tests | ⬜ Not Started | No test project |
-| Docker / infrastructure | ⬜ Not Started | `docker-compose.yml` exists but is **0 bytes** |
+| Backend | ✅ Story 01 only | `backend/SupportCrm.sln` — 5 projects on `net10.0`. `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. `SupportCrm.Domain` has **0 project and 0 package references** (AD-2, AD-4) |
+| Frontend | ✅ Story 01 only | Angular 20.1.2 + PrimeNG 20.0.0 on the PrimeNG Sakai template (tag `20.0.0`, MIT). `npm ci && npm run build` succeeds; four lazy area chunks emitted |
+| Database | 🟡 Mechanism only | SQL Server 2022 runs in Compose and is reachable. **No migration and no seeder exists yet** — story 01 introduces no entity; the first migration is story 03. `DatabaseInitializer` applies migrations then `IDataSeeder`s at startup (AD-8) |
+| Tests | ✅ Story 01 only | `tests/SupportCrm.Tests` — **2 of 2 passing**. Coverage is targeted, not exhaustive (product-scope §8) |
+| Docker / infrastructure | ✅ Complete for the stack | `docker compose up --build` brings **db, api, web** up; `db` reports healthy and `api` waits for it |
 
-Design documents describe all five, and stage-9 plans now specify them file by file.
-**A design document is not an implementation, and neither is a plan** — neither may ever be counted
-as one in this section.
+The database row is deliberately **not** ✅: a reachable empty database is not a schema.
 
-**Implementation begins now**, with
-[01-story-solution-skeleton.md](../.squad/plans/platform-foundation/01-story-solution-skeleton.md).
+**Next:** story 02 (`auth-and-roles`) — **not started, and blocked on explicit user approval.**
 
 ---
 
 ## 8. Verification
 
-Only entries with real evidence are marked verified.
+Only entries with real evidence are marked verified. Every ✅ below names the command that was run
+and what it returned.
+
+**The whole story-01 suite was re-run on 2026-08-26** from the same working tree, after the
+containers had been stopped and Docker restarted, and produced identical results — so the rows
+below record a reproducible outcome, not a one-off.
 
 | Check | Status | Evidence / date |
 |---|---|---|
@@ -463,20 +464,73 @@ Only entries with real evidence are marked verified.
 | Stage gate 3 → 4 | ✅ Met | All 56 requirement lines mapped to a story |
 | Stage gate 5 → 6 | ✅ Met | Re-verified after the AD-15 correction |
 | Stage gate 6 → 7 | ✅ Met | Re-verified after the four clarifications |
-| Story verification | ⬜ Not Run | No story implemented |
-| Unit / integration tests | ⬜ Not Run | No tests exist |
-| Backend build | ⬜ Not Run | No backend |
-| Frontend build | ⬜ Not Run | No frontend |
-| API verification | ⬜ Not Run | No API |
-| UI verification | ⬜ Not Run | No UI |
-| Docker startup | ⬜ Not Run | `docker-compose.yml` is empty |
-| Working tree | ✅ Tracked | **9 commits** on `main`, all pushed to `origin/main` as of 2026-08-24. Only this tracker is typically uncommitted mid-task. **`git status` is the live source — this row is a snapshot, not a claim to be trusted over the repository** |
+| Story verification | ✅ **Story 01 passed** | 2026-08-25: all 8 verification steps of the story-01 plan run and passed. Details in the rows below |
+| Unit / integration tests | ✅ Passing | `dotnet test backend/SupportCrm.sln` 2026-08-25: **2 passed, 0 failed**. `/api/v1/health` returns `status: ok`; `/api/v1/config/bootstrap` returns a non-empty `productName` and `languages` containing `en` and `ar` |
+| Backend build | ✅ Clean | `dotnet build backend/SupportCrm.sln` 2026-08-25: **0 warnings, 0 errors** — and `TreatWarningsAsErrors` is on, so 0 warnings is enforced, not observed |
+| Frontend build | ✅ Clean | `npm ci && npm run build` 2026-08-25. `npm run lint:styles` clean; the physical-property ban was **proved to fire** by a throwaway probe file (3 errors), then removed — the rule is enforced, not vacuous |
+| API verification | ✅ Passed | 2026-08-25 against containerized SQL Server: `GET /api/v1/health` → `200 {"status":"ok","database":"reachable","utcNow":"…Z"}`. `openapi/v1.json` lists **exactly two paths** — `/api/v1/health` and `/api/v1/config/bootstrap` — and nothing else. Scalar UI at `/scalar/v1` → `200` |
+| UI verification | ✅ Passed | 2026-08-25, driven through the Chrome DevTools Protocol against the running `web` container: the shell renders the configured product name (`Support CRM`), `--app-brand-primary: #0B5FFF` from `/config/bootstrap`, the health result and the language switcher. Clicking العربية moved `<html>` from `dir="ltr" lang="en"` to `dir="rtl" lang="ar"` with every label translated. **No reload and no state loss**: a `window` marker and a DOM attribute set before the switch both survived it, and the health timestamp did not change |
+| Docker startup | ✅ Passed | `cp .env.example .env` then `docker compose up --build` 2026-08-25: **db (healthy) · api · web** all running. The SPA reaches the API through the nginx `/api` proxy, and deep links fall back to `index.html` |
+| Working tree | 🟡 Uncommitted | **17 commits** on `main`, head `22d763d`, as of 2026-08-26; the story-01 implementation is **in the working tree and not yet committed** (4 modified, 5 new paths, ~145 files). **`git status` is the live source — this row is a snapshot, not a claim to be trusted over the repository** |
 
 ---
 
 ## 9. Change Log
 
 Newest first. Every meaningful project change gets an entry.
+
+### 2026-08-26
+
+- **Stage 10 begins — story 01 (`solution-skeleton`) implemented and verified.** First code in the
+  repository. The five-project backend solution, the Angular + PrimeNG front end, and the
+  three-service Compose stack all exist and run. Two endpoints only — `GET /api/v1/health` and
+  `GET /api/v1/config/bootstrap` — and **no business entity, screen or endpoint beyond them**.
+  Evidence for every claim is in §8.
+- **Front end is built on the PrimeNG Sakai template, tag `20.0.0` (MIT), not scaffolded from
+  scratch.** This **supersedes task 8 of the story-01 plan**, which said `ng new frontend`. Taken on
+  explicit user instruction. The template was stripped of its demo pages and services; its layout
+  chrome (topbar, sidebar, footer, configurator) was kept and re-pointed at runtime branding, and
+  the folder tree of [architecture.md](architecture.md) §2.2 was added alongside it.
+- **Angular and PrimeNG are pinned to Sakai 20.0.0's own lockfile resolutions** — Angular
+  **20.1.2**, PrimeNG **20.0.0**, `@primeuix/themes` **1.2.1** — rather than the looser
+  "Angular 20 / PrimeNG 20" of
+  [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §6. Exact pins, so
+  `npm ci` is reproducible and no dependency drifts within `^20` on a later install. Sakai master
+  (21.0.0, Angular 21) was **considered and rejected**: it would have contradicted the approved
+  plan, and the user chose the tag that matches it.
+- **Story 17 Part A delivered here**, per the split-in-time exception in
+  [story-backlog.md](story-backlog.md): Transloco (AD-9), `en`/`ar` dictionaries with a
+  programmatically checked-identical key set, `DirectionService` (document `dir`/`lang`, PrimeNG
+  locale, choice persisted to browser storage), the language switcher in all three shells, the
+  `property-disallowed-list` stylelint rule, and the three breakpoint mixins.
+- **Contract correction — lowercase OpenAPI paths.** The default `[controller]` token published
+  `/api/v1/Health` and `/api/v1/Config/bootstrap`, which do not match
+  [api-design.md](api-design.md) §5.1. Fixed with a route-token transformer
+  (`Api/Routing/SlugifyParameterTransformer.cs`) rather than `RouteOptions.LowercaseUrls`, because
+  that setting only affects generated links — the route template, and therefore the published
+  document, would have kept the class name's casing. Every future controller inherits the
+  behaviour.
+- **Bug found and fixed during UI verification.** The `en`/`ar` dictionaries used `health.database`
+  as both a label and a namespace prefix, so `health.database.reachable` rendered as a raw key. A
+  key cannot be a string and an object. Split into `health.databaseLabel` and `health.db.*`; a
+  key-parity check across both dictionaries now runs whenever they are edited.
+- **Four further deviations from the plan, all deliberate and recorded** in
+  [.squad/plans/platform-foundation/00-overview.md](../.squad/plans/platform-foundation/00-overview.md):
+  the stylelint logical-property rule is scoped to project-authored stylesheets with the vendored
+  Sakai stylesheets ignored (they are upstream code this project does not edit);
+  `frontend/proxy.conf.json` was added so `ng serve` shares an origin with the API, with CORS kept
+  as the plan specified; the temporary health screen sits in `features/platform/`, to be removed
+  with story 02's role redirect; and `.dockerignore` was added because host `bin/`/`obj/` were
+  overwriting each image's own restore.
+- **No migration was generated, by design.** Story 01 introduces no entity, so there is nothing to
+  migrate; the first migration belongs to story 03. The schema will only ever be created and
+  changed by **EF Core migrations** generated from [data-model.md](data-model.md) — never by
+  hand-written SQL.
+- **Recalculated §1.1**: delivery moves from 0 of 18 to **1 of 18**, so overall progress goes
+  **35% → 38.6%**. One enabling story that carries no business behaviour is worth exactly one
+  eighteenth of the delivery track and no more.
+- **Stopped at the story-01 boundary.** The plan's own closing instruction and the user's standing
+  constraint both require explicit approval before story 02.
 
 ### 2026-08-25
 
@@ -737,14 +791,29 @@ Newest first. Every meaningful project change gets an entry.
 
 ## 10. Current Next Steps
 
-1. **Stage 10 — implement story 01** (`solution-skeleton`) from
-   [01-story-solution-skeleton.md](../.squad/plans/platform-foundation/01-story-solution-skeleton.md)
-   in a fresh, scoped session with **only that plan attached** (working agreement: *plan once,
-   execute cheap*). It has **no prerequisites and no blockers**. Then follow the phase order of
-   [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3.
+1. **Story 01 is complete and verified — awaiting explicit approval before story 02.** The plan's
+   closing instruction and the user's standing constraint both require it. Nothing about story 02
+   (`auth-and-roles`) has been started.
 
-2. **Answer the outstanding decisions, earliest first.** None blocks story 01, and none blocks
-   phase 0 or phase 1:
+   When approval comes, the prerequisite reading is
+   [02-story-auth-and-roles.md](../.squad/plans/identity-access/02-story-auth-and-roles.md). Note
+   its dependency: it needs the **`Department` shape** from story 03 to give `User` a
+   `departmentId`, which is why the phase table of
+   [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 pairs them. **Story 03
+   also owns the first EF Core migration** (`InitialSchema`) — story 01 deliberately generated none,
+   because it introduces no entity.
+
+   Two things story 01 leaves for story 02 to remove or fill, both marked `TODO` at their call
+   sites: the temporary `features/platform/health-check.component.ts` landing screen (replaced by
+   the role redirect) and the empty navigation model in `app/layout/component/app.menu.ts`.
+
+2. **Commit the story-01 working tree.** ~145 files across `backend/`, `frontend/` and the
+   infrastructure and documentation changes are implemented and verified but **not yet committed**
+   (§8, Working tree). Nothing depends on this, but the tree should not stay uncommitted across
+   another story.
+
+3. **Answer the outstanding decisions, earliest first.** None blocked story 01, and none blocks
+   story 02 or story 03 either — the earliest is needed before story 04:
 
    | When needed | Decision | Kind |
    |---|---|---|
@@ -757,11 +826,11 @@ Newest first. Every meaningful project change gets an entry.
    | Before **story 18** | **PF-2 / S9-10** — who is the actor on an inbound channel message? | Product |
    | Non-blocking | **OQ-3** (no-manager branch), **PF-5** (`firstRespondedAt` null), **F-1**, **N-5**, **S9-11** | — |
 
-3. **Optionally apply the S9-11 header correction** to `ui-design.md` — it cites *"65 endpoints,
+4. **Optionally apply the S9-11 header correction** to `ui-design.md` — it cites *"65 endpoints,
    AP-1…AP-18"* where `api-design.md` now has **66** and **AP-19**. It is an edit to an approved
    document, so it is **offered, not taken**. Nothing depends on it.
 
-4. **Consider scope realism.** 18 stories against a 9–12 hour budget is ambitious. Now that the
+5. **Consider scope realism.** 18 stories against a 9–12 hour budget is ambitious. Now that the
    plans exist, the honest option is to **implement 01–11 (the T1 core plus the AI slice) and treat
    12–18 as planned-not-built**, which is a stronger SDD demonstration than eighteen half-finished
    stories. The cut order in [story-backlog.md](story-backlog.md) already ranks them, and four of

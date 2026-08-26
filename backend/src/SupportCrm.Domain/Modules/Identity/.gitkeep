@@ -1,0 +1,3 @@
+# Module folder fixed by docs/architecture.md §1. Entities arrive with the story that owns them
+# (see ../../../SupportCrm.Application/Modules/Identity/README.md). Domain stays free of EF and of
+# every package reference (AD-4).

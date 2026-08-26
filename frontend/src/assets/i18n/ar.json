@@ -1,0 +1,50 @@
+{
+    "actions": {
+        "retry": "أعد المحاولة",
+        "backHome": "العودة إلى البداية"
+    },
+    "health": {
+        "title": "حالة النظام",
+        "api": "واجهة البرمجة",
+        "serverTime": "وقت الخادم (UTC)",
+        "status": {
+            "ok": "متاح",
+            "degraded": "متعطل جزئياً"
+        },
+        "databaseLabel": "قاعدة البيانات",
+        "db": {
+            "reachable": "متاحة",
+            "unreachable": "غير متاحة"
+        }
+    },
+    "status": {
+        "forbidden": {
+            "title": "لا يوجد وصول",
+            "message": "ليست لديك صلاحية الوصول إلى هذا."
+        },
+        "notFound": {
+            "title": "غير موجود",
+            "message": "لم نتمكن من العثور على ما تبحث عنه."
+        },
+        "error": {
+            "title": "حدث خطأ ما",
+            "message": "لم يتم تحميل الصفحة. حاول مرة أخرى بعد قليل."
+        }
+    },
+    "errors": {
+        "network-unavailable": "لا يمكن الوصول إلى الخادم.",
+        "not-found": "غير موجود.",
+        "validation-failed": "بعض البيانات التي أدخلتها غير صحيحة.",
+        "internal-error": "حدث خطأ في الخادم.",
+        "http-500": "حدث خطأ في الخادم.",
+        "http-503": "الخدمة غير متاحة مؤقتاً."
+    },
+    "primeng": {
+        "accept": "نعم",
+        "reject": "لا",
+        "clear": "مسح",
+        "apply": "تطبيق",
+        "emptyMessage": "لا توجد نتائج",
+        "emptyFilterMessage": "لا توجد نتائج"
+    }
+}

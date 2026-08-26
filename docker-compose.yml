@@ -1,0 +1,50 @@
+# Three services, one network, one volume — docs/architecture.md §6.2. Nothing else: no reverse
+# proxy, no cache, no queue, no orchestrator.
+#
+# One documented command starts everything, with no external accounts or credentials
+# (docs/product-scope.md §10 item 5). See README.md.
+
+services:
+    db:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        environment:
+            - ACCEPT_EULA=Y
+            - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
+        volumes:
+            - supportcrm-data:/var/opt/mssql
+        healthcheck:
+            test: ['CMD-SHELL', '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1"']
+            interval: 10s
+            retries: 12
+            start_period: 30s
+
+    api:
+        build:
+            context: .
+            dockerfile: backend/Dockerfile
+        depends_on:
+            db:
+                condition: service_healthy
+        environment:
+            # This is the local assessment stack, so the API runs in Development: that is what serves
+            # the OpenAPI document and the Scalar UI (docs/architecture.md §6.2).
+            - ASPNETCORE_ENVIRONMENT=Development
+            - ConnectionStrings__SupportCrm=Server=db;Database=SupportCrm;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True
+            - SupportCrm__Jwt__SigningKey=${SUPPORTCRM_JWT_KEY}
+            # The SPA is served from the web container on a different port, so ng serve is not the
+            # only cross-origin caller. AD-7 chose a bearer token for exactly this reason.
+            - SupportCrm__Cors__AllowedOrigins__0=http://localhost:4200
+        ports:
+            - '5080:8080'
+
+    web:
+        build:
+            context: .
+            dockerfile: frontend/Dockerfile
+        depends_on:
+            - api
+        ports:
+            - '4200:80'
+
+volumes:
+    supportcrm-data:

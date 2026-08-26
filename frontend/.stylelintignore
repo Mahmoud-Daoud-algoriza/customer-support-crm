@@ -1,0 +1,5 @@
+# Vendored PrimeNG Sakai template stylesheets (MIT, see LICENSE.md). They are the upstream
+# template's own physical-property CSS and are not edited by this project, so the
+# logical-property rule of docs/ui-design.md §10.2 is not enforced against them. Every stylesheet
+# this project authors — src/app/**, src/assets/styles.scss — is enforced.
+src/assets/layout/

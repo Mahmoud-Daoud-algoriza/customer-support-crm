@@ -3,3 +3,15 @@
 .squad/stories/**/attachments/
 .squad/.trash/
 # End squad-kit block
+
+# Local environment — never committed (docs/architecture.md §6.3)
+.env
+
+# Backend build output
+backend/**/bin/
+backend/**/obj/
+
+# Front-end build output and dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" role="img" aria-label="Support CRM">
+  <rect width="40" height="40" rx="9" fill="var(--p-primary-color, #0B5FFF)" />
+  <path d="M11 15.5A2.5 2.5 0 0 1 13.5 13h13a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 26.5 25H19l-5 4v-4h-.5A2.5 2.5 0 0 1 11 22.5z" fill="#fff" />
+</svg>
