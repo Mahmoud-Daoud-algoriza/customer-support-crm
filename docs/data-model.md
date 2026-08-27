@@ -1,6 +1,6 @@
 # Data Model — Customer Support CRM
 
-> **Source of truth:** [requirements.md](requirements.md) · [product-scope.md](product-scope.md) T1–T4, A-1…A-18 · [architecture.md](architecture.md) §2.1, §2.4, §2.5, §4.1.1, §4.3, §5, §6.3 · [story-backlog.md](story-backlog.md) and the 18 story intakes
+> **Source of truth:** [requirements.md](requirements.md) · [product-scope.md](product-scope.md) T1–T4, A-1…A-19 · [architecture.md](architecture.md) §2.1, §2.4, §2.5, §4.1.1, §4.3, §5, §6.3 · [story-backlog.md](story-backlog.md) and the 18 story intakes
 > **SDD stage:** 6 of 10. Gate 6 → 7 per [sdd-workflow.md](sdd-workflow.md) §4.
 > **Status:** Conceptual and logical model, plus the string-column convention of §6.1 (amended 2026-08-26). No SQL, no EF Core entities, no `DbContext`, no migrations, no endpoints, no UI.
 
@@ -308,8 +308,9 @@ from its customer's — that contradicts A-2 and must be raised against
 **Ownership/scope.** Customers module. Organization-wide; readable by any staff role, not by other
 customers.
 **Mutability.** Mutable.
-**Invariants.** Email unique · no merge or dedupe operation exists (T2-A/§8) · deleting a customer
-is not an application operation.
+**Invariants.** Email unique · **a change to `email` propagates to the linked `User.email` in the
+same unit of work (A-19, §5 constraint 1a)** · no merge or dedupe operation exists (T2-A/§8) ·
+deleting a customer is not an application operation.
 **Note on the interaction timeline.** Requirements §1.3 is a **read projection** over this
 customer's tickets and their activity ([architecture.md](architecture.md) §2.5). It is not stored.
 
@@ -734,6 +735,12 @@ branch filter the reports ask for. Full audit of the sources in §2.3.
 **Identity and authorization**
 
 1. `User.email` and `Customer.email` are each unique, case-insensitive.
+1a. **A customer and their portal login hold the same address (A-19).** When `Customer.email`
+    changes and a linked `User` exists, `User.email` is set to the same value **in the same unit of
+    work** ([architecture.md](architecture.md) §3) — there is no committed state in which the two
+    differ. Constraint 1 still applies to the propagated value across **all** users, staff included;
+    a collision rejects the whole operation and writes neither row. A profile-only customer has no
+    login to propagate to, which DM-1 makes the ordinary case.
 2. A `User` of role `Customer` has `customerId` set and `departmentId` null; a staff user is the
    reverse.
 3. At most one `User` per `Customer`.
@@ -1039,6 +1046,13 @@ pre-empted by an assumption baked into the model.
 
 - **Whether a ticket needs its own branch relationship.** It does not — a ticket's branch is derived
   `Ticket → Customer → Branch`, no source requires otherwise, and §2.3 records the full audit.
+- **OQ-5 — a customer's email versus their portal sign-in** (raised 2026-08-25 by
+  [api-design.md](api-design.md) §5.5's N-2 correction; resolved 2026-08-27). **They are one
+  address** (A-19): changing `Customer.email` sets the linked `User.email` to the same value,
+  atomically, with constraint 1 still applied to the new value across all users. Model consequence:
+  **new constraint 1a**, and a matching invariant on §2.4. The alternative — letting them diverge —
+  would have given one person two identifying addresses, which A-10 does not admit, with no
+  reconciliation path since A-9 excludes account recovery.
 - **OQ-4 — the customer cancellation window** (raised and resolved 2026-08-24). **Assignment is not
   the start of work** (A-18): a ticket may be assigned while still `New`, and `New → Open` is an
   agent deliberately starting work. The customer's window therefore lasts from creation until an

@@ -44,6 +44,9 @@ none blocks Phase 0 or Phase 1.** Full detail in
 
 **Open questions carried unchanged:** OQ-1 (CSAT scale — Stories 13, 15), OQ-2 (SLA due dates on a
 priority change — Stories **05** and 09), OQ-3 (breach recipient with no department manager —
-Stories 06 and 09, non-blocking), OQ-5 (customer email vs linked login — Story 04), and **F-1**,
+Stories 06 and 09, non-blocking), and **F-1**,
 which stays open by design: `ui-design.md` UI-3 is approved, the server remains the authority, and
 the gate 9 → 10 requires no decision.
+
+**Closed since:** **OQ-5** (customer email vs linked login — Story 04), answered 2026-08-27 by
+**A-19**: they are one address, updated together in one unit of work.

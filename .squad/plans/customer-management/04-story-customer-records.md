@@ -13,17 +13,37 @@
   the attachment size cap. See
   [16-story-audit-configuration.md](../administration/16-story-audit-configuration.md) §"Part A".
 
-> ### ⚠ Blocked decision — **OQ-5** must be answered before task 5 is implemented
+> ### ✅ Decision taken — **OQ-5 is closed by A-19** (2026-08-27). No longer blocking.
 >
-> `PATCH /customers/{id}` may change `Customer.email`. A customer profile may have a **linked
-> portal login** whose `User.email` is also unique and is the sign-in identifier (DM-1, A-15).
-> **No approved source says whether changing one changes the other** (api-design §5.5, OQ-5).
+> This box previously said the decision was open and that **task 3** must not invent it. It is now
+> made: **a customer's email and their portal sign-in are one address** (product-scope A-19,
+> api-design §5.5, data-model §5 constraint 1a).
 >
-> **Do not invent either behaviour.** Task 5 delivers the patch of the *customer profile* and its
-> `409 customer-email-in-use` validation, which **are** supported by the model. The consequence for
-> a linked `User.email` is the open decision: obtain the answer, then implement it as a one-line
-> branch in `CustomerService.UpdateAsync`. Until then the linked login is left untouched and the UI
-> **makes no claim either way** (ui-design §11).
+> *(The old box pointed at "task 5" in its heading and at `CustomerService.UpdateAsync` — task 3 —
+> in its body. Task 3 is correct; task 5 is the interaction timeline and never touched email.)*
+>
+> **What task 3 must implement in `CustomerService.UpdateAsync`:**
+>
+> | Situation | Result |
+> |---|---|
+> | `email` absent from the PATCH | Nothing to do — a PATCH carries only what changes |
+> | New email equals the current one, case-insensitively | No-op for both rows. **Do not raise `409` against the customer's own record** |
+> | Another **customer** holds it | `ConflictException("customer-email-in-use")` |
+> | Another **user** holds it — staff included | `ConflictException("user-already-exists")`. **PF-6's existing slug for PF-6's existing rule**; do not mint a new one |
+> | Free, and the customer **has** a linked `User` | Set both `Customer.Email` and `User.Email`, then **one** `SaveChangesAsync` |
+> | Free, and the customer has **no** linked `User` | Set `Customer.Email` only. The ordinary case (DM-1) |
+>
+> **Atomicity is the existing rule, not a new mechanism.** Architecture §3 — *"one unit of work per
+> request, owned by the Application service, committed once"* — already gives this. Mutate both
+> tracked entities and commit once. **Do not open an explicit transaction, and do not call
+> `SaveChangesAsync` twice**: two commits are exactly the divergence A-19 exists to prevent.
+>
+> **The linked user is found by `User.CustomerId == id`**, never by matching on the old email — §5
+> constraint 3 guarantees at most one, and an email match would be the very assumption A-19 removes.
+> Look it up **before** writing, in the same unit of work.
+>
+> `User.email` stays unpatchable through `PATCH /users/{id}` (api-design §5.3). This is a server-side
+> consequence of the customer patch; **`PatchUserRequest` gains no `email` property** (AP-10).
 
 ---
 
@@ -48,8 +68,9 @@ Deliver requirements §1 in full, at the depth of T1-A and T2-A.
    **read-only and never settable**), §2.5 `CustomerNote` (**immutable once written**), §2.11
    `Attachment` (the **owner XOR** rule and the size cap), §5 constraints 1, 16, 20, §6 indexes
    `Customer(email)` unique and `Customer(branchId)`.
-2. `docs/api-design.md` §5.5 — all ten endpoints, the timeline's exclusion rule, and the **`email`
-   is patchable** correction with the OQ-5 box. Then §6.3 payloads (`Customer`,
+2. `docs/api-design.md` §5.5 — all ten endpoints, the timeline's exclusion rule, the **`email` is
+   patchable** correction, and the **A-19 box** that closed OQ-5: which `409` each kind of collision
+   raises, and why both rows commit together or not at all. Then §6.3 payloads (`Customer`,
    `CustomerListItem` with `openTicketCount`, `CustomerNote`, `TimelineEntry`), §6.7
    `AttachmentMetadata`, AP-13 and **AP-19** (one download endpoint for every role).
 3. `docs/api-design.md` §5.2 — the **three** A-15 outcomes of `POST /auth/register` and the
@@ -146,7 +167,7 @@ dotnet ef migrations add Customers -p src/SupportCrm.Infrastructure -s src/Suppo
 | `ListAsync` | `GET /customers` | Paged. Filters `q` (name/email), `branchId`. Sort whitelist: `fullName`, `createdAt`; anything else -> `400` (AP-15) |
 | `CreateAsync` | `POST /customers` | `{ fullName, email, phone?, branchId }`. Duplicate email -> `ConflictException("customer-email-in-use")` |
 | `GetAsync` | `GET /customers/{id}` | |
-| `UpdateAsync` | `PATCH /customers/{id}` | `fullName`, `phone`, `branchId`, **and `email`** — see the OQ-5 box above |
+| `UpdateAsync` | `PATCH /customers/{id}` | `fullName`, `phone`, `branchId`, **and `email`** — an `email` change **propagates to the linked `User.email` in the same unit of work** (A-19). The full case table is in the decision box above |
 
 **`CustomerListItem.openTicketCount`** is an aggregate over that customer's **non-terminal** tickets
 (api-design §6.3). `Ticket` does not exist yet: implement the projection with a
@@ -300,9 +321,12 @@ interceptor supplies the bearer token; **never build a URL from a storage path**
 Four regions, each with its own loading, empty and error state (ui-design §9):
 
 - **Profile** — editable form (`fullName`, `phone`, `branchId`, `email`).
-  `409 customer-email-in-use` renders **inline on the email field**. **The UI makes no claim about
-  a linked portal login** — OQ-5 (ui-design §11). Do not add a warning, a tooltip or a confirmation
-  that implies either behaviour.
+  **Both** `409 customer-email-in-use` **and** `409 user-already-exists` render **inline on the email
+  field** — both mean the address is taken, and neither saved anything.
+  **The email field carries a persistent helper line** saying the address is also the customer's
+  portal sign-in (A-19, ui-design §5.5) — a helper line on the field, **not** a toast and **not** a
+  post-save confirmation, because the point is to be read *before* the save. It is **unconditional**:
+  the `Customer` payload carries no "has a login" field and this story **adds none**.
 - **Interaction timeline** — newest first; empty state *"No activity yet"*. It fills as Stories 05
   and 06 land.
 - **Notes** — list plus an add form. **No edit and no delete control is rendered anywhere**, because
@@ -352,8 +376,11 @@ optional phone. **No branch selector and no role selector** — A-15 fixes both 
 - [ ] `POST /auth/register` implements **exactly** the three A-15 outcomes.
 - [ ] `storagePath` and `passwordHash` appear in no response.
 - [ ] `externalReference` is returned read-only and is settable through no endpoint.
-- [ ] **OQ-5 is not answered here.** No behaviour for a linked login's email was invented, and the
-      UI claims nothing about it.
+- [ ] **A-19 is implemented and proven.** Patching the email of a customer **with** a linked login
+      changes both rows; patching one **without** a linked login changes only the profile; a
+      collision with another user returns `409 user-already-exists` and **leaves both rows
+      untouched** — asserted by re-reading each row after the failed call, not merely by the status
+      code. One `SaveChangesAsync` in the success path.
 - [ ] `00-overview.md` updated with this story.
 
 **STOP HERE. Report to the user and wait for confirmation before proceeding to Story 05.**

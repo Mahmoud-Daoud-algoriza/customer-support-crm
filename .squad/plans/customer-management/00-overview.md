@@ -25,6 +25,8 @@ default branch (A-15) and the attachment size cap.
 - The shared attachment service and the AP-19 download land here; the two **ticket**-scoped
   attachment endpoints are published by [Story 05](../ticket-management/05-story-ticket-core.md),
   so this story's attachment AC completes there (finding **S9-2**).
-- ⚠ **OQ-5 must be answered before task 5** — whether changing `Customer.email` changes a linked
-  portal login's sign-in email.
+- ✅ **OQ-5 is closed (2026-08-27) by A-19** — changing `Customer.email` **does** change a linked
+  portal login's sign-in email, in the same unit of work, with `User.email`'s existing uniqueness
+  rule applied to the new value. Implemented by **task 3** (`CustomerService.UpdateAsync`), not
+  task 5, which the story plan's decision box now specifies case by case.
 - Attachments (T2-A) are cut before profiles, notes and timeline (T1-A).

@@ -1,6 +1,6 @@
 # API Design — Customer Support CRM
 
-> **Source of truth:** [requirements.md](requirements.md) · [product-scope.md](product-scope.md) T1–T4, A-1…A-18 · [architecture.md](architecture.md) §2.1, §3, §4, §5, §6.3 · [data-model.md](data-model.md) (15 entities, DM-1…DM-7) · [story-backlog.md](story-backlog.md) and the 18 intakes
+> **Source of truth:** [requirements.md](requirements.md) · [product-scope.md](product-scope.md) T1–T4, A-1…A-19 · [architecture.md](architecture.md) §2.1, §3, §4, §5, §6.3 · [data-model.md](data-model.md) (15 entities, DM-1…DM-7) · [story-backlog.md](story-backlog.md) and the 18 intakes
 > **SDD stage:** 7 of 10. Gate 7 → 8 per [sdd-workflow.md](sdd-workflow.md) §4.
 > **Status:** Contract design only. No application code, no controllers, no OpenAPI file, no UI.
 
@@ -272,12 +272,31 @@ customers, case-insensitively** ([data-model.md](data-model.md) §5 constraint 1
 is `409` `type: customer-email-in-use`. There is no merge or dedupe tooling (T2-A/§8), so a
 duplicate is rejected rather than reconciled.
 
-> **Open question raised by this correction (OQ-5).** A customer profile may have a linked portal
-> login whose `User.email` is also unique and is the sign-in identifier (DM-1, A-15). **No approved
-> source says whether changing `Customer.email` also changes the linked `User.email`.** This
-> contract does not decide it: the endpoint patches the customer profile, and whether the login
-> follows is recorded as OQ-5 rather than invented. It blocks nothing in Stage 8 — it must be
-> answered before story 04 is implemented.
+> **A customer's email and their portal sign-in are one address — A-19, closing OQ-5**
+> *(decided 2026-08-27; this box previously recorded the open question).*
+>
+> A customer profile may have a linked portal login whose `User.email` is also unique and is the
+> sign-in identifier (DM-1, A-15). **When `PATCH /customers/{id}` changes `Customer.email`, the
+> linked `User.email` is updated to the same value, in the same unit of work** ([architecture.md](architecture.md)
+> §3). There is no response in which one has changed and the other has not.
+>
+> | Situation | Result |
+> |---|---|
+> | The customer has **no** linked login | `200` — the profile changes. Nothing to propagate (DM-1) |
+> | The customer **has** a linked login, and the new address is free | `200` — profile **and** login change together. The customer signs in with the new address; the old one stops working |
+> | The new address already belongs to **another customer** | `409` `type: customer-email-in-use` — as before, unchanged |
+> | The new address already belongs to **another user**, staff included | `409` `type: user-already-exists` — **PF-6's existing slug**, because it is PF-6's existing rule: `User.email` is unique case-insensitively across all users ([data-model.md](data-model.md) §5 constraint 1). **Neither row is written** |
+>
+> The two `409`s are distinct because the collisions are distinct, and a client already handles both
+> slugs — `customer-email-in-use` from this endpoint, `user-already-exists` from `POST /auth/register`
+> (§5.2). **No new problem type is introduced by this decision.**
+>
+> **This changes no other endpoint.** `User.email` remains unpatchable through `PATCH /users/{id}`
+> (§5.3) — the propagation is a server-side consequence of the customer patch, not a new writable
+> field, and no request model gains an `email` property (AP-10). **The caller's session is
+> unaffected**: the token asserts identity only and carries `sub`, never an email (AD-7), so a
+> signed-in customer whose address changes mid-session is not signed out — they simply sign in with
+> the new address next time.
 
 ### 5.6 Tickets (staff) — stories 05, 06, 07, 14
 
@@ -863,8 +882,13 @@ endpoints that traced to no requirement were removed (AP-18).
    that the catalogue never defined, while story 04 requires one. `GET
    /attachments/{attachmentId}/content` was added (AP-19), taking the count 65 → 66.
 2. **PF-4's metric semantics** must be pinned before story 15 is planned.
-3. **OQ-5** — whether changing `Customer.email` also changes a linked portal login's sign-in
-   email (§5.5). Must be answered before story 04 is implemented.
+3. ~~**OQ-5**~~ — **closed 2026-08-27 by A-19.** Changing `Customer.email` **does** change a linked
+   portal login's sign-in email, atomically, with `User.email`'s existing uniqueness rule applied to
+   the new value (§5.5). Closing it also removed a reachable gap in §5.2: had the two been allowed
+   to diverge, a profile could hold an address whose registration outcome none of A-15's three rows
+   covered — a profile matching the submitted email while already holding a login under a different
+   one, which §5 constraint 3 forbids linking a second login to. Divergence is now impossible, so
+   the three outcomes remain exhaustive.
 
 **No new contradiction was found while writing this document.** Every rule needed was already
 present in an approved source.
@@ -925,8 +949,10 @@ it was decided rather than forgotten.
 
 A-2 → §4.3, §4.4 · A-3 → SLA fields, §7 · A-4 → every **Roles** column · A-5 → §5.6 transition
 table · A-6 → `categoryCode`, `priority` validation · A-8/AD-12 → §5.8 · A-9/AD-7/AD-15 → §4.1,
-AP-9 · A-10 → email immutability, `409` · A-13 → §5.10 · A-14 → `POST /portal/tickets` ·
-A-15 → §5.2 · A-16 → §5.6 authority table · A-17 → `isUrgent` · A-18 → assignment leaves status ·
+AP-9 · A-10 → email **uniqueness**, `409` (the immutability this line once claimed was removed by
+N-2 on 2026-08-25; §5.5 has said `email` is patchable ever since) · A-13 → §5.10 ·
+A-14 → `POST /portal/tickets` · A-15 → §5.2 · A-16 → §5.6 authority table · A-17 → `isUrgent` ·
+A-18 → assignment leaves status · A-19 → §5.5 customer email propagates to the linked login ·
 AD-13 → §5.9 · DM-1 → §5.2, §5.3 · DM-5 → §5.8 · DM-7 → feedback under Tickets · R-13/R-14 → §5.7
 
 ---

@@ -1,6 +1,6 @@
 # Architecture — Customer Support CRM
 
-> **Source of truth:** [requirements.md](requirements.md) (all sections) · [product-scope.md](product-scope.md) T1–T4, A-1…A-18 · [sdd-workflow.md](sdd-workflow.md) stage 5 · [story-backlog.md](story-backlog.md) (18 intakes)
+> **Source of truth:** [requirements.md](requirements.md) (all sections) · [product-scope.md](product-scope.md) T1–T4, A-1…A-19 · [sdd-workflow.md](sdd-workflow.md) stage 5 · [story-backlog.md](story-backlog.md) (18 intakes)
 > **SDD stage:** 5 of 10. Gate 5 → 6 per [sdd-workflow.md](sdd-workflow.md) §4.
 > **Status:** Design only. No code, no database schema, no API endpoints, no UI components.
 

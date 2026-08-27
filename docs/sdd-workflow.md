@@ -17,7 +17,7 @@ and nothing downstream contradicts them:
 | Document | Owns |
 |---|---|
 | [requirements.md](requirements.md) | The requirement lines themselves. **Never edited** — it is the input we were given. |
-| [product-scope.md](product-scope.md) | Scope tiers (T1–T4), the 18 explicit assumptions (A-1…A-18), and the out-of-scope list. |
+| [product-scope.md](product-scope.md) | Scope tiers (T1–T4), the 19 explicit assumptions (A-1…A-19), and the out-of-scope list. |
 
 **Change control:** if implementation reveals that an assumption is wrong or a scope item is
 undeliverable, the fix is to edit [product-scope.md](product-scope.md) and record the change —
@@ -142,7 +142,7 @@ traceability is the SDD deliverable of this assessment (product-scope §10, item
 - **Plan once, execute cheap.** Planning happens in a session that has read the design documents.
   Implementation happens in a fresh, scoped session with only the plan attached.
 - **One story per plan file.** Stories are sized so a plan fits an evening's slice.
-- **Assumptions are not decisions to revisit.** A-1…A-18 are fixed for the assessment. Disagreeing
+- **Assumptions are not decisions to revisit.** A-1…A-19 are fixed for the assessment. Disagreeing
   with one is a product-scope edit, not an implementation choice.
 - **Ambiguity gets recorded, not resolved silently.** Product-scope §9 holds seven open questions;
   they stay open.

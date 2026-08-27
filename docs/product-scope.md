@@ -492,6 +492,31 @@ question 8.
 - Consequence for the data model: `Ticket.assignedUserId` may be set while `status = New`. Nothing
   may infer status from the presence of an assignee, or an assignee from the status.
 
+**A-19 · A customer's email and their portal sign-in are one address.** Decided 2026-08-27,
+resolving **OQ-5**, which [api-design.md](api-design.md) §5.5 raised on 2026-08-25 and deliberately
+left open rather than invent.
+
+- **When `Customer.email` changes, the linked portal `User.email` changes to the same value.** The
+  customer signs in with the new address; the old one stops working.
+- **It applies only where a login exists.** A profile-only customer has nothing to propagate to —
+  DM-1 makes that the normal case, since an agent creates tickets for customers who may never touch
+  the portal.
+- **The two writes are one atomic operation.** Both rows change together or neither changes. There
+  is no state in which the profile and the login hold different addresses. This is the general rule
+  of [architecture.md](architecture.md) §3 — *"one unit of work per request, committed once"* —
+  applied here, not a new mechanism.
+- **`User.email` uniqueness is unchanged and still applies to the propagated value.** It remains
+  unique case-insensitively across **all** users, staff included ([data-model.md](data-model.md) §5
+  constraint 1). If the new address already belongs to another user, **the whole operation is
+  rejected and the customer profile is not changed either** — the atomicity above cuts both ways.
+- **Why this reading.** A-10 identifies a customer by a unique email address. Letting the profile
+  and the login diverge would give one person two identifying addresses, and A-9 excludes account
+  recovery, so no mechanism would exist to reconcile them afterwards.
+- **The cost is accepted and is not mitigated here.** An agent who mistypes a customer's email
+  changes what that customer must type to sign in, and A-9 provides no recovery flow. No
+  confirmation step, no grace period and no notification is introduced by this decision; the UI
+  states the consequence before the save ([ui-design.md](ui-design.md) §5.5).
+
 ---
 
 ## 8. Explicitly out of scope (T4)

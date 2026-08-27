@@ -1,6 +1,6 @@
 # UI Design — Customer Support CRM
 
-> **Source of truth:** [requirements.md](requirements.md) · [product-scope.md](product-scope.md) T1–T4, A-1…A-18 · [architecture.md](architecture.md) §2.2, §2.3, §4.2 · [data-model.md](data-model.md) · [api-design.md](api-design.md) (65 endpoints, AP-1…AP-18) · [story-backlog.md](story-backlog.md) and the 18 intakes
+> **Source of truth:** [requirements.md](requirements.md) · [product-scope.md](product-scope.md) T1–T4, A-1…A-19 · [architecture.md](architecture.md) §2.2, §2.3, §4.2 · [data-model.md](data-model.md) · [api-design.md](api-design.md) (66 endpoints, AP-1…AP-19) · [story-backlog.md](story-backlog.md) and the 18 intakes
 > **SDD stage:** 8 of 10. Gate 8 → 9 per [sdd-workflow.md](sdd-workflow.md) §4.
 > **Status:** Design only. No Angular components, no routes file, no CSS, no front-end source.
 
@@ -263,7 +263,20 @@ tickets and ticket activity, **internal entries excluded**), **notes** (staff-on
 written — no edit control is offered), **attachments**.
 
 The email field is editable — no source makes it immutable ([api-design.md](api-design.md) §5.5) —
-with `409 customer-email-in-use` surfaced inline on the field. **See §11 for the OQ-5 dependency.**
+with `409 customer-email-in-use` surfaced inline on the field.
+
+**The field states its consequence before the save, not after (A-19).** Changing a customer's email
+also changes the sign-in address of their portal login, and [product-scope.md](product-scope.md) A-9
+provides no account-recovery flow, so a mistyped address is not quietly recoverable. A **persistent
+helper line on the field** — not a toast, not a post-save confirmation — reads to the effect of
+*"this is also the customer's portal sign-in address"*. It is **unconditional**: the `Customer`
+payload (§6.3) carries no field saying whether a login exists, and this design **does not add one**
+— the wording is true either way, and inventing a payload field to vary a helper line would be
+contract surface bought for a sentence.
+
+`409 user-already-exists` — the new address belonging to another user, staff included — surfaces
+**inline on the same field** as the other `409`, since both mean "this address is taken" and the
+customer profile was not saved in either case.
 
 ### 5.6 Knowledge base (staff) — `/workspace/knowledge`, `/workspace/knowledge/:id`
 
@@ -456,12 +469,17 @@ activity — scrolls inside its own container, so the page body never scrolls si
 
 **None of these is resolved here.** Each is marked so a plan cannot quietly invent the answer.
 
+> **OQ-5 left this table on 2026-08-27, answered.** It read *"the UI must not promise either …
+> add a warning only once OQ-5 is answered."* **A-19 answered it** — a customer's email and their
+> portal sign-in are one address — so §5.5 now carries exactly the warning this row was holding
+> back. The row is removed rather than struck through, because §11 is a list of live constraints on
+> the plans, not a history.
+
 | Question | Screen | Dependency | Interim UI behaviour |
 |---|---|---|---|
 | **OQ-1** CSAT scale | Portal request detail — feedback control (§7.3) | **The control's shape is undecided.** An ordinal range renders as a rating scale; a binary scale renders as two buttons. The design **does not pick one** | Render from `feedback.ratingScale` in `GET /config`. **The plan must not hardcode a star widget** until OQ-1 is answered |
 | **OQ-2** SLA due dates on priority change | Ticket detail SLA region, queue ordering | **No UI dependency.** Both readings write the same fields; the UI displays whatever the server computes | None |
 | **OQ-3** breach with no department manager | Ticket detail — escalate confirmation (§5.3) | The dialog **must not claim "the department manager will be notified"**, because a department may have none and no fallback exists | Word the effect as priority rise + status unchanged. Add the notification claim only once OQ-3 is answered |
-| **OQ-5** customer email change vs linked login | Customer detail — email field (§5.5) | Whether editing the email also changes a linked portal sign-in is unanswered. The UI **must not promise either** | Save the field; show no claim about the login. Add a warning only once OQ-5 is answered |
 | **PF-4** "tickets assigned" semantics | Reports — agent performance (§5.7) | Currently-assigned and ever-assigned are different numbers under one label | Label it exactly as T2-G words it — "tickets assigned" — and add no clarifying tooltip that would assert a meaning |
 | **PF-5** `firstRespondedAt` null | Ticket detail SLA region | A ticket resolved without a reply has no first-response time | Render "—", not "breached" and not "0" |
 | **N-1** undefined response shapes | Every screen consuming User, Customer, Task, Article, Notification, Audit or report payloads | Field lists here are taken from [data-model.md](data-model.md) where [api-design.md](api-design.md) §6 is silent | Confirm against the response shapes when N-1 is completed **before stage 9** |

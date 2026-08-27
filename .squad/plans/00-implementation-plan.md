@@ -1,6 +1,6 @@
 # Implementation Plan — Customer Support CRM
 
-> **Source of truth:** `docs/requirements.md` · `docs/product-scope.md` T1–T4, A-1…A-18 · `docs/architecture.md` AD-1…AD-15 · `docs/data-model.md` DM-1…DM-7 (15 entities) · `docs/api-design.md` AP-1…AP-19 (66 endpoints) · `docs/ui-design.md` UI-1…UI-12 (24 screens) · `docs/story-backlog.md` and the 18 intakes
+> **Source of truth:** `docs/requirements.md` · `docs/product-scope.md` T1–T4, A-1…A-19 · `docs/architecture.md` AD-1…AD-15 · `docs/data-model.md` DM-1…DM-7 (15 entities) · `docs/api-design.md` AP-1…AP-19 (66 endpoints) · `docs/ui-design.md` UI-1…UI-12 (24 screens) · `docs/story-backlog.md` and the 18 intakes
 > **SDD stage:** 9 of 10. Gate 9 → 10 per `docs/sdd-workflow.md` §4.
 > **Status:** Planning only. **No application code, no migration, no component exists.**
 > **Date:** 2026-08-25
@@ -361,7 +361,7 @@ intakes. **Findings are reported, not resolved.** Four block a named acceptance 
 | **OQ-1** | The CSAT rating scale | Story 13 task 9 (the control's shape) and Story 15's satisfaction tile |
 | **OQ-2** | On a priority change, do SLA due dates recompute or stay frozen? | Story 05's `PATCH` priority branch **and** Story 09 task 4 |
 | **OQ-3** | Who is notified on breach when a department has no manager? | The no-manager branch of Story 06's escalate and Story 09's sweep. **Neither is blocked on the happy path** |
-| **OQ-5** | Does changing `Customer.email` change a linked portal login's sign-in email? | Story 04 task 5 |
+| ~~**OQ-5**~~ | ~~Does changing `Customer.email` change a linked portal login's sign-in email?~~ | **Closed 2026-08-27 by A-19 — yes, atomically.** Story 04 **task 3** implements it (the "task 5" this row named was always the wrong task; task 5 is the timeline) |
 | **F-1** | Should the ticket payload expose `allowedTransitions`? | **Nothing.** `ui-design.md` **UI-3** is approved and says compute client-side; the server remains the authority and a wrong offer gets `403`/`409`. The `sdd-workflow.md` gate 9 → 10 requires no decision here, so **F-1 stays open**. Story 06 confines the duplicated matrix to **one file**, `shared/lifecycle/transition-matrix.ts`, so closing F-1 later deletes exactly one file |
 | **PF-2** | System actor for inbound channel tickets | Story 18 — see **S9-10** |
 | **PF-4** | *"Tickets assigned"* — currently or ever? | Story 15 — see **S9-9** |
@@ -501,5 +501,8 @@ and its prerequisites are already implemented."*
 before implementation begins.**
 
 **Before Stage 10 starts, four decisions are outstanding** — S9-1, S9-4, S9-9/PF-4 and
-S9-10/PF-2 — plus the four open questions OQ-1, OQ-2, OQ-3 and OQ-5. **None blocks Story 01, and
-none blocks Phase 0 or Phase 1.** The earliest is **OQ-2, which blocks Story 05** in Phase 3.
+S9-10/PF-2 — plus the open questions OQ-1, OQ-2 and OQ-3. **None blocks Story 01, and none blocks
+Phase 0 or Phase 1.** The earliest is **OQ-2, which blocks Story 05** in Phase 3.
+
+**OQ-5 was closed on 2026-08-27 by A-19** — a customer's email and their portal sign-in are one
+address — which unblocks Story 04 task 3. It was the only open question that gated Phase 2.

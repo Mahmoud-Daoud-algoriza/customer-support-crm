@@ -58,7 +58,7 @@ delivery carries the larger weight. A design-only project is not most of the way
 | # | Stage | Status | Artifact(s) | Doc? | Gate | Note |
 |---|---|---|---|---|---|---|
 | 1 | Requirements | ✅ Complete | [requirements.md](requirements.md) — 56 requirement lines | ✅ | n/a — given input | Never edited. Includes the stage-2 requirements analysis, delivered in conversation and distilled into scope |
-| 2 | Product Scope | ✅ Complete | [product-scope.md](product-scope.md) | ✅ | n/a | T1–T4 tiers, A-1…A-18, 7 open questions. Approved 2026-08-24; A-14…A-18 added 2026-08-24 |
+| 2 | Product Scope | ✅ Complete | [product-scope.md](product-scope.md) | ✅ | n/a | T1–T4 tiers, A-1…A-19, 7 open questions. Approved 2026-08-24; A-14…A-18 added 2026-08-24; **A-19 added 2026-08-27** (closes OQ-5) |
 | 3 | Story Intake / Backlog | ✅ Complete | 18 intakes + [story-backlog.md](story-backlog.md) | ✅ | ✅ Met | All 56 requirement lines mapped to a story |
 | 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan overviews (**filled at stage 9**) | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
 | 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
@@ -76,7 +76,8 @@ workflow stage). Rows 5–10 match its stages 5–10 exactly. The workflow docum
 
 **Blockers to the pipeline:** none — the pipeline itself is complete. **Blockers inside stage 10
 exist:** four acceptance criteria cannot be met until a decision is recorded (S9-1, S9-4, PF-4,
-PF-2 — §6.7), and four open questions gate individual stories (OQ-1, OQ-2, OQ-3, OQ-5 — §6.1).
+PF-2 — §6.7), and three open questions gate individual stories (OQ-1, OQ-2, OQ-3 — §6.1;
+**OQ-5 was closed on 2026-08-27 by A-19**).
 **None of the eight blocks stories 01–04**; the earliest is **OQ-2, which blocks story 05**.
 
 The Stage 7 pre-flight audit raised one blocking finding, PF-1 (the `Pending` transition set and
@@ -100,7 +101,7 @@ earlier reading in three places (S9-7, S9-8, S9-12).
 | 01 | `solution-skeleton` | platform-foundation | T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-25, re-run 2026-08-26 | — | — |
 | 02 | `auth-and-roles` | identity-access | **T1** | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-26 | 01, **03 data** | — |
 | 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-27 | 01, 02 | — · tasks 1–3 landed early with story 02, tasks 4–8 after it, per S9-12 |
-| 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–03, **16 A** | ⚠ **OQ-5** |
+| 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–03, **16 A** | — · **OQ-5 closed 2026-08-27 (A-19)** |
 | 05 | `ticket-core` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–04, **16 A** | ⚠ **OQ-2** |
 | 06 | `ticket-lifecycle` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 05 | ⚠ OQ-3 *(no-manager branch only)* |
 | 07 | `ticket-intake-messaging` | ticket-management | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 05, 06, 04, 16 A | — |
@@ -236,8 +237,8 @@ pursued. [architecture.md](architecture.md) §8 restates them so they survive in
 All approved. Full text in [architecture.md](architecture.md) §7 and [data-model.md](data-model.md) §1.
 
 **This table is not the whole decision inventory.** It covers technical decisions (AD-*) and
-modelling decisions (DM-*). **Business** decisions are the numbered assumptions A-1…A-18 in
-[product-scope.md](product-scope.md) §7; the five most recent (**A-14…A-18**) are recorded as
+modelling decisions (DM-*). **Business** decisions are the numbered assumptions A-1…A-19 in
+[product-scope.md](product-scope.md) §7; the six most recent (**A-14…A-19**) are recorded as
 R-6…R-11 in §6.3, with their document and story impact traced in §6.4.
 
 **Known issues.** One remains, and it is cosmetic: in [architecture.md](architecture.md) §7 the
@@ -282,15 +283,16 @@ R-12 in §6.3. It is no longer an open issue.)*
 | **OQ-2** | On a priority change, do SLA due dates recompute from `createdAt` or stay frozen? A-3 is silent, and T2-D escalation changes priority routinely | Materially different §9.2 attainment numbers; recompute can breach a ticket as a consequence of the escalation the breach triggered | **Story 05** *(its `PATCH /tickets/{id}` is the **first** code path that changes a priority — widened by **S9-3**)*, story 09, and §9.2 in story 15 | 🔴 Open — business rule. **The earliest blocker in the whole implementation sequence** |
 | **OQ-3** | Who is notified on breach when a department has no manager? T2-D says "notify the department manager"; absence is uncovered | Breach flag and priority raise are unaffected; only the recipient is undetermined. **No fallback invented** | **Story 06** *(the **manual** escalation action has the same undefined recipient — widened by **S9-3**)* and story 09 | 🔴 Open — product decision. **Non-blocking on the happy path:** every seeded department has a manager |
 
-| **OQ-5** | When `Customer.email` is changed, does a linked portal login's sign-in email change with it? | A customer profile and its portal login are separate entities, each with a unique email (DM-1, A-15). No source covers a divergence | Raised 2026-08-25 by the N-2 correction. Blocks nothing in Stage 8; must be answered before **story 04** is implemented | 🔴 Open |
+| ~~**OQ-5**~~ | ~~When `Customer.email` is changed, does a linked portal login's sign-in email change with it?~~ | Raised 2026-08-25 by the N-2 correction | **✅ Closed 2026-08-27 by A-19** — see R-15 below | ✅ Answered |
 
-**None of these blocked Stage 7, 8 or 9.** All four are implementation-time decisions, and stage 9
-scheduled each against the story and the single method that encodes it. OQ-4, which did block one
-contract, was resolved on 2026-08-24 — see R-11 below.
+**None of these blocked Stage 7, 8 or 9.** All are implementation-time decisions, and stage 9
+scheduled each against the story and the single method that encodes it. OQ-4 was resolved on
+2026-08-24 (see R-11) and **OQ-5 on 2026-08-27 (see R-15)**.
 
-**Earliest-first order for stage 10:** **OQ-2** (story 05) → **OQ-5** (story 04, but story 04 runs
-first, so in practice OQ-5 is needed sooner) → **S9-4** (story 11) → **OQ-1** (story 13) →
-**S9-1** (story 14) → **PF-4** (story 15) → **PF-2** (story 18). Restated in §10.
+**Earliest-first order for stage 10:** **OQ-2** (story 05) → **S9-4** (story 11) → **OQ-1**
+(story 13) → **S9-1** (story 14) → **PF-4** (story 15) → **PF-2** (story 18). Restated in §10.
+**OQ-5 has left this list**: it gated story 04, which was the nearest of all of them, and it is
+answered.
 
 ### 6.2 Carried from product scope — non-blocking by design
 
@@ -319,6 +321,7 @@ Kept, not deleted.
 | R-14 | Who is the actor on the automatic `Pending -> Open` status change, which has no invoking user? | **The replying customer**, with `actorKind = User`. Their reply caused the transition, and A-5 requires every transition to carry an actor. **Not** a `System` actor — the SLA monitor stays the only system actor, and attributing a customer-caused change to the system would make ticket history less truthful. Approved 2026-08-24 after being flagged as a derived detail rather than applied silently. **No new entity or field**; `TicketActivity` already carries `actorUserId` and `actorKind` | 2026-08-24 | **A-5**, model 2.6 inv. 2b, 2.7, 2.8, constraint 9a |
 | R-13 | **PF-1** — is `Pending -> Open` legal, and what does a customer reply do to a `Pending` ticket? | **Both answered: the transition is legal and a customer reply triggers it automatically.** The reply is the trigger; no agent action is required. It fires from `Pending` only — a reply on `New` leaves it `New`, and a reply on `Resolved` does not reopen it. Recorded as a same-transaction status change with a `StatusChanged` history entry attributed to the replying customer | 2026-08-24 | **A-5**, A-16, model 2.6 inv. 2b, 2.8, constraint 9a |
 | R-12 | Which backend module owns `CustomerFeedback`? The data model labelled it "Portal", which is not one of the ten modules | **The existing `Tickets` module.** Feedback is domain behaviour attached to a ticket, offered when the ticket reaches `Resolved`; `customer-portal` is a front-end and planning concern, not a backend module. **No new module; the ten-module architecture is unchanged**, and the entity's shape, fields and relationships are untouched — an ownership label only | 2026-08-24 | **DM-7**, model §2.15, arch §1 |
+| R-15 | **OQ-5** — does changing `Customer.email` change a linked portal login's sign-in email? | **Yes, and atomically.** A customer's email and their portal sign-in are one address: the two rows change in the same unit of work, and `User.email`'s existing case-insensitive uniqueness applies to the new value across all users — a collision rejects the whole operation and writes neither row. Divergence is not a reachable state, which also keeps A-15's three registration outcomes exhaustive | 2026-08-27 | **A-19** |
 | R-11 | **OQ-4** — what is the customer cancellation window? | **Assignment is not the start of work.** A ticket may be assigned while still `New`; `New → Open` is an agent deliberately starting work. The customer's window runs from creation until an agent picks the ticket up, so it is real rather than theoretical | 2026-08-24 | **A-18** |
 
 ### 6.5 Pre-flight findings carried forward (non-blocking)
@@ -413,7 +416,8 @@ needed amending, because nothing in that artifact contradicted the decision.
 | **Stage 8 UI design** | `ui-design.md` (new); `sdd-workflow.md` | All 18 — §13 maps every story to its screens (10 and 18 have none) |
 | **B-1** feedback rating-scale config key | `architecture.md` §6.3 | — (story 13 consumes it) |
 | **B-2 / AP-17** configuration split by audience | `api-design.md` §5.1, §3 | — (stories 01, 08, 13, 16 consume it) |
-| **N-2 / OQ-5** customer email is patchable | `api-design.md` §5.5 | — (story 04 blocked on OQ-5) |
+| **N-2 / OQ-5** customer email is patchable | `api-design.md` §5.5 | — (story 04; **no longer blocked** — see R-15) |
+| **R-15 / A-19** a customer's email and their portal sign-in are one address | `product-scope.md` **new A-19**; `api-design.md` §5.5 (box rewritten), §9 item 3, §10.3; `data-model.md` §2.4 invariant, **new §5 constraint 1a**, §8 resolved list; `ui-design.md` §5.5, §11 (row retired); `sdd-workflow.md` + 4 source-of-truth lines (assumption range) | `customer-records` (task 3) |
 | **R-14 / A-5** automatic transition attributed to the replying customer | `product-scope.md` A-5 (new attribution rule); `data-model.md` §2.6 invariant 2b, §2.7 `actorKind` note, §2.8 invariants, §5 constraint 9a | `ticket-lifecycle` |
 | **R-13 / A-5** customer reply reopens a `Pending` ticket | `product-scope.md` A-5 (transition graph + `Pending` bullet), A-16 (`-> Open` row); `data-model.md` §2.6 invariant 2b, §2.8 invariants, §5 constraint 9a | `ticket-lifecycle`, `ticket-intake-messaging`, `portal-self-service` |
 | **R-12 / DM-7** `CustomerFeedback` owned by `Tickets` | `data-model.md` **new DM-7**, §1 preamble, §2.15 ownership, §3 entity list; `architecture.md` §1 (`customer-portal` row) | — (no intake asserted an owning module) |
@@ -486,7 +490,36 @@ below record a reproducible outcome, not a one-off.
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-27 (latest) — story 03 completed
+### 2026-08-27 (latest) — OQ-5 answered: A-19
+
+- **The product owner chose Option A**, and it is recorded as **A-19** in
+  [product-scope.md](product-scope.md) §7 — the register A-14…A-18 already use for exactly this
+  class of decision (a business question no source answered, decided after a design stage found it).
+  **When `Customer.email` changes, the linked portal `User.email` is set to the same value.**
+- **Atomic by the existing rule, not a new one.** [architecture.md](architecture.md) §3 already says
+  *"one unit of work per request, owned by the Application service, committed once"* — both rows
+  change in one commit, so no committed state has them differing. `architecture.md` needed no
+  change beyond its assumption-range citation.
+- **`User.email` uniqueness is untouched and applies to the propagated value** across all users,
+  staff included. A collision returns **`409 user-already-exists`** — **PF-6's existing slug for
+  PF-6's existing rule** — and writes **neither** row. No new problem type was minted.
+- **Closing it removed a latent gap in `api-design.md` §5.2.** Had divergence been allowed, a
+  profile could hold an address matching a registration attempt while already carrying a login under
+  a different one — a state none of A-15's three outcomes covered, and one §5 constraint 3 forbids
+  resolving by linking a second login. A-19 makes that state unreachable, so the three outcomes stay
+  exhaustive.
+- **`ui-design.md` §11 released the warning it was holding.** That row said *"add a warning only once
+  OQ-5 is answered"*; §5.5 now specifies a persistent helper line on the email field, stated **before**
+  the save because A-9 excludes account recovery. It is unconditional: the `Customer` payload carries
+  no "has a login" field and **none was added** — inventing contract surface to vary one sentence was
+  rejected.
+- **Two pre-existing contradictions were found by the consistency check and fixed**, neither related
+  to OQ-5: `api-design.md` §10.3 still traced A-10 to *"email immutability"* eight weeks after N-2
+  removed that rule, and `ui-design.md`'s source-of-truth line still cited *"65 endpoints,
+  AP-1…AP-18"* after AP-19 took it to 66.
+- **Nothing was implemented.** Story 04 remains Not Started.
+
+### 2026-08-27 — story 03 completed
 
 - **Story 03 tasks 4–8 implemented**, closing the story and phase 1. `OrganizationQueryService` and
   `DepartmentValidator` in Application; `DepartmentsController` and `BranchesController` in Api, one
@@ -986,12 +1019,13 @@ Newest first. Every meaningful project change gets an entry.
 3. **Commit the working tree.** The story-03 implementation is verified but deliberately
    uncommitted, at the user's request, for review (§8, Working tree).
 
-4. **Answer the outstanding decisions, earliest first.** None blocked story 01, and none blocks
-   story 02 or story 03 either — the earliest is needed before story 04:
+4. **Answer the outstanding decisions, earliest first.** None blocked stories 01–03. **OQ-5, which
+   gated story 04, was answered on 2026-08-27 (A-19), so nothing now blocks story 04.** The earliest
+   remaining is needed before story 05:
 
    | When needed | Decision | Kind |
    |---|---|---|
-   | Before **story 04** | **OQ-5** — does changing `Customer.email` change a linked portal login's sign-in email? | Product |
+   | ~~Before **story 04**~~ | ~~**OQ-5**~~ — **answered 2026-08-27 by A-19**: yes, atomically | ✅ Closed |
    | Before **story 05** | **OQ-2** — do SLA due dates recompute or freeze on a priority change? **The earliest blocker.** | Business rule |
    | Before **story 11** | **S9-4** — how is AI suggestion acceptance/override carried to the server? | Contract (Stage 7) |
    | Before **story 13** | **OQ-1** — what is the CSAT rating scale? | Product |
