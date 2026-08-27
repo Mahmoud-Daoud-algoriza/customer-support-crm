@@ -32,3 +32,50 @@ Tracker integration is `none`; story ids are the folder names under
 - The rating-scale key holds a **placeholder commented with OQ-1**; no `min`/`max` constant may
   appear anywhere else in the codebase.
 - T2. If cut in part, keep the audit write path and drop the filtering UI.
+
+## Delivery log
+
+### 16 Part A — Configuration — **complete** (2026-08-27)
+
+Tasks 1–5 only. **Part B is untouched** — no `GET /audit`, no audit screen, no configuration view,
+and no front-end file of any kind. Part B stays at Phase 7, where its prerequisites (Story 06's
+lifecycle actions) are met.
+
+| Task | Delivered |
+|---|---|
+| 1 — Option types | Seven types in `Application/Configuration/`: `CategoryOptions` (the list **and** the A-14 map, in one place because A-14 makes them inseparable), `PriorityOptions`, `SlaTargetOptions`, `QuickReplyOptions`, `RegistrationOptions`, `AttachmentOptions`, `FeedbackOptions`. All bound, data-annotation validated and `ValidateOnStart`, following Story 01's pattern. **No configuration key beyond architecture §6.3's table and the attachment cap was introduced** |
+| 2 — Startup validation | `ConfigurationValidator.cs` — six `IValidateOptions` implementations for the structural checks, plus `ValidateAgainstDatabaseAsync` for the two that read rows. Wired into `DatabaseInitializer` **after** migrations and seeding, exactly as the plan requires. Every message names the offending value |
+| 3 — `GET /config` | Customer-safe tier, `[Authorize]` — all authenticated roles. Categories carry `code` and `name` only |
+| 4 — `GET /config/staff` | Staff-only tier, policy `RequireAgent`. The four groups of api-design §6.9 |
+| 5 — Tests | `ConfigurationTierTests` (8), `ConfigurationValidationTests` (10), `NoConfigurationEntityTests` (18) — **36 passing** |
+
+**One contradiction in the plan, resolved the way the project already resolves this class of
+problem.** Task 1 and task 2 check 4 both say `Priorities` is validated against *"the
+`TicketPriority` enum"* — but that enum does not exist: `05-story-ticket-core.md` creates
+`Domain/Modules/Tickets/TicketPriority.cs`, and Part A runs **before** Story 05 by design. Both
+spellings encode the same authority (Story 05's plan annotates the enum `// A-6`), so
+`PriorityOptions.ApprovedLevels` holds the four A-6 names and the validator compares against it.
+**Story 05 must replace that array with `Enum.GetNames<TicketPriority>()` and delete it**, so the
+names live in one place. Marked at the code, in the same style as Story 04's `openTicketCount`
+placeholder. **No product rule was invented — A-6 fixes the four levels and always has.**
+
+**Verified.** Build 0 warnings / 0 errors; the three Part A suites **36 passing**; the whole suite
+**68 passing, 1 skipped by design**. Against real SQL Server: configuration validation runs after
+seeding and the API comes up. **Fail-fast proven for all six checks by starting the real API with
+each value broken in turn** — a dangling category department (message names `billing` and cites
+A-14), a dangling `DefaultBranchId` (cites A-15), a fifth priority level, an inverted rating scale,
+a zero attachment cap, and a priority with no SLA target; every one stops the host with a non-zero
+exit and a message naming the value. Live tier check with a **real Customer token**: `/config`
+returns exactly `categories` and `feedback`, **`departmentId` appears nowhere in the body**, and
+`/config/staff` is `403`. Stories 01–03 re-checked live and unchanged.
+
+**OQ-1 is untouched.** The rating-scale key holds `1..5` with a block comment in `appsettings.json`
+naming OQ-1 and quoting architecture §6.3's *"inventing the answer is out of scope"*. Validation
+checks `Min < Max` and nothing else — a 1–10 or a 0–1 binary scale passes just as happily, which is
+the point. **No `min` or `max` constant exists anywhere else in the codebase.**
+
+**Implementation choices not fixed by the approved documents**, both recorded at the code: the
+list-bearing sections bind through a single `Items` (or `Levels`) property, because
+`AddOptions<T>().Bind()` binds a section to an object and a bare JSON array is not one; and the
+attachment cap's default is 10 MiB, a number no document states — which is precisely why it is
+configuration rather than a constant.

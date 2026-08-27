@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SupportCrm.Domain.Modules.Administration;
+using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Organization;
 
@@ -27,6 +28,12 @@ public interface IApplicationDbContext
     DbSet<Department> Departments { get; }
 
     DbSet<Branch> Branches { get; }
+
+    DbSet<Customer> Customers { get; }
+
+    DbSet<CustomerNote> CustomerNotes { get; }
+
+    DbSet<Attachment> Attachments { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

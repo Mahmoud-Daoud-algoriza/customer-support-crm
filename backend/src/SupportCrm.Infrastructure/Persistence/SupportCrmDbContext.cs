@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SupportCrm.Application.Abstractions;
 using SupportCrm.Domain.Modules.Administration;
+using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Organization;
 using SupportCrm.Infrastructure.Persistence.Configurations;
@@ -39,6 +40,27 @@ public sealed class SupportCrmDbContext(DbContextOptions<SupportCrmDbContext> op
     /// </summary>
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
+    /// <summary>
+    /// Story 04 — the CRM profile of requirements §1 (docs/data-model.md §2.4). Organization-wide
+    /// and readable by any staff role; a <c>Customer</c>-role caller is refused by the endpoints'
+    /// role gate, not by row filtering.
+    /// </summary>
+    public DbSet<Customer> Customers => Set<Customer>();
+
+    /// <summary>
+    /// Story 04 — an agent's note on a customer (docs/data-model.md §2.5).
+    /// <b>Immutable once written</b>: <see cref="CustomerNote"/> exposes no mutator, so there is no
+    /// update or delete path to expose later by accident (§5 constraint 16).
+    /// </summary>
+    public DbSet<CustomerNote> CustomerNotes => Set<CustomerNote>();
+
+    /// <summary>
+    /// Story 04 — a single uploaded file, owned by a ticket <b>xor</b> a customer
+    /// (docs/data-model.md §2.11, §5 constraint 20). Shared by the <c>Customers</c> and
+    /// <c>Tickets</c> modules; there is deliberately no second attachment type (§3).
+    /// </summary>
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SupportCrmDbContext).Assembly);
@@ -54,6 +76,14 @@ public sealed class SupportCrmDbContext(DbContextOptions<SupportCrmDbContext> op
         {
             modelBuilder.Entity<User>()
                 .Property(u => u.Email)
+                .UseCollation(UserConfiguration.CaseInsensitiveCollation);
+
+            // Story 04. A-10 is the same product rule as A-9 for the same reason: "two addresses
+            // differing only in case are the same address". The two columns hold the same address
+            // compared across two tables (A-19, docs/data-model.md §5 constraint 1a), so they must
+            // not differ in collation any more than they differ in width (§6.1).
+            modelBuilder.Entity<Customer>()
+                .Property(c => c.Email)
                 .UseCollation(UserConfiguration.CaseInsensitiveCollation);
         }
     }

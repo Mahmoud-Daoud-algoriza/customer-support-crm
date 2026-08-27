@@ -44,9 +44,58 @@ builder.Services.AddOptions<JwtOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-// The remaining configuration keys of architecture §6.3 — categories, category-to-department map,
-// default branch, priorities, SLA targets, quick replies, feedback rating scale — are defined and
-// validated by Story 16 Part A. This story delivers the mechanism only.
+// The remaining configuration keys of architecture §6.3 — Story 16 Part A.
+//
+// Every one is bound, data-annotation validated and ValidateOnStart, exactly like the three
+// above: invalid configuration must fail fast at startup with a clear message rather than
+// degrade silently at runtime (architecture §6.3, the audit-configuration intake).
+//
+// The rules data annotations cannot express are IValidateOptions implementations in
+// ConfigurationValidator.cs. The two that read ROWS — every category maps to an existing
+// department (A-14), and DefaultBranchId is an existing branch (A-15) — cannot run here at all:
+// they run in DatabaseInitializer, after migrations and seeding have created those rows.
+builder.Services.AddOptions<CategoryOptions>()
+    .Bind(builder.Configuration.GetSection(CategoryOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<CategoryOptions>, CategoryOptionsValidator>();
+
+builder.Services.AddOptions<PriorityOptions>()
+    .Bind(builder.Configuration.GetSection(PriorityOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<PriorityOptions>, PriorityOptionsValidator>();
+
+builder.Services.AddOptions<SlaTargetOptions>()
+    .Bind(builder.Configuration.GetSection(SlaTargetOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<SlaTargetOptions>, SlaTargetOptionsValidator>();
+
+builder.Services.AddOptions<QuickReplyOptions>()
+    .Bind(builder.Configuration.GetSection(QuickReplyOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<QuickReplyOptions>, QuickReplyOptionsValidator>();
+
+builder.Services.AddOptions<RegistrationOptions>()
+    .Bind(builder.Configuration.GetSection(RegistrationOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddOptions<AttachmentOptions>()
+    .Bind(builder.Configuration.GetSection(AttachmentOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<AttachmentOptions>, AttachmentOptionsValidator>();
+
+// The KEY is approved (architecture §6.3); the VALUES are not — OQ-1 is open. The validator
+// checks Min < Max and nothing more, so it cannot accidentally answer the question.
+builder.Services.AddOptions<FeedbackOptions>()
+    .Bind(builder.Configuration.GetSection(FeedbackOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<FeedbackOptions>, FeedbackOptionsValidator>();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 

@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using SupportCrm.Application.Abstractions;
+using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Organization;
 using SupportCrm.Infrastructure.Persistence;
@@ -44,6 +46,17 @@ public sealed class SupportCrmApiFactory : WebApplicationFactory<Program>
     private readonly string _databaseName = $"SupportCrmTests-{Guid.NewGuid():N}";
 
     private SqliteConnection? _connection;
+
+    /// <summary>
+    /// Extra configuration layered <b>over</b> <c>appsettings.json</c>, for the Story 16 Part A
+    /// validation tests that need a deliberately broken value.
+    /// <para>
+    /// Set it with an object initializer before touching <see cref="WebApplicationFactory{T}.Services"/>;
+    /// the host is built lazily, so a later change would not be seen. Empty for every other test,
+    /// which is why they all read the real committed configuration.
+    /// </para>
+    /// </summary>
+    public Dictionary<string, string?> ConfigurationOverrides { get; init; } = [];
 
     static SupportCrmApiFactory()
     {
@@ -114,35 +127,63 @@ public sealed class SupportCrmApiFactory : WebApplicationFactory<Program>
     }
 
     /// <summary>
-    /// Inserts a <c>Customer</c>-role user row directly.
+    /// Inserts a <c>Customer</c> profile and a <c>Customer</c>-role user row linked to it.
     /// <para>
-    /// <b>Why raw SQL:</b> the Domain has no <c>User.CreateCustomerUser</c> yet — it arrives with
-    /// Story 04, when <c>Customer</c> exists — and <c>CreateStaff</c> refuses the <c>Customer</c>
-    /// role outright (DM-1). Pre-empting that factory here would be starting Story 04. The row is
-    /// therefore written beneath the Domain, for the single purpose of proving that the
-    /// <c>RequireAgent</c> gate refuses a Customer token: <c>CurrentUserMiddleware</c> reads the role
-    /// from this row, so nothing less than a real row exercises the real gate.
+    /// <b>Why raw SQL for the user half:</b> the Domain still has no
+    /// <c>User.CreateCustomerUser</c> — it arrives with Story 04 <b>task 7</b>, alongside
+    /// <c>POST /auth/register</c> — and <c>CreateStaff</c> refuses the <c>Customer</c> role outright
+    /// (DM-1). Pre-empting that factory here would be starting a later slice. The row is therefore
+    /// written beneath the Domain, for the single purpose of proving that the <c>RequireAgent</c>
+    /// gate refuses a Customer token: <c>CurrentUserMiddleware</c> reads the role from this row, so
+    /// nothing less than a real row exercises the real gate.
+    /// </para>
+    /// <para>
+    /// <b>Updated by Story 04's first slice.</b> Until then <c>CustomerId</c> could be any GUID,
+    /// because the column carried no foreign key. It now does
+    /// (<c>FK_Users_Customers_CustomerId</c>, completing the DM-1 link Story 02 left open), so the
+    /// profile is created first — through the real <c>Customer.Create</c> factory — and the user
+    /// points at it. That is what a portal login has always meant (DM-1); the helper was only ever
+    /// able to fake it because the constraint was missing.
     /// </para>
     /// <para>
     /// This helper establishes a precondition. <b>It must never be used to assert behaviour an
-    /// endpoint should be proving</b>, and it should give way to the Domain factory once Story 04
-    /// lands.
+    /// endpoint should be proving</b>, and its user half should give way to the Domain factory when
+    /// Story 04 task 7 lands.
     /// </para>
     /// </summary>
-    public Task<Guid> AddCustomerRoleUserAsync(string email) => WithDbAsync(async db =>
+    public async Task<Guid> AddCustomerRoleUserAsync(string email)
     {
-        var id = Guid.NewGuid();
+        var branchId = await EnsureBranchAsync("Test Branch");
 
-        // DepartmentId is null and CustomerId is set — the Customer shape of DM-1. CustomerId
-        // carries no foreign key until Story 04 adds the Customers table, so an unreferenced id is
-        // valid here, and the unique filtered index on it still applies.
-        // One interpolated string, not a concatenation: ExecuteSqlAsync takes a FormattableString,
-        // so every interpolation hole becomes a parameter rather than inlined SQL.
-        await db.Database.ExecuteSqlAsync(
-            $"INSERT INTO Users (Id, Email, PasswordHash, DisplayName, Role, DepartmentId, CustomerId, BranchId, IsActive, CreatedAt) VALUES ({id}, {email}, {Unhashed}, {email}, {CustomerRoleCode}, NULL, {Guid.NewGuid()}, NULL, 1, {DateTimeOffset.UtcNow})");
+        return await WithDbAsync(async db =>
+        {
+            var id = Guid.NewGuid();
 
-        return id;
-    });
+            // A-2: a customer belongs to one branch, and the column is required. The profile goes
+            // through the Domain factory, because Customer exists now and nothing about it needs
+            // faking.
+            var customer = Customer.Create(
+                id: Guid.NewGuid(),
+                fullName: email,
+                email: email,
+                phone: null,
+                branchId: branchId,
+                createdAt: DateTimeOffset.UtcNow);
+
+            db.Customers.Add(customer);
+            await db.SaveChangesAsync();
+
+            // DepartmentId is null and CustomerId is set — the Customer shape of DM-1. The unique
+            // filtered index on CustomerId still applies, so each call needs its own profile.
+            // One interpolated string, not a concatenation: ExecuteSqlAsync takes a
+            // FormattableString, so every interpolation hole becomes a parameter rather than
+            // inlined SQL.
+            await db.Database.ExecuteSqlAsync(
+                $"INSERT INTO Users (Id, Email, PasswordHash, DisplayName, Role, DepartmentId, CustomerId, BranchId, IsActive, CreatedAt) VALUES ({id}, {email}, {Unhashed}, {email}, {CustomerRoleCode}, NULL, {customer.Id}, NULL, 1, {DateTimeOffset.UtcNow})");
+
+            return id;
+        });
+    }
 
     /// <summary>The role code as it is persisted — a stable string, never an integer (api-design §2).</summary>
     private const string CustomerRoleCode = nameof(UserRole.Customer);
@@ -202,6 +243,14 @@ public sealed class SupportCrmApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(Environments.Development);
+
+        // Layered last, so an override wins over appsettings.json — the same precedence the real
+        // application gives environment variables (architecture §6.3).
+        if (ConfigurationOverrides.Count > 0)
+        {
+            builder.ConfigureAppConfiguration(configuration =>
+                configuration.AddInMemoryCollection(ConfigurationOverrides));
+        }
 
         builder.ConfigureServices(services =>
         {

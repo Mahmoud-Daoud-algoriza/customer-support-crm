@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Organization;
 
@@ -75,9 +76,14 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasForeignKey(u => u.BranchId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // CustomerId carries no foreign key yet — Customer arrives with Story 04, which adds it in
-        // its own migration. The column and its unique index exist now because DM-1 defines the
-        // shape of a User regardless of when the other side lands.
-        builder.Property(u => u.CustomerId);
+        // Story 04 completes the DM-1 link that Story 02 left open: Customer now exists, so the
+        // column gains its foreign key. Restrict — a profile a portal login still points at cannot
+        // be deleted out from under it, which is moot in practice because deleting a customer is not
+        // an application operation (docs/data-model.md §2.4). The unique filtered index above is
+        // the other half: at most one User per Customer (§5 constraint 3).
+        builder.HasOne<Customer>()
+            .WithMany()
+            .HasForeignKey(u => u.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

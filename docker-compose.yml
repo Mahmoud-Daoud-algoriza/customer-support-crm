@@ -34,6 +34,12 @@ services:
             # The SPA is served from the web container on a different port, so ng serve is not the
             # only cross-origin caller. AD-7 chose a bearer token for exactly this reason.
             - SupportCrm__Cors__AllowedOrigins__0=http://localhost:4200
+            # Story 04, T2-A: attachment bytes live on local disk. An absolute path on a named
+            # volume, so uploaded files survive a container rebuild — the image's filesystem does
+            # not. A relative value would resolve inside the container and be lost.
+            - SupportCrm__Attachments__StorageRoot=/var/lib/supportcrm/attachments
+        volumes:
+            - supportcrm-attachments:/var/lib/supportcrm/attachments
         ports:
             - '5080:8080'
 
@@ -48,3 +54,6 @@ services:
 
 volumes:
     supportcrm-data:
+    # Story 04 — attachment bytes (T2-A). The second volume; architecture §6.2's "one volume" line
+    # predates the attachment store, which cannot live in the image.
+    supportcrm-attachments:

@@ -10,6 +10,7 @@ using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Infrastructure.Persistence;
 using SupportCrm.Infrastructure.Persistence.Seeders;
 using SupportCrm.Infrastructure.Security;
+using SupportCrm.Infrastructure.Storage;
 
 namespace SupportCrm.Infrastructure;
 
@@ -47,6 +48,11 @@ public static class DependencyInjection
 
         // The token seam: declared by Application, implemented here (AD-11).
         services.AddSingleton<ITokenIssuer, JwtTokenIssuer>();
+
+        // Story 04's storage seam, the same shape: Application declares IAttachmentStorage,
+        // Infrastructure implements it on local disk (T2-A, docs/architecture.md §4.4, §5).
+        // Singleton — it holds only the resolved root and writes a fresh file per call.
+        services.AddSingleton<IAttachmentStorage, LocalDiskAttachmentStorage>();
 
         services.AddSingleton(TimeProvider.System);
 

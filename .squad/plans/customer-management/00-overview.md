@@ -30,3 +30,22 @@ default branch (A-15) and the attachment size cap.
   rule applied to the new value. Implemented by **task 3** (`CustomerService.UpdateAsync`), not
   task 5, which the story plan's decision box now specifies case by case.
 - Attachments (T2-A) are cut before profiles, notes and timeline (T1-A).
+
+## Implementation progress
+
+Story 04 is being delivered in **slices**, at the user's instruction, with approval taken between
+each. The slice boundaries are not in the plan; the plan's numbered tasks are.
+
+| Slice | Plan tasks | Status |
+|---|---|---|
+| **1 — domain and data layer** | **1, 2** — the three `Customers` entities, their EF configurations, the `Customers` migration, the `User.CustomerId` FK that completes DM-1, and the `IAttachmentStorage` seam with its local-disk implementation | ✅ **Done and verified 2026-08-27** |
+| 2 — customer service and endpoints | 3, 8 (customer routes) — `CustomerService`, including the **A-19** propagation and its one `UserEmailChanged` audit entry | Not started |
+| 3 — notes, timeline, attachments | 4, 5, 6, 8 (remaining routes), 9 | Not started |
+| 4 — registration | 7, plus `User.CreateCustomerUser` | Not started |
+| 5 — front end | 11, 12, 13, 14 | Not started |
+
+**Slice 1 published no endpoint**, which is checked rather than assumed: `/customers`,
+`/attachments/{id}/content` and `/auth/register` all return `404` against the running API. Its
+tests are `tests/SupportCrm.Tests/Customers/CustomerDataLayerTests.cs` and
+`AttachmentStorageTests.cs` — **22 tests**. Plan task 10's `CustomerAccessTests.cs` belongs to the
+slices that publish the endpoints it exercises.
