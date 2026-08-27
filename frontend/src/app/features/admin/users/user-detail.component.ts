@@ -11,6 +11,7 @@ import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { ApiProblem, problemTranslationKey } from '../../../core/api/api-problem';
 import { IdentityClient } from '../../../core/api/identity.client';
+import { Department, OrganizationClient } from '../../../core/api/organization.client';
 import { UserRole, UserRow } from '../../../core/auth/identity.model';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
@@ -22,6 +23,9 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
  *
  * Deactivate confirms first (UI-12). The patchable fields are exactly those of
  * docs/api-design.md §5.3 — email and password are not among them.
+ *
+ * The department field is a **selector populated from `GET /departments`** (Story 03 task 7),
+ * replacing the free-text id input Story 02 carried while that endpoint did not exist.
  */
 @Component({
     selector: 'app-user-detail',
@@ -66,11 +70,18 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
                     </label>
 
                     <label class="app-field">
-                        <span class="app-field__label">{{ 'admin.users.departmentId' | transloco }}</span>
-                        <input pInputText name="departmentId" [(ngModel)]="departmentId" />
+                        <span class="app-field__label">{{ 'admin.users.department' | transloco }}</span>
+                        <p-select
+                            name="departmentId"
+                            [options]="departments()"
+                            [(ngModel)]="departmentId"
+                            optionLabel="name"
+                            optionValue="id"
+                            [placeholder]="'organization.department.select' | transloco"
+                        />
                     </label>
 
-                    @if (departmentId.trim() === '') {
+                    @if (departmentId === null) {
                         <p-message severity="warn" [text]="'admin.users.departmentRequired' | transloco" />
                     }
 
@@ -79,7 +90,7 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
                             type="submit"
                             [label]="'actions.save' | transloco"
                             [loading]="busy()"
-                            [disabled]="busy() || departmentId.trim() === ''"
+                            [disabled]="busy() || departmentId === null"
                         />
 
                         @if (row.isActive) {
@@ -103,10 +114,12 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
 })
 export class UserDetailComponent {
     private readonly api = inject(IdentityClient);
+    private readonly organization = inject(OrganizationClient);
     private readonly route = inject(ActivatedRoute);
     private readonly confirm = inject(ConfirmationService);
 
     protected readonly roleOptions = STAFF_ROLE_OPTIONS;
+    protected readonly departments = signal<Department[]>([]);
 
     protected readonly user = signal<UserRow | null>(null);
     protected readonly problem = signal<ApiProblem | null>(null);
@@ -115,11 +128,14 @@ export class UserDetailComponent {
 
     protected displayName = '';
     protected role: UserRole = 'Agent';
-    protected departmentId = '';
+
+    /** `null` when unset — a `p-select` with nothing selected binds `null`. */
+    protected departmentId: string | null = null;
 
     protected errorKey = problemTranslationKey;
 
     constructor() {
+        this.organization.getDepartments().subscribe((departments) => this.departments.set(departments));
         this.load();
     }
 
@@ -138,7 +154,7 @@ export class UserDetailComponent {
                 this.user.set(row);
                 this.displayName = row.displayName;
                 this.role = row.role;
-                this.departmentId = row.departmentId ?? '';
+                this.departmentId = row.departmentId ?? null;
             },
             error: (failure: ApiProblem) => this.problem.set(failure),
         });
@@ -146,7 +162,7 @@ export class UserDetailComponent {
 
     protected save(): void {
         const row = this.user();
-        if (!row || this.busy() || this.departmentId.trim() === '') {
+        if (!row || this.busy() || this.departmentId === null) {
             return;
         }
 
@@ -157,7 +173,7 @@ export class UserDetailComponent {
             .patchUser(row.id, {
                 displayName: this.displayName,
                 role: this.role,
-                departmentId: this.departmentId.trim(),
+                departmentId: this.departmentId,
             })
             .subscribe({
                 next: (updated) => {

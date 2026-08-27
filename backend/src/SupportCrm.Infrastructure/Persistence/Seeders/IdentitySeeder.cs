@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SupportCrm.Application.Abstractions;
 using SupportCrm.Application.Configuration;
+using SupportCrm.Application.Modules.Organization;
 using SupportCrm.Domain.Modules.Identity;
 
 namespace SupportCrm.Infrastructure.Persistence.Seeders;
@@ -23,6 +24,7 @@ public sealed class IdentitySeeder(
     SupportCrmDbContext db,
     IPasswordHasher<User> passwordHasher,
     IOptions<SeedOptions> seedOptions,
+    DepartmentValidator departments,
     TimeProvider clock,
     ILogger<IdentitySeeder> logger) : IDataSeeder
 {
@@ -123,16 +125,20 @@ public sealed class IdentitySeeder(
                 continue;
             }
 
-            // The eligibility rule is an Application-layer rule, not a foreign key. Story 03 task 4
-            // adds DepartmentValidator for the general case; here the candidate is a user this same
-            // seeder just created, so the check is a direct assertion on the row.
-            var eligible = await db.Users.AnyAsync(
-                u => u.Id == managerUserId
-                     && u.IsActive
-                     && (u.Role == UserRole.Manager || u.Role == UserRole.Administrator),
-                ct);
-
-            if (!eligible)
+            // The eligibility rule is an Application-layer rule, not a foreign key, and Story 03
+            // task 4's DepartmentValidator is the single place it lives. This seeder does not
+            // re-express it: a second copy of the rule here is exactly how the two would drift.
+            //
+            // The throw is caught rather than allowed to escape. A seeder runs at startup, and an
+            // ineligible demo manager must not take the API down — nor may it silently appoint one.
+            // The department is left WITHOUT a manager, which is a legal state (docs/data-model.md
+            // §2.2), and the warning says so. No fallback recipient is substituted: that is OQ-3,
+            // and it is open.
+            try
+            {
+                await departments.EnsureManagerIsEligibleAsync(managerUserId, ct);
+            }
+            catch (ValidationException)
             {
                 logger.LogWarning(
                     "Department {DepartmentId} left without a manager: {UserId} is not an active Manager or Administrator.",

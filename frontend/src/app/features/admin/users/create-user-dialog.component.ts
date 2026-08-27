@@ -9,6 +9,7 @@ import { PasswordModule } from 'primeng/password';
 import { SelectModule } from 'primeng/select';
 import { ApiProblem, problemTranslationKey } from '../../../core/api/api-problem';
 import { IdentityClient } from '../../../core/api/identity.client';
+import { Department, OrganizationClient } from '../../../core/api/organization.client';
 import { UserRole } from '../../../core/auth/identity.model';
 import { STAFF_ROLE_OPTIONS } from './staff-roles';
 
@@ -18,9 +19,9 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
  * The form enforces "a staff role requires a department" for immediate feedback, **and the server
  * re-validates it** (DM-1). The client check is UX; the server check is the rule.
  *
- * The department field is a free-text id in this story: `GET /departments` is delivered by Story 03
- * task 5, and a selector cannot be populated before it exists. Story 03 task 7 replaces this input
- * with that selector.
+ * The department field is a **selector populated from `GET /departments`** (Story 03 task 7). It
+ * replaced the free-text id input Story 02 carried while that endpoint did not yet exist. The list
+ * is cached for the session by `OrganizationClient` — departments change only by redeploy (T2-I).
  */
 @Component({
     selector: 'app-create-user-dialog',
@@ -71,8 +72,16 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
                 </label>
 
                 <label class="app-field">
-                    <span class="app-field__label">{{ 'admin.users.departmentId' | transloco }}</span>
-                    <input pInputText name="departmentId" required [(ngModel)]="departmentId" />
+                    <span class="app-field__label">{{ 'admin.users.department' | transloco }}</span>
+                    <p-select
+                        name="departmentId"
+                        [options]="departments()"
+                        [ngModel]="departmentId()"
+                        (ngModelChange)="departmentId.set($event)"
+                        optionLabel="name"
+                        optionValue="id"
+                        [placeholder]="'organization.department.select' | transloco"
+                    />
                 </label>
 
                 @if (departmentMissing()) {
@@ -89,17 +98,27 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
 })
 export class CreateUserDialogComponent {
     private readonly api = inject(IdentityClient);
+    private readonly organization = inject(OrganizationClient);
 
     readonly visible = model(false);
     readonly created = output<void>();
 
     protected readonly roleOptions = STAFF_ROLE_OPTIONS;
+    protected readonly departments = signal<Department[]>([]);
 
     protected email = '';
     protected displayName = '';
     protected password = '';
     protected role: UserRole = 'Agent';
-    protected departmentId = '';
+
+    /**
+     * `null` until a department is chosen — a `p-select` with nothing selected binds `null`.
+     *
+     * A **signal**, not a plain field, because `departmentMissing` below is a `computed`: with a
+     * plain field the computed would cache against `touched` alone, so after one failed submit the
+     * warning and the disabled submit button would never clear no matter what the user selected.
+     */
+    protected readonly departmentId = signal<string | null>(null);
 
     protected readonly busy = signal(false);
     protected readonly problem = signal<ApiProblem | null>(null);
@@ -108,12 +127,16 @@ export class CreateUserDialogComponent {
     protected errorKey = problemTranslationKey;
 
     /** Every role in this dialog is a staff role, so a department is always required (DM-1). */
-    protected readonly departmentMissing = computed(() => this.touched() && this.departmentId.trim() === '');
+    protected readonly departmentMissing = computed(() => this.touched() && this.departmentId() === null);
+
+    constructor() {
+        this.organization.getDepartments().subscribe((departments) => this.departments.set(departments));
+    }
 
     protected submit(): void {
         this.touched.set(true);
 
-        if (this.departmentId.trim() === '' || this.busy()) {
+        if (this.departmentId() === null || this.busy()) {
             return;
         }
 
@@ -126,7 +149,7 @@ export class CreateUserDialogComponent {
                 password: this.password,
                 displayName: this.displayName,
                 role: this.role,
-                departmentId: this.departmentId.trim(),
+                departmentId: this.departmentId()!,
             })
             .subscribe({
                 next: () => {
@@ -147,7 +170,7 @@ export class CreateUserDialogComponent {
         this.displayName = '';
         this.password = '';
         this.role = 'Agent';
-        this.departmentId = '';
+        this.departmentId.set(null);
         this.touched.set(false);
     }
 }

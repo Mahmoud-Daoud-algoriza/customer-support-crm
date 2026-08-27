@@ -16,14 +16,14 @@
 
 | | |
 |---|---|
-| **Current SDD stage** | **Stage 10 (Implementation) in progress — stories 01 and 02 complete and verified; 03 partially** |
-| **Current phase** | Design and planning **complete**. Phase 0 delivered. **Phase 1: story 03's data layer and story 02 are in**; story 03's endpoints and front end remain |
+| **Current SDD stage** | **Stage 10 (Implementation) in progress — stories 01, 02 and 03 complete and verified** |
+| **Current phase** | Design and planning **complete**. Phase 0 delivered. **Phase 1 is complete**: stories 02 and 03 are both in, including story 03's two endpoints and its front-end filters |
 | **Overall status** | 🟡 On track with **four blocked acceptance criteria**. The SDD chain is finished end to end; the stage 9 audit found two genuine contradictions (S9-1, S9-4) and scheduled two carried findings (PF-2, PF-4). **None blocks stories 01–04** |
-| **Overall progress** | **42.2%** (method in §1.1) |
+| **Overall progress** | **45.8%** (method in §1.1) |
 | **SDD pipeline** | **9 of 10 stages complete** (90% of the pipeline) |
-| **Code written** | **Stories 01, 02 and story 03's data layer.** Authentication, the four-role model, per-request identity resolution, user administration and the audit recorder all run. Nine endpoints exist. `backend/` holds the five-project solution, `frontend/` the Angular + PrimeNG app (built on PrimeNG Sakai `20.0.0`), `docker-compose.yml` runs three services. Two endpoints exist: `/api/v1/health` and `/api/v1/config/bootstrap` — **no business entity, screen or endpoint beyond those** |
-| **Last updated** | 2026-08-25 |
-| **Current focus** | Story 02 complete and verified. **Awaiting explicit approval before the next story.** Story 03's remaining tasks (4–8) are the natural next step; the plan's own stop instruction is honoured. Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
+| **Code written** | **Stories 01, 02 and 03.** Authentication, the four-role model, per-request identity resolution, user administration, the audit recorder and the two organization read endpoints all run. Eleven endpoints exist. `backend/` holds the five-project solution, `frontend/` the Angular + PrimeNG app (built on PrimeNG Sakai `20.0.0`), `docker-compose.yml` runs three services. Two endpoints exist: `/api/v1/health` and `/api/v1/config/bootstrap` — **no business entity, screen or endpoint beyond those** |
+| **Last updated** | 2026-08-27 |
+| **Current focus** | Story 03 complete and verified; **phase 1 is closed**. **Awaiting explicit approval before the next story.** Story 16 Part A is the gate before stories 04 and 05, because a ticket cannot be created without the category list, the category→department map and the SLA targets. Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 35% is calculated
@@ -34,8 +34,8 @@ recorded here so the number is reproducible rather than invented.
 | Track | Contents | Weight | Complete | Contribution |
 |---|---|---|---|---|
 | **Design & planning** | Tracker rows 1–9 (§2), equally weighted at 3.89% each | 35% | **9 of 9 rows** | 9 ÷ 9 × 35 = **35.0%** |
-| **Delivery** | Row 10 — the 18 stories implemented *and* verified | 65% | **2 of 18** | 2 ÷ 18 × 65 = **7.2%** |
-| | | **100%** | | **= 42.2%** |
+| **Delivery** | Row 10 — the 18 stories implemented *and* verified | 65% | **3 of 18** | 3 ÷ 18 × 65 = **10.8%** |
+| | | **100%** | | **= 45.8%** |
 
 **The design-and-planning track is fully consumed.** Every remaining percentage point is delivery.
 This is the point the weighting was chosen to make honest: **a fully planned project with no running
@@ -90,9 +90,7 @@ post-flight findings are carried in §6.5 and §6.6.
 All 18 stories from [story-backlog.md](story-backlog.md). Sequence is the intended execution order;
 squad-kit assigns the real `NN` when each plan is generated.
 
-**Stories 01 and 02 are Implemented and Verified. Story 03 is partial** — its entities, EF
-configuration and seeder are in (tasks 1–3, the slice S9-12 makes Story 02's prerequisite); its two
-`Agent`-gated endpoints and front-end filters (tasks 4–8) are not. **Stories 04–18 are at
+**Stories 01, 02 and 03 are Implemented and Verified**, which closes phase 1. **Stories 04–18 are at
 `Plan Complete`.** All 18 plans exist. The `Depends on` column below is the **execution** dependency from
 [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §4, which supersedes the
 earlier reading in three places (S9-7, S9-8, S9-12).
@@ -101,7 +99,7 @@ earlier reading in three places (S9-7, S9-8, S9-12).
 |---|---|---|---|---|---|---|---|---|---|
 | 01 | `solution-skeleton` | platform-foundation | T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-25, re-run 2026-08-26 | — | — |
 | 02 | `auth-and-roles` | identity-access | **T1** | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-26 | 01, **03 data** | — |
-| 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | 🟡 **Partial** — tasks 1–3 | Partial — data verified live | 01 | Tasks 4–8 (endpoints, filters) remain · migration and seeder **done** with story 02 |
+| 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-27 | 01, 02 | — · tasks 1–3 landed early with story 02, tasks 4–8 after it, per S9-12 |
 | 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–03, **16 A** | ⚠ **OQ-5** |
 | 05 | `ticket-core` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–04, **16 A** | ⚠ **OQ-2** |
 | 06 | `ticket-lifecycle` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 05 | ⚠ OQ-3 *(no-manager branch only)* |
@@ -428,22 +426,24 @@ No decision so far has changed [requirements.md](requirements.md), which is neve
 
 ## 7. Implementation Progress
 
-**Stories 01 and 02 are implemented; story 03 is partial.** Every claim below was re-verified by
-running the commands in §8 on 2026-08-26, not inferred from a plan.
+**Stories 01, 02 and 03 are implemented and verified.** Every claim below was re-verified by
+running the commands in §8 on 2026-08-27, not inferred from a plan.
 
 | Area | Status | Evidence |
 |---|---|---|
-| Backend | ✅ Stories 01, 02, 03-data | `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. `SupportCrm.Domain` still has **0 project and 0 package references** and no EF attribute (AD-2, AD-4) |
-| Frontend | ✅ Stories 01, 02 | Angular 20.1.2 + PrimeNG 20.0.0 on Sakai `20.0.0`. `npm run build` succeeds; `npm run lint:styles` clean. Sign-in, guards, role redirect, staff shell avatar menu and the admin user screens all exercised in a real browser |
+| Backend | ✅ Stories 01, 02, 03 | `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. `SupportCrm.Domain` still has **0 project and 0 package references** and no EF attribute (AD-2, AD-4) |
+| Frontend | ✅ Stories 01, 02, 03 | Angular 20.1.2 + PrimeNG 20.0.0 on Sakai `20.0.0`. `npm run build` succeeds; `npm run lint:styles` clean. Sign-in, guards, role redirect, staff shell avatar menu and the admin user screens all exercised in a real browser |
 | Database | ✅ Schema live | **`InitialSchema` applied to real SQL Server**: `Branches`, `Departments`, `Users`, `AuditEntries`. `Users.Email` carries `SQL_Latin1_General_CP1_CI_AS`; `Users(CustomerId)` is a filtered unique index; `Users.CustomerId` has no FK yet (Story 04 adds it) |
 | Seed data | ✅ Running at startup | 2 departments (both with a manager), 2 branches, 4 staff users — Administrator, Manager and **two Agents in different departments**, so Story 05's scoping tests have material. Password from configuration; no credential in source |
-| Tests | ✅ 24 passing | `AuthorizationTests`, `UserAdminValidationTests`, `AuditRecordingTests`, `PlatformEndpointTests`. Includes the **AD-15 deactivation regression** and the indistinguishability of a wrong password from a deactivated account |
+| Tests | ✅ 32 passing, 1 skipped by design, plus 4 front-end specs | Backend: `AuthorizationTests`, `UserAdminValidationTests`, `AuditRecordingTests`, `PlatformEndpointTests`, `OrganizationEndpointTests`. Includes the **AD-15 deactivation regression** and the indistinguishability of a wrong password from a deactivated account. `BranchIsNotABoundaryTests` is **skipped until story 05** creates `Ticket`. Front end: `department-filter.component.spec.ts` — the repo's first specs; the karma target and its dependencies were already configured by story 01 |
 | Docker / infrastructure | ✅ Complete for the stack | `docker compose up --build` brings **db, api, web** up; the API waits for the database's health check |
 
-**Endpoints that exist (9):** `/health`, `/config/bootstrap`, `/auth/login`, `/auth/me`, and the five
-`/users` routes. `POST /auth/register` is **deferred to Story 04** by S9-7.
+**Endpoints that exist (11):** `/health`, `/config/bootstrap`, `/auth/login`, `/auth/me`, the five
+`/users` routes, and `GET /departments` and `GET /branches`. `POST /auth/register` is **deferred to
+Story 04** by S9-7. **Neither organization route has a write verb**, and neither ever will: T2-I
+makes departments and branches seeded configuration.
 
-**Next:** story 03 tasks 4–8, or another story — **not started, and blocked on explicit approval.**
+**Next:** story 16 Part A, then stories 04 and 05 — **not started, and blocked on explicit approval.**
 
 ---
 
@@ -466,16 +466,19 @@ below record a reproducible outcome, not a one-off.
 | Stage gate 3 → 4 | ✅ Met | All 56 requirement lines mapped to a story |
 | Stage gate 5 → 6 | ✅ Met | Re-verified after the AD-15 correction |
 | Stage gate 6 → 7 | ✅ Met | Re-verified after the four clarifications |
-| Story verification | ✅ **Stories 01 and 02 passed** | Story 01: all 8 steps, 2026-08-25 (re-run 2026-08-26). Story 02: all 6 steps, 2026-08-26. Details in the rows below |
-| Unit / integration tests | ✅ **24 passing** | `dotnet test backend/SupportCrm.sln` 2026-08-26: **24 passed, 0 failed**. Story 02 adds the AD-15 regression (a user deactivated after their token was issued is `401` on the very next request), the wrong-password / deactivated-account indistinguishability check, token-claim absence, `passwordHash` absence from every response path, and the audit actor-attribution rules of §2.14 |
+| Story verification | ✅ **Stories 01, 02 and 03 passed** | Story 01: all 8 steps, 2026-08-25 (re-run 2026-08-26). Story 02: all 6 steps, 2026-08-26. Story 03: **5 of its 6 steps, 2026-08-27** — step 6 names the story-05 ticket list and could not be run as written (see its row). Details in the rows below |
+| Unit / integration tests | ✅ **32 passing, 1 skipped** | `dotnet test backend/SupportCrm.sln` 2026-08-27: **32 passed, 0 failed, 1 skipped**. The skip is `BranchIsNotABoundaryTests.Ticket_has_no_branch_member`, **skipped by design** until story 05 creates the `Ticket` type it asserts about. Story 03 adds the two organization endpoints' role matrix, the `managerUserId`-is-absent-not-null contract check, and the no-write-verb lock. Front end: `npx ng test --watch=false --browsers=ChromeHeadless` — **4 passed**, the repo's first specs, on the karma target story 01 already configured. Story 02 adds the AD-15 regression (a user deactivated after their token was issued is `401` on the very next request), the wrong-password / deactivated-account indistinguishability check, token-claim absence, `passwordHash` absence from every response path, and the audit actor-attribution rules of §2.14 |
 | Backend build | ✅ Clean | `dotnet build backend/SupportCrm.sln` 2026-08-25: **0 warnings, 0 errors** — and `TreatWarningsAsErrors` is on, so 0 warnings is enforced, not observed |
 | Frontend build | ✅ Clean | `npm ci && npm run build` 2026-08-25. `npm run lint:styles` clean; the physical-property ban was **proved to fire** by a throwaway probe file (3 errors), then removed — the rule is enforced, not vacuous |
 | API verification | ✅ Passed | 2026-08-25 against containerized SQL Server: `GET /api/v1/health` → `200 {"status":"ok","database":"reachable","utcNow":"…Z"}`. `openapi/v1.json` lists **exactly two paths** — `/api/v1/health` and `/api/v1/config/bootstrap` — and nothing else. Scalar UI at `/scalar/v1` → `200` |
 | **Story 02 — auth and roles** | ✅ Passed 2026-08-26 | Live against containerized SQL Server. Token claims: **`sub`, `jti`, `iat`, `exp`, `iss`, `aud` and nothing else** — no role, department, email or active flag. Role gating on `/users`: anonymous `401` · Agent `403` · Manager `403` · Administrator `200`. Case-insensitive sign-in (`ADMIN@SupportCRM.LOCAL`) `200`, exercising the collation SQLite cannot verify. Wrong password returns `type: invalid-credentials`. Audit rows confirm a successful sign-in is attributed and a failed one carries the submitted identifier with a null actor |
+| **Story 03 — departments and branches** | ✅ Passed 2026-08-27 | Live against containerized SQL Server on a **wiped volume**: `InitialSchema` applies from scratch, `OrganizationSeeder` writes 4 rows, the manager second pass assigns 2. `GET /api/v1/departments` returns `Billing` and `Technical`; `GET /api/v1/branches` returns `Head Office` and `North Branch`. Role matrix on **both** endpoints: anonymous `401` · Customer `403` · Agent `200` · Manager `200` · Administrator `200`. `POST`, `PATCH`, `PUT` and `DELETE` are `405` on both — **no write endpoint exists** (T2-I). An unknown sort field is `400` (AP-15). A department whose `ManagerUserId` is null serializes as `{"id","name"}` with **no `managerUserId` key**. `openapi/v1.json` publishes both paths with `get` and nothing else |
+| **Story 03 — step 6 not runnable** | 🟡 Deferred to story 05 | The step reads *"the ticket-list department filter is disabled for a seeded Agent and enabled for the seeded Manager"* — and `/workspace/tickets` is **story 05**. An ordering fact, not a gap: story 03 task 8 built the rule into `shared/components/department-filter/` precisely so story 05 cannot re-implement it, and `department-filter.component.spec.ts` asserts it (Agent pinned and disabled with a hint; Manager and Administrator enabled). **Story 05 must run the step against the real screen** |
+| **Story 03 — branch is not a boundary** | ✅ Passed 2026-08-27 | `grep -ri "branchid" backend/src/SupportCrm.Domain/Modules/Tickets/` returns **nothing**. Every `Branch` reference across the backend was read: each is a payload field, a foreign-key-target check, a seeder, or the read endpoint — **none is in an authorization predicate** (A-2, data-model §5 constraint 6) |
 | **Story 02 — role UI** | ✅ Passed 2026-08-26 | Driven through the Chrome DevTools Protocol: all three seeded staff roles sign in, land on `/workspace`, and show display name, role and department in the avatar menu. The **Administration** section renders for Administrator only. An Agent deep-linking to `/admin/users` lands on `/403`; an Administrator sees all four users with no `passwordHash` anywhere in the DOM |
 | UI verification | ✅ Passed | 2026-08-25, driven through the Chrome DevTools Protocol against the running `web` container: the shell renders the configured product name (`Support CRM`), `--app-brand-primary: #0B5FFF` from `/config/bootstrap`, the health result and the language switcher. Clicking العربية moved `<html>` from `dir="ltr" lang="en"` to `dir="rtl" lang="ar"` with every label translated. **No reload and no state loss**: a `window` marker and a DOM attribute set before the switch both survived it, and the health timestamp did not change |
 | Docker startup | ✅ Passed | `cp .env.example .env` then `docker compose up --build` 2026-08-25: **db (healthy) · api · web** all running. The SPA reaches the API through the nginx `/api` proxy, and deep links fall back to `index.html` |
-| Working tree | 🟡 Uncommitted | **20 commits** on `main`, head `f3dfd81`; the **story-02 implementation is in the working tree and not yet committed** at the user's request. **`git status` is the live source — this row is a snapshot, not a claim to be trusted over the repository** |
+| Working tree | 🟡 Uncommitted | **21 commits** on `main`, head `9ad60a8`; the **story-03 implementation is in the working tree and not yet committed** at the user's request. **`git status` is the live source — this row is a snapshot, not a claim to be trusted over the repository** |
 
 ---
 
@@ -483,7 +486,47 @@ below record a reproducible outcome, not a one-off.
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-26 (latest) — story 02 implemented
+### 2026-08-27 (latest) — story 03 completed
+
+- **Story 03 tasks 4–8 implemented**, closing the story and phase 1. `OrganizationQueryService` and
+  `DepartmentValidator` in Application; `DepartmentsController` and `BranchesController` in Api, one
+  `GET` each behind `RequireAgent`, **with no write verb on either** (T2-I). Front end:
+  `organization.client.ts` with both lists `shareReplay`-cached for the session, and
+  `shared/components/department-filter/` carrying the `disabledForOwnDepartment` rule so the story-05
+  ticket list cannot re-implement it.
+- **Both placeholders the previous entry flagged are gone.** The create-user dialog and the
+  user-detail form now bind a selector populated from `GET /departments` instead of taking a
+  department id as free text, and the avatar menu shows the department **name** rather than its id.
+- **`IdentitySeeder`'s manager second pass now calls `DepartmentValidator`** rather than restating the
+  eligibility rule inline — what story 03 task 4 always intended, and what the seeder's own comment
+  forward-referenced. The throw is caught, so an ineligible demo manager leaves the department
+  without one (a legal state) instead of taking the API down.
+- **One defect found and fixed, inherited from story 02.**
+  `CreateUserDialogComponent.departmentMissing` was a `computed` over a **plain** field, so it cached
+  against `touched` alone: after one failed submit, the warning and the disabled submit button could
+  never clear whichever department the administrator then picked. The field is now a signal. It was
+  reached by replacing the input it guarded.
+- **Verification step 6 could not be run as written.** It names the `/workspace/tickets` department
+  filter, and the ticket list is **story 05** — an ordering fact, not a gap. The rule it checks was
+  verified instead by `department-filter.component.spec.ts`. **Story 05 must run the step against the
+  real screen**, and remove the `Skip` on `BranchIsNotABoundaryTests.Ticket_has_no_branch_member`.
+- **OQ-3 remains open and remains unanswered.** `DepartmentValidator` constrains only a manager that
+  *is* set and says nothing about a department without one; the seeded managers are still a demo
+  convenience, commented as such at both ends.
+- **Two implementation choices not fixed by the approved documents**, both following the `/users`
+  precedent: the sort whitelist for the two organization endpoints is `name` only (api-design §2.1
+  requires *a* whitelist and names none for them), and the front-end client requests `pageSize=100`,
+  the contract's documented maximum — so more than 100 departments would be truncated, which is a
+  question for api-design and ui-design rather than a client-side loop.
+- **Verified against real SQL Server on a wiped volume:** `InitialSchema` applies, `OrganizationSeeder`
+  writes 4 rows, the manager second pass assigns 2, and `GET /api/v1/departments` returns `Billing`
+  and `Technical`. Live role matrix on both endpoints — anonymous `401`, Customer `403`, Agent,
+  Manager and Administrator `200`; `POST`/`PATCH`/`PUT`/`DELETE` all `405`; an unknown sort field
+  `400`. A department with a null `ManagerUserId` serializes with **no `managerUserId` key at all**.
+  `grep -ri "branchid"` over `Domain/Modules/Tickets/` returns nothing, and **no `Branch` reference
+  anywhere in the backend sits in an authorization predicate**. Stories 01 and 02 re-checked live.
+
+### 2026-08-26 — story 02 implemented
 
 - **Story 02 (`auth-and-roles`) complete and verified.** Email + password sign-in, the four fixed
   hierarchical roles as policies, per-request identity resolution, Administrator user management, and
@@ -916,8 +959,8 @@ Newest first. Every meaningful project change gets an entry.
 
 ## 10. Current Next Steps
 
-1. **Stories 01 and 02 are done; story 03 is half done — awaiting explicit approval before the next
-   step.** The phase-1 interleave of S9-12 has played out as designed:
+1. **Stories 01, 02 and 03 are done; phase 1 is closed — awaiting explicit approval before the next
+   step.** The phase-1 interleave of S9-12 played out exactly as designed:
 
    | Order | Work | State |
    |---|---|---|
@@ -927,19 +970,20 @@ Newest first. Every meaningful project change gets an entry.
    | 4 | Story 03 task 3 — `OrganizationSeeder` (`Order = 10`) | ✅ Done (executed early, approved) |
    | 5 | Story 02 task 10 — `IdentitySeeder` (`Order = 20`) + manager second pass | ✅ Done |
    | 6 | Story 02 tasks 4–14 — auth, endpoints, front end | ✅ Done |
-   | 7 | **Story 03 tasks 4–8** — the two `Agent`-gated endpoints and the filters | ⏭ **Next** |
+   | 7 | Story 03 tasks 4–8 — the two `Agent`-gated endpoints and the filters | ✅ Done |
 
-   Story 03's remaining tasks are small and unblock nothing else on the critical path. Story 16
-   Part A is the gate before stories 04 and 05, because a ticket cannot be created without the
-   category list, the category→department map and the SLA targets.
+   **Story 16 Part A is the gate before stories 04 and 05**, because a ticket cannot be created
+   without the category list, the category→department map and the SLA targets.
 
-2. **Two placeholders story 03 tasks 4–8 will remove.** Both are marked at their call sites: the
-   create-user dialog and user-detail form take a **department id as free text** because
-   `GET /departments` does not exist yet, and the avatar menu shows the department **id** rather than
-   its name for the same reason. Neither is a workaround to keep — they are the honest shape of a
-   screen whose data source is one story away.
+2. **Both placeholders are gone.** The create-user dialog and the user-detail form now bind a
+   selector populated from `GET /departments` instead of taking a department id as free text, and the
+   avatar menu shows the department **name**. **Two markers remain for story 05**, both deliberate and
+   both cross-referenced at their call sites: the `Skip` on
+   `BranchIsNotABoundaryTests.Ticket_has_no_branch_member`, which cannot assert on a `Ticket` type
+   that does not exist yet, and story 03 verification step 6, which names the `/workspace/tickets`
+   department filter. Story 05 task 10 owns both.
 
-3. **Commit the working tree.** The story-02 implementation is verified but deliberately
+3. **Commit the working tree.** The story-03 implementation is verified but deliberately
    uncommitted, at the user's request, for review (§8, Working tree).
 
 4. **Answer the outstanding decisions, earliest first.** None blocked story 01, and none blocks

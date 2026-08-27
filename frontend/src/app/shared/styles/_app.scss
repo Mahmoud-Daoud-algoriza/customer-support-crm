@@ -218,3 +218,12 @@
         color: var(--p-text-muted-color);
     }
 }
+
+// Story 03 — the shared department filter. Logical properties only (ui-design §10.2), so the hint
+// sits after the control in both LTR and RTL without a direction-specific rule.
+.app-department-filter {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}

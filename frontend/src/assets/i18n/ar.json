@@ -90,7 +90,7 @@
             "email": "البريد الإلكتروني",
             "role": "الدور",
             "state": "الحالة",
-            "departmentId": "معرّف القسم",
+            "department": "القسم",
             "departmentRequired": "الدور الوظيفي يتطلب قسماً.",
             "active": "نشط",
             "inactive": "غير نشط",
@@ -99,6 +99,14 @@
             "saved": "تم حفظ التغييرات.",
             "emptyTitle": "لا مستخدمين مطابقين",
             "emptyMessage": "عدّل عوامل التصفية أو أنشئ مستخدماً."
+        }
+    },
+    "organization": {
+        "department": {
+            "label": "القسم",
+            "any": "جميع الأقسام",
+            "select": "اختر قسماً",
+            "ownDepartmentHint": "تشاهد قسمك أنت. الصلاحية تُحدَّد على الخادم."
         }
     }
 }

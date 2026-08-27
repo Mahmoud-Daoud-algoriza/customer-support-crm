@@ -11,6 +11,7 @@ import { ApiProblem } from '../../../core/api/api-problem';
 import { IdentityClient, UserListFilter } from '../../../core/api/identity.client';
 import { Paged } from '../../../core/api/paged';
 import { UserRow } from '../../../core/auth/identity.model';
+import { DepartmentFilterComponent } from '../../../shared/components/department-filter/department-filter.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
@@ -20,15 +21,20 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
 /**
  * User directory — `/admin/users` (docs/ui-design.md §6). Filters mirror the API exactly:
  * `role`, `departmentId`, `isActive`, `q` (docs/api-design.md §5.3).
+ *
+ * The department filter is the shared `app-department-filter` (Story 03 task 8), with
+ * `disabledForOwnDepartment` **off**: this screen is Administrator-only, and the own-department lock
+ * is the ticket list's rule, not a general one. **There is no branch filter here** — branch is never
+ * a filter on this screen (A-2, and the task 8 placement table).
  */
 @Component({
     selector: 'app-user-directory',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
-        ButtonModule, CreateUserDialogComponent, EmptyStateComponent, ErrorStateComponent,
-        FormsModule, InputTextModule, LoadingStateComponent, RouterLink, SelectModule, TableModule,
-        TagModule, TranslocoModule,
+        ButtonModule, CreateUserDialogComponent, DepartmentFilterComponent, EmptyStateComponent,
+        ErrorStateComponent, FormsModule, InputTextModule, LoadingStateComponent, RouterLink,
+        SelectModule, TableModule, TagModule, TranslocoModule,
     ],
     template: `
         <section class="app-page">
@@ -48,6 +54,11 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
                     [showClear]="true"
                     [placeholder]="'admin.users.anyRole' | transloco"
                     (onChange)="load()"
+                />
+
+                <app-department-filter
+                    [value]="filter.departmentId ?? null"
+                    (valueChange)="applyDepartment($event)"
                 />
 
                 <p-select
@@ -130,6 +141,15 @@ export class UserDirectoryComponent {
     protected readonly createOpen = signal(false);
 
     constructor() {
+        this.load();
+    }
+
+    /**
+     * The filter names mirror the API exactly (docs/api-design.md §5.3), so the id goes straight
+     * onto `filter.departmentId` with no translation step.
+     */
+    protected applyDepartment(departmentId: string | null): void {
+        this.filter.departmentId = departmentId;
         this.load();
     }
 

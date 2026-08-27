@@ -113,6 +113,62 @@ public sealed class SupportCrmApiFactory : WebApplicationFactory<Program>
         });
     }
 
+    /// <summary>
+    /// Inserts a <c>Customer</c>-role user row directly.
+    /// <para>
+    /// <b>Why raw SQL:</b> the Domain has no <c>User.CreateCustomerUser</c> yet — it arrives with
+    /// Story 04, when <c>Customer</c> exists — and <c>CreateStaff</c> refuses the <c>Customer</c>
+    /// role outright (DM-1). Pre-empting that factory here would be starting Story 04. The row is
+    /// therefore written beneath the Domain, for the single purpose of proving that the
+    /// <c>RequireAgent</c> gate refuses a Customer token: <c>CurrentUserMiddleware</c> reads the role
+    /// from this row, so nothing less than a real row exercises the real gate.
+    /// </para>
+    /// <para>
+    /// This helper establishes a precondition. <b>It must never be used to assert behaviour an
+    /// endpoint should be proving</b>, and it should give way to the Domain factory once Story 04
+    /// lands.
+    /// </para>
+    /// </summary>
+    public Task<Guid> AddCustomerRoleUserAsync(string email) => WithDbAsync(async db =>
+    {
+        var id = Guid.NewGuid();
+
+        // DepartmentId is null and CustomerId is set — the Customer shape of DM-1. CustomerId
+        // carries no foreign key until Story 04 adds the Customers table, so an unreferenced id is
+        // valid here, and the unique filtered index on it still applies.
+        // One interpolated string, not a concatenation: ExecuteSqlAsync takes a FormattableString,
+        // so every interpolation hole becomes a parameter rather than inlined SQL.
+        await db.Database.ExecuteSqlAsync(
+            $"INSERT INTO Users (Id, Email, PasswordHash, DisplayName, Role, DepartmentId, CustomerId, BranchId, IsActive, CreatedAt) VALUES ({id}, {email}, {Unhashed}, {email}, {CustomerRoleCode}, NULL, {Guid.NewGuid()}, NULL, 1, {DateTimeOffset.UtcNow})");
+
+        return id;
+    });
+
+    /// <summary>The role code as it is persisted — a stable string, never an integer (api-design §2).</summary>
+    private const string CustomerRoleCode = nameof(UserRole.Customer);
+
+    private const string Unhashed = "!unhashed";
+
+    /// <summary>
+    /// Creates a branch directly, to establish a precondition. Branches have no write endpoint by
+    /// design (T2-I), so a test cannot create one through the API and is not meant to.
+    /// </summary>
+    public Task<Guid> EnsureBranchAsync(string name) => WithDbAsync(async db =>
+    {
+        var existing = await db.Branches.FirstOrDefaultAsync(b => b.Name == name);
+
+        if (existing is not null)
+        {
+            return existing.Id;
+        }
+
+        var branch = Branch.Create(Guid.NewGuid(), name);
+        db.Branches.Add(branch);
+        await db.SaveChangesAsync();
+
+        return branch.Id;
+    });
+
     public Task<Guid> EnsureDepartmentAsync(string name) => WithDbAsync(async db =>
     {
         var existing = await db.Departments.FirstOrDefaultAsync(d => d.Name == name);

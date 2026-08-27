@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SupportCrm.Application.Abstractions;
 using SupportCrm.Application.Modules.Administration;
 using SupportCrm.Application.Modules.Identity;
+using SupportCrm.Application.Modules.Organization;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Infrastructure.Persistence;
 using SupportCrm.Infrastructure.Persistence.Seeders;
@@ -53,6 +54,12 @@ public static class DependencyInjection
         services.AddScoped<IAuditRecorder, AuditRecorder>();
         services.AddScoped<AuthService>();
         services.AddScoped<UserAdminService>();
+
+        // Story 03 Application services. DepartmentValidator is registered even though no endpoint
+        // reaches it: IdentitySeeder's manager second pass is its caller, and there is no write
+        // endpoint for a department by design (T2-I).
+        services.AddScoped<OrganizationQueryService>();
+        services.AddScoped<DepartmentValidator>();
 
         return services;
     }

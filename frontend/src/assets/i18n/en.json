@@ -90,7 +90,7 @@
             "email": "Email",
             "role": "Role",
             "state": "State",
-            "departmentId": "Department id",
+            "department": "Department",
             "departmentRequired": "A staff role requires a department.",
             "active": "Active",
             "inactive": "Inactive",
@@ -99,6 +99,14 @@
             "saved": "Changes saved.",
             "emptyTitle": "No users match",
             "emptyMessage": "Adjust the filters, or create a user."
+        }
+    },
+    "organization": {
+        "department": {
+            "label": "Department",
+            "any": "All departments",
+            "select": "Select a department",
+            "ownDepartmentHint": "You see your own department. Access is decided on the server."
         }
     }
 }
