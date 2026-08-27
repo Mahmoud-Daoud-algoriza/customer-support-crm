@@ -24,19 +24,49 @@
 >
 > **What task 3 must implement in `CustomerService.UpdateAsync`:**
 >
-> | Situation | Result |
-> |---|---|
-> | `email` absent from the PATCH | Nothing to do — a PATCH carries only what changes |
-> | New email equals the current one, case-insensitively | No-op for both rows. **Do not raise `409` against the customer's own record** |
-> | Another **customer** holds it | `ConflictException("customer-email-in-use")` |
-> | Another **user** holds it — staff included | `ConflictException("user-already-exists")`. **PF-6's existing slug for PF-6's existing rule**; do not mint a new one |
-> | Free, and the customer **has** a linked `User` | Set both `Customer.Email` and `User.Email`, then **one** `SaveChangesAsync` |
-> | Free, and the customer has **no** linked `User` | Set `Customer.Email` only. The ordinary case (DM-1) |
+> | Situation | Result | Audit entry? |
+> |---|---|---|
+> | `email` absent from the PATCH | Nothing to do — a PATCH carries only what changes | No |
+> | New email equals the current one, case-insensitively | No-op for both rows. **Do not raise `409` against the customer's own record** | **No** — nothing changed |
+> | Another **customer** holds it | `ConflictException("customer-email-in-use")` | **No** — nothing was written |
+> | Another **user** holds it — staff included | `ConflictException("user-already-exists")`. **PF-6's existing slug for PF-6's existing rule**; do not mint a new one | **No** — nothing was written |
+> | Free, and the customer **has** a linked `User` | Set both `Customer.Email` and `User.Email`, then **one** `SaveChangesAsync` | **Yes — exactly one `UserEmailChanged`** |
+> | Free, and the customer has **no** linked `User` | Set `Customer.Email` only. The ordinary case (DM-1) | **No** — no login changed |
 >
 > **Atomicity is the existing rule, not a new mechanism.** Architecture §3 — *"one unit of work per
 > request, owned by the Application service, committed once"* — already gives this. Mutate both
 > tracked entities and commit once. **Do not open an explicit transaction, and do not call
 > `SaveChangesAsync` twice**: two commits are exactly the divergence A-19 exists to prevent.
+>
+> **The propagation is audited — A-19, using Story 02's recorder unchanged.**
+>
+> ```csharp
+> // Only on the row that actually changes a login. Nothing else in this method audits.
+> await audit.RecordAsync(
+>     AuditAction.UserEmailChanged, AuditOutcome.Success,
+>     AuditTargetType.User, linkedUser.Id, ct: ct);
+> ```
+>
+> - **Add one constant** to `Domain/Modules/Administration/AuditAction.cs`:
+>   `public const string UserEmailChanged = nameof(UserEmailChanged);` — beside `UserRoleChanged`
+>   and `UserDepartmentChanged`, whose naming it follows exactly. **That is the entire schema
+>   change**: `AuditEntry`, `AuditTargetType`, `IAuditRecorder` and the migration are all untouched,
+>   and `AuditAction`'s own comment already says the set is open.
+> - **Do not pass `actorUserId`.** `AuditRecorder` resolves the actor from `ICurrentUser` — the agent
+>   who issued the `PATCH`. The override exists for exactly one case, a successful sign-in on an
+>   anonymous request, and using it here would be wrong.
+> - **`targetId` is the linked `User`'s id, not the customer's.** The audited fact is that a sign-in
+>   identifier changed. `AuditTargetType` needs no new member — `User` already exists.
+> - **The entry records no email address, old or new**, because `AuditEntry` has no value columns
+>   (data-model §2.14). Do not add them, and do not smuggle the address into `actorDescriptor` — that
+>   column is the failed-sign-in identifier and nothing else.
+> - **The customer-profile edit is not audited on its own.** Only the login change is. Business data
+>   is not a security event (AD-10).
+> - **No `Failure` entry exists for this action.** A rejected change throws before the recorder is
+>   reached and writes nothing — the same shape as every user-administration call site in Story 02.
+> - **Atomic for free.** `RecordAsync` adds to the change tracker and does **not** commit; the one
+>   `SaveChangesAsync` above commits both rows and the audit entry together. Call it **before** that
+>   `SaveChangesAsync`, exactly as `UserAdminService` does.
 >
 > **The linked user is found by `User.CustomerId == id`**, never by matching on the old email — §5
 > constraint 3 guarantees at most one, and an email match would be the very assumption A-19 removes.
@@ -70,7 +100,9 @@ Deliver requirements §1 in full, at the depth of T1-A and T2-A.
    `Customer(email)` unique and `Customer(branchId)`.
 2. `docs/api-design.md` §5.5 — all ten endpoints, the timeline's exclusion rule, the **`email` is
    patchable** correction, and the **A-19 box** that closed OQ-5: which `409` each kind of collision
-   raises, and why both rows commit together or not at all. Then §6.3 payloads (`Customer`,
+   raises, why both rows commit together or not at all, and that the propagation is audited.
+   Then `docs/data-model.md` **§2.14's `UserEmailChanged` note** — what the entry records, and the
+   two things it deliberately does not. Then §6.3 payloads (`Customer`,
    `CustomerListItem` with `openTicketCount`, `CustomerNote`, `TimelineEntry`), §6.7
    `AttachmentMetadata`, AP-13 and **AP-19** (one download endpoint for every role).
 3. `docs/api-design.md` §5.2 — the **three** A-15 outcomes of `POST /auth/register` and the
@@ -167,7 +199,7 @@ dotnet ef migrations add Customers -p src/SupportCrm.Infrastructure -s src/Suppo
 | `ListAsync` | `GET /customers` | Paged. Filters `q` (name/email), `branchId`. Sort whitelist: `fullName`, `createdAt`; anything else -> `400` (AP-15) |
 | `CreateAsync` | `POST /customers` | `{ fullName, email, phone?, branchId }`. Duplicate email -> `ConflictException("customer-email-in-use")` |
 | `GetAsync` | `GET /customers/{id}` | |
-| `UpdateAsync` | `PATCH /customers/{id}` | `fullName`, `phone`, `branchId`, **and `email`** — an `email` change **propagates to the linked `User.email` in the same unit of work** (A-19). The full case table is in the decision box above |
+| `UpdateAsync` | `PATCH /customers/{id}` | `fullName`, `phone`, `branchId`, **and `email`** — an `email` change **propagates to the linked `User.email`, and writes one `UserEmailChanged` audit entry, in the same unit of work** (A-19). The full case table is in the decision box above. Inject `IAuditRecorder` alongside `IApplicationDbContext` |
 
 **`CustomerListItem.openTicketCount`** is an aggregate over that customer's **non-terminal** tickets
 (api-design §6.3). `Ticket` does not exist yet: implement the projection with a
@@ -381,6 +413,11 @@ optional phone. **No branch selector and no role selector** — A-15 fixes both 
       collision with another user returns `409 user-already-exists` and **leaves both rows
       untouched** — asserted by re-reading each row after the failed call, not merely by the status
       code. One `SaveChangesAsync` in the success path.
+- [ ] **The A-19 audit entry is proven, in both directions.** Exactly **one** `UserEmailChanged`
+      entry exists after a propagating patch, its `actorUserId` is the **agent who called** and its
+      `targetId` is the **linked user's** id; and **no** entry exists after a patch that changed no
+      login — the no-linked-login case, the same-email no-op, and the rejected collision are each
+      asserted to write none. `AuditEntries.Add(` still appears **only** in `AuditRecorder.cs`.
 - [ ] `00-overview.md` updated with this story.
 
 **STOP HERE. Report to the user and wait for confirmation before proceeding to Story 05.**

@@ -291,6 +291,14 @@ duplicate is rejected rather than reconciled.
 > slugs — `customer-email-in-use` from this endpoint, `user-already-exists` from `POST /auth/register`
 > (§5.2). **No new problem type is introduced by this decision.**
 >
+> **The propagation is audited, and the audit is invisible in the contract.** Row 2 above — the only
+> row that changes a login — also writes one `AuditEntry` with `action = UserEmailChanged` against
+> the linked user, actor = the authenticated agent, in the same unit of work
+> ([data-model.md](data-model.md) §2.14, §5 constraint 1b). **No response body changes, no field is
+> added to `Customer` (§6.3), and no endpoint is added**: audit entries are read through
+> `GET /audit` (§5.12, Administrator-only), which already filters by `action`. The other rows write
+> no audit entry, because no login changed — and a rejected request writes nothing at all.
+>
 > **This changes no other endpoint.** `User.email` remains unpatchable through `PATCH /users/{id}`
 > (§5.3) — the propagation is a server-side consequence of the customer patch, not a new writable
 > field, and no request model gains an `email` property (AP-10). **The caller's session is

@@ -321,7 +321,7 @@ Kept, not deleted.
 | R-14 | Who is the actor on the automatic `Pending -> Open` status change, which has no invoking user? | **The replying customer**, with `actorKind = User`. Their reply caused the transition, and A-5 requires every transition to carry an actor. **Not** a `System` actor — the SLA monitor stays the only system actor, and attributing a customer-caused change to the system would make ticket history less truthful. Approved 2026-08-24 after being flagged as a derived detail rather than applied silently. **No new entity or field**; `TicketActivity` already carries `actorUserId` and `actorKind` | 2026-08-24 | **A-5**, model 2.6 inv. 2b, 2.7, 2.8, constraint 9a |
 | R-13 | **PF-1** — is `Pending -> Open` legal, and what does a customer reply do to a `Pending` ticket? | **Both answered: the transition is legal and a customer reply triggers it automatically.** The reply is the trigger; no agent action is required. It fires from `Pending` only — a reply on `New` leaves it `New`, and a reply on `Resolved` does not reopen it. Recorded as a same-transaction status change with a `StatusChanged` history entry attributed to the replying customer | 2026-08-24 | **A-5**, A-16, model 2.6 inv. 2b, 2.8, constraint 9a |
 | R-12 | Which backend module owns `CustomerFeedback`? The data model labelled it "Portal", which is not one of the ten modules | **The existing `Tickets` module.** Feedback is domain behaviour attached to a ticket, offered when the ticket reaches `Resolved`; `customer-portal` is a front-end and planning concern, not a backend module. **No new module; the ten-module architecture is unchanged**, and the entity's shape, fields and relationships are untouched — an ownership label only | 2026-08-24 | **DM-7**, model §2.15, arch §1 |
-| R-15 | **OQ-5** — does changing `Customer.email` change a linked portal login's sign-in email? | **Yes, and atomically.** A customer's email and their portal sign-in are one address: the two rows change in the same unit of work, and `User.email`'s existing case-insensitive uniqueness applies to the new value across all users — a collision rejects the whole operation and writes neither row. Divergence is not a reachable state, which also keeps A-15's three registration outcomes exhaustive | 2026-08-27 | **A-19** |
+| R-15 | **OQ-5** — does changing `Customer.email` change a linked portal login's sign-in email? | **Yes, and atomically.** A customer's email and their portal sign-in are one address: the two rows change in the same unit of work, and `User.email`'s existing case-insensitive uniqueness applies to the new value across all users — a collision rejects the whole operation and writes neither row. Divergence is not a reachable state, which also keeps A-15's three registration outcomes exhaustive. **Amended the same day:** the propagation writes one **`UserEmailChanged`** audit entry, actor = the calling agent, target = the linked user, in that same unit of work — Story 02's recorder unchanged, one new action constant, no schema change | 2026-08-27 | **A-19** |
 | R-11 | **OQ-4** — what is the customer cancellation window? | **Assignment is not the start of work.** A ticket may be assigned while still `New`; `New → Open` is an agent deliberately starting work. The customer's window runs from creation until an agent picks the ticket up, so it is real rather than theoretical | 2026-08-24 | **A-18** |
 
 ### 6.5 Pre-flight findings carried forward (non-blocking)
@@ -417,7 +417,7 @@ needed amending, because nothing in that artifact contradicted the decision.
 | **B-1** feedback rating-scale config key | `architecture.md` §6.3 | — (story 13 consumes it) |
 | **B-2 / AP-17** configuration split by audience | `api-design.md` §5.1, §3 | — (stories 01, 08, 13, 16 consume it) |
 | **N-2 / OQ-5** customer email is patchable | `api-design.md` §5.5 | — (story 04; **no longer blocked** — see R-15) |
-| **R-15 / A-19** a customer's email and their portal sign-in are one address | `product-scope.md` **new A-19**; `api-design.md` §5.5 (box rewritten), §9 item 3, §10.3; `data-model.md` §2.4 invariant, **new §5 constraint 1a**, §8 resolved list; `ui-design.md` §5.5, §11 (row retired); `sdd-workflow.md` + 4 source-of-truth lines (assumption range) | `customer-records` (task 3) |
+| **R-15 / A-19** a customer's email and their portal sign-in are one address, **and the login change is audited** | `product-scope.md` **new A-19** (incl. the audit bullet); `api-design.md` §5.5 (box rewritten + audit note), §9 item 3, §10.3; `data-model.md` §2.4 invariant, **new §5 constraints 1a and 1b**, §2.14 (`UserEmailChanged` note + action list), §8 resolved list; `ui-design.md` §5.5, §11 (row retired); `sdd-workflow.md` + 4 source-of-truth lines | `customer-records` (task 3); `audit-configuration` (task 6 inventory) |
 | **R-14 / A-5** automatic transition attributed to the replying customer | `product-scope.md` A-5 (new attribution rule); `data-model.md` §2.6 invariant 2b, §2.7 `actorKind` note, §2.8 invariants, §5 constraint 9a | `ticket-lifecycle` |
 | **R-13 / A-5** customer reply reopens a `Pending` ticket | `product-scope.md` A-5 (transition graph + `Pending` bullet), A-16 (`-> Open` row); `data-model.md` §2.6 invariant 2b, §2.8 invariants, §5 constraint 9a | `ticket-lifecycle`, `ticket-intake-messaging`, `portal-self-service` |
 | **R-12 / DM-7** `CustomerFeedback` owned by `Tickets` | `data-model.md` **new DM-7**, §1 preamble, §2.15 ownership, §3 entity list; `architecture.md` §1 (`customer-portal` row) | — (no intake asserted an owning module) |
@@ -490,7 +490,7 @@ below record a reproducible outcome, not a one-off.
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-27 (latest) — OQ-5 answered: A-19
+### 2026-08-27 (latest) — OQ-5 answered: A-19, and the login change is audited
 
 - **The product owner chose Option A**, and it is recorded as **A-19** in
   [product-scope.md](product-scope.md) §7 — the register A-14…A-18 already use for exactly this
@@ -517,6 +517,31 @@ Newest first. Every meaningful project change gets an entry.
   to OQ-5: `api-design.md` §10.3 still traced A-10 to *"email immutability"* eight weeks after N-2
   removed that rule, and `ui-design.md`'s source-of-truth line still cited *"65 endpoints,
   AP-1…AP-18"* after AP-19 took it to 66.
+- **Amended the same day, on the product owner's instruction: the propagated login-email change is
+  audited**, as part of A-19 and inside the same unit of work.
+  - **Action code `UserEmailChanged`**, following `UserRoleChanged` / `UserDepartmentChanged`
+    exactly. **One new constant in `AuditAction`** — `AuditEntry`, `AuditTargetType`,
+    `IAuditRecorder` and the migration are untouched, and no endpoint is added. `AuditAction`'s
+    own comment already declared the set open, and data-model §2.14 already gave its actions as
+    examples.
+  - **Actor is the agent who issued the `PATCH`**, resolved from `ICurrentUser` the ordinary way.
+    The `actorUserId` override is explicitly **not** used — it exists for the anonymous
+    successful-sign-in case alone.
+  - **Target is the linked `User`, not the customer.** The audited fact is that a sign-in
+    identifier changed; the profile edit beside it is business data, not a security event (AD-10),
+    and is not audited.
+  - **The entry records no email address, old or new** — `AuditEntry` has no value columns, exactly
+    as `UserRoleChanged` records that a role changed without recording which. Adding them would be
+    a schema change *and* would copy a personal identifier into a log that is never deleted, so it
+    was rejected. Recorded in data-model §2.14 so nobody re-opens it as an oversight.
+  - **Written only on a real change**, and never on a rejection: no entry for an absent `email`, an
+    unchanged address, a customer with no linked login, or either `409`. **No `Failure` row exists
+    for this action**, matching every user-administration call site in Story 02 — only a failed
+    *sign-in* is recorded as `Failure`.
+  - **Atomic without new machinery:** `RecordAsync` adds to the change tracker and does not commit,
+    so the single `SaveChangesAsync` commits both rows and the entry together.
+  - **Story 16's audit-coverage inventory (task 6) gained the row**, so its completeness check does
+    not later flag `UserEmailChanged` as an unaccounted action.
 - **Nothing was implemented.** Story 04 remains Not Started.
 
 ### 2026-08-27 — story 03 completed

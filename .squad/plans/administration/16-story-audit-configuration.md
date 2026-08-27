@@ -202,11 +202,18 @@ surface, **audit the coverage** against the intake's list and add any missing ca
 |---|---|---|
 | Sign-in | Story 02 | `SignInSucceeded`, `SignInFailed` |
 | User administration | Story 02 | `UserCreated`, `UserDeactivated`, `UserRoleChanged`, `UserDepartmentChanged` |
+| User administration | **Story 04** | **`UserEmailChanged`** — written when a customer's email change propagates to their linked portal login (**A-19**, data-model §2.14 and §5 constraint 1b). It is user administration by consequence rather than by endpoint: the caller patched a customer, and a sign-in identifier moved |
 | Ticket lifecycle | Story 06 | `TicketStatusChanged`, `TicketEscalated` |
 
 **Every write goes through `IAuditRecorder`.** `grep` for direct `AuditEntries.Add(` outside
 `AuditRecorder.cs` — there must be none (architecture §2.4: *"Audit writes are never issued from
 controllers or from Infrastructure."*).
+
+**The `action` filter is a free-text match on a string column, so this table needs no code.** No
+enum, no lookup table and no per-action UI list exists — `AuditAction`'s constants are a
+typo guard, not a closed set (data-model §2.14 gives the actions as examples). A story that adds
+an action adds a constant and a call site; **this table is the inventory that keeps it visible**,
+and `UserEmailChanged` is the first action a story other than 02 or 06 contributes.
 
 ### 7 — Application: the audit read service
 

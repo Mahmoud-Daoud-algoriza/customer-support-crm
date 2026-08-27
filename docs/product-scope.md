@@ -512,10 +512,20 @@ left open rather than invent.
 - **Why this reading.** A-10 identifies a customer by a unique email address. Letting the profile
   and the login diverge would give one person two identifying addresses, and A-9 excludes account
   recovery, so no mechanism would exist to reconcile them afterwards.
+- **The change to the login is audited** (added 2026-08-27, part of this assumption). Changing
+  someone's sign-in identifier is a permission-relevant act of user administration, which T2-H and
+  the `audit-configuration` intake already require to be recorded. It uses the **existing** audit
+  mechanism — one action code, `UserEmailChanged`, alongside `UserRoleChanged` and
+  `UserDepartmentChanged` — and introduces no new audit architecture, no new endpoint and no schema
+  change. It is written **only when a linked login's email actually changes**, and it commits in the
+  **same unit of work** as the change itself: both rows and the audit entry, or none of them.
+  Details in [data-model.md](data-model.md) §2.14 and §5 constraint 1a.
 - **The cost is accepted and is not mitigated here.** An agent who mistypes a customer's email
   changes what that customer must type to sign in, and A-9 provides no recovery flow. No
   confirmation step, no grace period and no notification is introduced by this decision; the UI
-  states the consequence before the save ([ui-design.md](ui-design.md) §5.5).
+  states the consequence before the save ([ui-design.md](ui-design.md) §5.5). The audit entry above
+  is what makes the change **traceable** afterwards — it is not a mitigation, and it does not undo
+  anything.
 
 ---
 

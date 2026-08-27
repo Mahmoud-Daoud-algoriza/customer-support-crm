@@ -581,7 +581,7 @@ customer search result, enforced server-side.
 | `occurredAt` | ✔ | |
 | `actorUserId` | ✖ | Null when no user could be resolved — a failed sign-in |
 | `actorDescriptor` | ✖ | The submitted identifier when `actorUserId` is null, so a failed sign-in is still attributable. Required by "recorded actions: sign-in" in the `audit-configuration` intake |
-| `action` | ✔ | e.g. `SignInSucceeded`, `SignInFailed`, `UserCreated`, `UserDeactivated`, `UserRoleChanged`, `UserDepartmentChanged`, `TicketStatusChanged`, `TicketEscalated` |
+| `action` | ✔ | e.g. `SignInSucceeded`, `SignInFailed`, `UserCreated`, `UserDeactivated`, `UserRoleChanged`, `UserDepartmentChanged`, **`UserEmailChanged`** (A-19 — see the note below), `TicketStatusChanged`, `TicketEscalated` |
 | `targetType` | ✖ | e.g. `User`, `Ticket` |
 | `targetId` | ✖ | |
 | `outcome` | ✔ | `Success` \| `Failure` — the intake names outcome explicitly |
@@ -596,6 +596,30 @@ service method exists.
 visibility. `UserRoleChanged` has no ticket; `MessagePosted` is not a security event. Both remain
 independently queryable (AD-10, `audit-configuration` AC). The two tables share a discipline, not a
 schema.
+
+**`UserEmailChanged` — what it records, and what it deliberately does not (A-19).** When a customer's
+email change propagates to their linked portal login (§5 constraint 1a), that propagation is
+recorded here: it changes a **sign-in identifier**, which is user administration of the kind T2-H and
+the `audit-configuration` intake already require to be logged.
+
+| Field | Value |
+|---|---|
+| `action` | `UserEmailChanged` |
+| `actorUserId` | The **authenticated agent who issued the `PATCH`**, resolved from the request like every other entry. The `actorUserId` override exists for one case only — a successful sign-in, where the request is anonymous — and **is not used here** |
+| `targetType` / `targetId` | `User`, and **the linked user's id** — not the customer's. The audited fact is that a login's identifier changed; the profile edit beside it is business data, not a security event, and is not audited |
+| `outcome` | `Success`. **A rejected change writes nothing at all**, audit entry included, so no `Failure` row exists for this action — the same convention as every user-administration call site. Only a failed *sign-in* is recorded as `Failure` |
+| `occurredAt` | Server clock |
+
+**It does not record the old or the new address**, because this entity has **no value columns** —
+exactly as `UserRoleChanged` records that a role changed without recording which roles. Adding
+`oldValue`/`newValue` here would be a schema change **and** would copy a personal identifier into an
+append-only log that is never deleted, so it is not done. `TicketActivity` (§2.7) carries value
+columns; this table is not that table, and AD-10 is the reason.
+
+**One entry, only on a real change.** No entry is written when the `PATCH` omits `email`, when the
+new address equals the old one, when the customer has **no** linked login, or when the operation is
+rejected. The entry is added to the same unit of work as the two row updates and commits with them
+([architecture.md](architecture.md) §3), so an audited change and its record cannot come apart.
 
 ### 2.15 `CustomerFeedback`
 
@@ -741,6 +765,11 @@ branch filter the reports ask for. Full audit of the sources in §2.3.
     differ. Constraint 1 still applies to the propagated value across **all** users, staff included;
     a collision rejects the whole operation and writes neither row. A profile-only customer has no
     login to propagate to, which DM-1 makes the ordinary case.
+1b. **A propagated login-email change is audited (A-19).** When — and only when — constraint 1a
+    actually changes a `User.email`, one `AuditEntry` with `action = UserEmailChanged` is written
+    against that user, in the **same unit of work** as the two row updates. Shape and rationale in
+    §2.14. The customer-profile edit on its own is **not** audited: it is business data, not a
+    security event (AD-10).
 2. A `User` of role `Customer` has `customerId` set and `departmentId` null; a staff user is the
    reverse.
 3. At most one `User` per `Customer`.
