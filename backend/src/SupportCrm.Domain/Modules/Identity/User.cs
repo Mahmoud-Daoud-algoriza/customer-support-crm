@@ -59,7 +59,7 @@ public sealed class User
     /// (docs/api-design.md §5.3). <c>UserAdminService</c> rejects the same three cases with proper
     /// Problem Details; this factory is the invariant that makes bypassing it impossible.
     /// </para>
-    /// <c>CreateCustomerUser</c> is added by Story 04, when <c>Customer</c> exists.
+    /// <see cref="CreateCustomerUser"/> is the <c>Customer</c>-role counterpart, added by Story 04.
     /// </summary>
     public static User CreateStaff(
         Guid id,
@@ -96,6 +96,75 @@ public sealed class User
             Role = role,
             DepartmentId = departmentId,
             CustomerId = null,
+            BranchId = branchId,
+            IsActive = true,
+            CreatedAt = createdAt,
+        };
+    }
+
+    /// <summary>
+    /// Creates a portal login for an existing customer profile — the <c>Customer</c> shape of DM-1,
+    /// which <see cref="CreateStaff"/> refuses outright.
+    ///
+    /// <para>
+    /// <b>The three values DM-1 fixes are not parameters, because they are not choices:</b>
+    /// <see cref="Role"/> is always <c>Customer</c>, <see cref="DepartmentId"/> is always null
+    /// (docs/data-model.md §5 constraint 2), and <see cref="CustomerId"/> is required. A login
+    /// always points at a profile that already exists — <b>a customer is never created as a side
+    /// effect of creating a login</b>, which is what keeps A-10's one-customer-per-email rule true
+    /// (A-15).
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Uniqueness is not checked here and cannot be.</b> Both <c>User.email</c> and the
+    /// at-most-one-login-per-customer rule (§5 constraint 3) are cross-row, which the Domain layer
+    /// cannot see. The caller checks them.
+    /// </para>
+    ///
+    /// <para>
+    /// <b><paramref name="branchId"/> is optional and is normally null.</b>
+    /// docs/data-model.md §2.1 describes <c>User.branchId</c> as <em>"staff location, a reporting
+    /// attribute only"</em>, and a customer's branch is the required <c>Customer.branchId</c> of
+    /// §2.4 — so a portal login has no branch of its own to carry. The parameter exists rather than
+    /// being hardcoded because Story 04 <b>task 7</b> reads A-15 as also setting a branch here; that
+    /// is task 7's call to make, and this factory does not pre-empt it either way.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Added by slice 3 because task 9's seeder needs it</b> — the plan assigns this factory to
+    /// task 7, which task 9 then depends on. Adding the factory is not implementing registration:
+    /// <c>AuthService.RegisterAsync</c>, <c>POST /auth/register</c> and the three A-15 outcomes all
+    /// remain unbuilt.
+    /// </para>
+    /// </summary>
+    public static User CreateCustomerUser(
+        Guid id,
+        string email,
+        string passwordHash,
+        string displayName,
+        Guid customerId,
+        DateTimeOffset createdAt,
+        Guid? branchId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+        ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash);
+        ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
+
+        if (customerId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A Customer-role user requires the profile it signs in to (DM-1).", nameof(customerId));
+        }
+
+        return new User
+        {
+            Id = id,
+            Email = email.Trim(),
+            PasswordHash = passwordHash,
+            DisplayName = displayName.Trim(),
+            Role = UserRole.Customer,
+            DepartmentId = null,
+            CustomerId = customerId,
             BranchId = branchId,
             IsActive = true,
             CreatedAt = createdAt,

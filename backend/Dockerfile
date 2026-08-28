@@ -19,6 +19,16 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
 
+# Story 04: the attachment store (T2-A, local disk by design). The directory is created HERE, as
+# root and before the USER switch, and handed to the runtime user.
+#
+# This is not decoration. Compose mounts a named volume over this path, and Docker initializes an
+# empty named volume from the image's directory -- INCLUDING its ownership. Without this the volume
+# is created root-owned, the non-root runtime user cannot write into it, and the first attachment
+# upload fails with "Access to the path ... is denied". The path matches
+# SupportCrm__Attachments__StorageRoot in docker-compose.yml.
+RUN mkdir -p /var/lib/supportcrm/attachments && chown -R $APP_UID:$APP_UID /var/lib/supportcrm
+
 # The image runs as the non-root user the base image already provides.
 USER $APP_UID
 EXPOSE 8080

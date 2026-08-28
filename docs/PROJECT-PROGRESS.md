@@ -16,14 +16,14 @@
 
 | | |
 |---|---|
-| **Current SDD stage** | **Stage 10 (Implementation) in progress — stories 01, 02 and 03 complete and verified; story 16 **Part A** complete; story 04 **slices 1 and 2 of 6** complete** |
-| **Current phase** | Design and planning **complete**. Phase 0 and **Phase 1** delivered. **Phase 2 is under way**: story 16 **Part A** (configuration) is in, and story 04's **first two slices** — the `Customers` domain module and data layer, then `CustomerService` and the **A-19** propagation. Part B stays at Phase 7 |
+| **Current SDD stage** | **Stage 10 (Implementation) in progress — stories 01, 02 and 03 complete and verified; story 16 **Part A** complete; story 04 **slices 1–3 of 6** complete** |
+| **Current phase** | Design and planning **complete**. Phase 0 and **Phase 1** delivered. **Phase 2 is under way**: story 16 **Part A** (configuration) is in, and story 04's **first three slices** — the `Customers` domain module and data layer, `CustomerService` and the **A-19** propagation, then notes, the timeline projection, attachments and demo data. Part B stays at Phase 7 |
 | **Overall status** | 🟡 On track with **four blocked acceptance criteria**. The SDD chain is finished end to end; the stage 9 audit found two genuine contradictions (S9-1, S9-4) and scheduled two carried findings (PF-2, PF-4). **None blocks stories 01–04** |
 | **Overall progress** | **45.8%** (method in §1.1) |
 | **SDD pipeline** | **9 of 10 stages complete** (90% of the pipeline) |
-| **Code written** | **Stories 01, 02, 03, story 16 Part A, and story 04 slices 1–2 (tasks 1–3).** Authentication, the four-role model, per-request identity resolution, user administration, the audit recorder, the two organization read endpoints and all three configuration tiers run. Thirteen endpoints exist, and **configuration is validated at startup**. `backend/` holds the five-project solution, `frontend/` the Angular + PrimeNG app (built on PrimeNG Sakai `20.0.0`), `docker-compose.yml` runs three services and **two volumes** — story 04 slice 1 added the attachment volume. **The first business entities exist**: `Customers`, `CustomerNotes` and `Attachments` are mapped and migrated, and `User.CustomerId` now carries its foreign key. `CustomerService` now implements the four profile operations of api-design §5.5 **including the A-19 email propagation**, but **no slice has published an endpoint or a screen** — still thirteen endpoints, and `openapi/v1.json` still lists 11 paths |
+| **Code written** | **Stories 01, 02, 03, story 16 Part A, and story 04 slices 1–3 (tasks 1–6 and 9).** Authentication, the four-role model, per-request identity resolution, user administration, the audit recorder, the two organization read endpoints and all three configuration tiers run. Thirteen endpoints exist, and **configuration is validated at startup**. `backend/` holds the five-project solution, `frontend/` the Angular + PrimeNG app (built on PrimeNG Sakai `20.0.0`), `docker-compose.yml` runs three services and **two volumes** — story 04 slice 1 added the attachment volume. **The first business entities exist**: `Customers`, `CustomerNotes` and `Attachments` are mapped and migrated, and `User.CustomerId` now carries its foreign key. The whole `Customers` Application module now exists — profiles with the **A-19 email propagation**, immutable notes, the timeline read projection, and attachments on local disk — and **demo customers, portal logins, a note and a file are seeded at startup**. **No slice has published an endpoint or a screen**: still thirteen endpoints, and `openapi/v1.json` still lists 11 paths |
 | **Last updated** | 2026-08-27 |
-| **Current focus** | Story 04 **slice 2 of 6** complete and verified — `CustomerService` (plan task 3), carrying **A-19** and its single `UserEmailChanged` audit entry. **Awaiting explicit approval before slice 3** (tasks 4, 5, 6, 9 — notes, timeline, attachments, seed data). Story 04 is being delivered in slices at the user's instruction; the slice map is in [00-overview.md](../.squad/plans/customer-management/00-overview.md). Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
+| **Current focus** | Story 04 **slice 3 of 6** complete and verified — notes, the interaction timeline, attachments and the demo seeder (plan tasks 4, 5, 6 and 9). **Awaiting explicit approval before slice 4** (task 8 — the controllers, where the `RequireAgent` gate and plan task 10's `CustomerAccessTests` land). Story 04 is being delivered in slices at the user's instruction; the slice map is in [00-overview.md](../.squad/plans/customer-management/00-overview.md). Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 35% is calculated
@@ -37,11 +37,12 @@ recorded here so the number is reproducible rather than invented.
 | **Delivery** | Row 10 — the 18 stories implemented *and* verified | 65% | **3 of 18** | 3 ÷ 18 × 65 = **10.8%** |
 | | | **100%** | | **= 45.8%** |
 
-**A story counts only when it is implemented *and* verified in full.** Story 04's first two slices
-are in and verified, and they move the number by **nothing** — deliberately. The row counts stories,
-not tasks, so a six-slice story contributes 0% until its last slice lands. Reporting a fraction of a
-story would make the percentage a measure of effort rather than of delivered behaviour, and neither
-slice delivered any user-visible behaviour: no endpoint and no screen has been published.
+**A story counts only when it is implemented *and* verified in full.** Story 04's first three
+slices are in and verified, and they move the number by **nothing** — deliberately. The row counts
+stories, not tasks, so a six-slice story contributes 0% until its last slice lands. Reporting a
+fraction of a story would make the percentage a measure of effort rather than of delivered
+behaviour, and no slice so far has delivered any: no endpoint and no screen has been published, so
+nothing a user could do has changed.
 
 **The design-and-planning track is fully consumed.** Every remaining percentage point is delivery.
 This is the point the weighting was chosen to make honest: **a fully planned project with no running
@@ -72,7 +73,7 @@ delivery carries the larger weight. A design-only project is not most of the way
 | 7 | API Design | ✅ Complete | [api-design.md](api-design.md) | ✅ | ✅ Met | **66** endpoints, 12 modules, 19 API decisions (AP-1…AP-19). Pre-flight passed 2026-08-24; post-flight 2026-08-25 closed two blocking defects; **N-1 refinement 2026-08-25 added the full payload catalogue** |
 | 8 | UI Design | ✅ Complete | [ui-design.md](ui-design.md) | ✅ | ✅ Met | 24 screens across 4 surfaces, 12 UI decisions (UI-1…UI-12), every screen mapped to endpoints that exist |
 | 9 | Implementation Plans | ✅ Complete | **18** × `.squad/plans/<feature>/NN-story-*.md` + [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) + 14 updated `00-overview.md` + [00-index.md](../.squad/plans/00-index.md) | ✅ | ✅ Met for story 01; per-story thereafter | Completed 2026-08-25. `squad status`: 18 stories, **18 plan files**, next `NN` 19. A full traceability and consistency audit produced **13 findings (S9-1…S9-13)**, of which **4 block a named acceptance criterion** (§6.7) |
-| 10 | Implementation / Verification | 🟡 **In Progress** | `backend/`, `frontend/` | ✅ (both populated) | Per story | **Current stage.** Stories **01, 02, 03** complete and verified; story **16 Part A** complete and verified; story **04 slices 1–2 of 6** complete and verified. Stories 05–15, 17, 18 and story 16 Part B not started. *(This row said "No code exists. Begins with story 01" until 2026-08-27 — stale since story 01 landed on 2026-08-25, and contradicted by §1 and §3 of this same document. Corrected during story 04 slice 1.)* |
+| 10 | Implementation / Verification | 🟡 **In Progress** | `backend/`, `frontend/` | ✅ (both populated) | Per story | **Current stage.** Stories **01, 02, 03** complete and verified; story **16 Part A** complete and verified; story **04 slices 1–3 of 6** complete and verified. Stories 05–15, 17, 18 and story 16 Part B not started. *(This row said "No code exists. Begins with story 01" until 2026-08-27 — stale since story 01 landed on 2026-08-25, and contradicted by §1 and §3 of this same document. Corrected during story 04 slice 1.)* |
 
 **Numbering note.** These ten rows are this dashboard's structure.
 [sdd-workflow.md](sdd-workflow.md) is the canonical pipeline and numbers its stages slightly
@@ -107,7 +108,7 @@ earlier reading in three places (S9-7, S9-8, S9-12).
 | 01 | `solution-skeleton` | platform-foundation | T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-25, re-run 2026-08-26 | — | — |
 | 02 | `auth-and-roles` | identity-access | **T1** | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-26 | 01, **03 data** | — |
 | 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-27 | 01, 02 | — · tasks 1–3 landed early with story 02, tasks 4–8 after it, per S9-12 |
-| 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | 🟡 **Slices 1–2 (tasks 1–3) done** | ✅ **Slices 1–2 verified** 2026-08-27 | 01–03, **16 A** | — · **OQ-5 closed 2026-08-27 (A-19)**, and **A-19 is now implemented** · sliced at the user's instruction; slice map in [00-overview.md](../.squad/plans/customer-management/00-overview.md) |
+| 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | 🟡 **Slices 1–3 (tasks 1–6, 9) done** | ✅ **Slices 1–3 verified** 2026-08-28 | 01–03, **16 A** | — · **OQ-5 closed 2026-08-27 (A-19)**, and **A-19 is now implemented** · sliced at the user's instruction; slice map in [00-overview.md](../.squad/plans/customer-management/00-overview.md) |
 | 05 | `ticket-core` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–04, **16 A** | ⚠ **OQ-2** |
 | 06 | `ticket-lifecycle` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 05 | ⚠ OQ-3 *(no-manager branch only)* |
 | 07 | `ticket-intake-messaging` | ticket-management | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 05, 06, 04, 16 A | — |
@@ -402,7 +403,7 @@ transition menu is computed client-side; the server remains the authority and a 
 plan confines the duplicated matrix to **one file**, `shared/lifecycle/transition-matrix.ts`, so
 closing F-1 later deletes exactly one file.
 
-### 6.8 Implementation findings — story 04 slices 1 and 2 (2026-08-27)
+### 6.8 Implementation findings — story 04 slices 1–3 (2026-08-27 / 28)
 
 Two gaps in the approved documents surfaced while building story 04's first slice. **Neither is
 resolved by invention.** Each records what was done, why, and what the user has to decide if the
@@ -413,8 +414,14 @@ choice is wrong.
 | **I-1** | **The attachment storage root has no home in any approved document.** Story 04's plan task 2 requires `LocalDiskAttachmentStorage` to write "under a **configured** root", but [architecture.md](architecture.md) §6.3's configuration table does not list such a key, and story 16 Part A's plan states *"no new configuration key beyond architecture §6.3's table and the attachment cap is introduced"* — so Part A did not add one either | Added **`SupportCrm:Attachments:StorageRoot`** to the existing `AttachmentOptions`, defaulting to `App_Data/attachments` and overridden in Compose to an absolute path on a new named volume. **It is deployment plumbing, not a product rule:** it answers no open question, is validated only for presence, and is returned to no client — neither it nor `Attachment.storagePath` appears in any response (api-design §6.7). The alternative was a path constant in the storage class, which architecture §6.3's own reasoning forbids. **If architecture §6.3's table is meant to be exhaustive, this is a one-row amendment to an approved document and therefore the user's to take** |
 | **I-2** | **[data-model.md](data-model.md) §6 declares no index for `CustomerNote`**, while declaring `TicketInternalNote(ticketId, createdAt)` for the analogous per-parent, newest-first read. `GET /customers/{id}/notes` is exactly that shape (api-design §5.5) | **No index was added.** §6's stated rule is *"everything below exists because a named query in a story needs it — no speculative indexing"*, and the foreign key on `CustomerNote.CustomerId` is indexed as a matter of course by §6's own opening line, so the query is already served. Adding the composite would be a physical decision this document reserves to itself. **Recorded rather than taken:** if the asymmetry is an omission, it is a §6 amendment |
 
-**Neither finding blocks a later slice.** Both are visible in the code at the point they matter:
-I-1 in `AttachmentOptions.StorageRoot`'s doc comment, I-2 in `CustomerNoteConfiguration`'s.
+**None of these blocks a later slice**, and each is visible in the code at the point it matters:
+I-1 in `AttachmentOptions.StorageRoot`'s doc comment, I-2 in `CustomerNoteConfiguration`'s, I-3 on
+`User.ChangeEmail`, I-5 on `User.CreateCustomerUser`, I-6 on `AttachmentUpload`, I-7 in
+`SupportCrmDbContext.ApplySqliteDateTimeOffsetWorkaround`, and I-8 in the Dockerfile.
+
+**Two remain the user's call** — I-1 (a configuration key architecture §6.3's table does not list)
+and I-2 (an index data-model §6 declares for `TicketInternalNote` but not for `CustomerNote`). The
+rest are implementation consequences with no product content.
 
 Slice 2 added two more. Both are **implementation consequences with no product content**, recorded
 so they are not mistaken for silent decisions.
@@ -422,7 +429,16 @@ so they are not mistaken for silent decisions.
 | ID | Finding | What was done, and why |
 |---|---|---|
 | **I-3** | **A-19 needs a `User.email` mutator that Story 02 deliberately did not provide.** Story 02 left `User` without one because docs/api-design.md §5.3 makes email unpatchable through `PATCH /users/{id}`, and the plan's A-19 box requires `CustomerService.UpdateAsync` to *"set both `Customer.Email` and `User.Email`"* | Added **`User.ChangeEmail`**. The restriction §5.3 states lives in the **request model** — where AP-10 puts every such restriction — not in the absence of a domain mutator, and the plan says so itself: *"`PatchUserRequest` gains no `email` property"*. It does not, and a test asserts it. The mutator's doc comment names its one legitimate caller, and states that uniqueness is a cross-row rule it cannot check |
-| **I-4** | **SQLite cannot `ORDER BY` a `DateTimeOffset`**, so the `createdAt` sort that docs/api-design.md §5.5 names cannot execute on the hermetic test host. SQL Server can | **The implementation was not changed to suit the test provider.** The whitelist test asserts what AP-15 is actually about — that `createdAt` is *accepted* and an unlisted field is a `400` — and the ordering itself is verified against real SQL Server in §8, the same treatment the case-insensitive collation already gets. **This is latent for `/users` too**, whose whitelist has carried `createdAt` since Story 02 with no test exercising it; nothing is broken, because production runs SQL Server |
+| **I-4** | **SQLite cannot `ORDER BY` a `DateTimeOffset`**, so the `createdAt` sort that docs/api-design.md §5.5 names cannot execute on the hermetic test host. SQL Server can | **The implementation was not changed to suit the test provider.** The whitelist test asserts what AP-15 is actually about — that `createdAt` is *accepted* and an unlisted field is a `400`. **Superseded by I-7**, which found the same limitation blocking a *mandated* ordering and fixed it at the provider boundary |
+
+Slice 3 added four more.
+
+| ID | Finding | What was done, and why |
+|---|---|---|
+| **I-5** | **Task 9 cannot be built without a piece of task 7.** Task 9 requires *"at least two \[customers] with a linked portal `User`"*, but `User.CreateStaff` refuses the `Customer` role (DM-1) and the plan assigns **`User.CreateCustomerUser`** to **task 7**, which this slice excludes | **The factory moved into slice 3; registration did not.** Its shape is fully determined by DM-1 — role always `Customer`, `departmentId` always null, `customerId` required — so nothing was invented. `AuthService.RegisterAsync`, `POST /auth/register` and the three A-15 outcomes all remain unbuilt and are verified absent. **A secondary ambiguity is left open for task 7:** the plan says *"`branchId` is **always** the configured default (A-15, DM-1)"*, but A-15 and api-design §7 both govern **`Customer.branchId`**, while data-model §2.1 calls **`User.branchId`** a *"staff location"*. The factory takes an optional `branchId` defaulting to null and the seeder passes null; **task 7 decides what it passes** |
+| **I-6** | **`IFormFile` cannot cross into the Application layer.** The plan sketches `UploadForCustomerAsync(customerId, IFormFile)`, but `IFormFile` is `Microsoft.AspNetCore.Http` and `SupportCrm.Application` carries **no ASP.NET Core reference** — docs/architecture.md §2.1 keeps that layer free of HTTP concerns (AD-2) | Introduced an Application-owned `AttachmentUpload(Stream, FileName, ContentType, SizeBytes)`. **This follows the plan rather than departing from it:** the plan's own `IAttachmentStorage`, built in slice 1, already takes a `Stream` for exactly this reason, so the `IFormFile` in task 6 is a signature sketch the plan contradicts elsewhere. The controller maps one to the other in a single line in slice 4 |
+| **I-7** | **SQLite cannot `ORDER BY` a `DateTimeOffset` at all** — and unlike I-4, this blocks a **mandated** ordering, not an optional sort. The notes list and the attachment list are *newest first* by contract (api-design §5.5), and Story 06's timeline will be too, so on the test host those reads could not execute and would have **no automated coverage whatsoever** | Under SQLite **and only SQLite**, every `DateTimeOffset` is stored as UTC ticks, applied in `OnModelCreating` behind a provider check — **the mirror of the `IsSqlServer()` collation guard that already exists there**, and justified by the same sentence: *"the guard is about the provider, not about the rule"*. It is lossless here because every timestamp comes from `TimeProvider.GetUtcNow()` and serializes as UTC. **Production is provably untouched:** `dotnet ef migrations has-pending-model-changes` reports no model change, and the columns are still `datetimeoffset` on the running SQL Server |
+| **I-8** | **A real deployment defect, found only by running the stack.** The image runs as a non-root user (`USER $APP_UID`) but the `supportcrm-attachments` volume was created root-owned, so the first startup that actually wrote a file — slice 3's seeder — crashed the host with `Access to the path '/var/lib/supportcrm/attachments/2026' is denied`. Slice 1 added the volume; nothing had written to it until now | The Dockerfile now creates and `chown`s the directory **before** the `USER` switch, so Docker initializes the named volume with the runtime user's ownership. Verified: the volume root is now owned by the app UID and the seeded file is present. **Caveat worth knowing:** this self-heals only because the volume was still empty — Docker seeds ownership from the image only into an *empty* volume, so an existing populated volume would need `docker volume rm` |
 
 ### 6.4 Decision → document → story traceability
 
@@ -459,35 +475,35 @@ No decision so far has changed [requirements.md](requirements.md), which is neve
 ## 7. Implementation Progress
 
 **Stories 01, 02 and 03 are implemented and verified, story 16 Part A with them, and story 04's
-first two slices — plan tasks 1, 2 and 3 — on top.** Every claim below was re-verified by running
-the commands in §8 on 2026-08-27, not inferred from a plan.
+first three slices — plan tasks 1–6 and 9 — on top.** Every claim below was re-verified by running
+the commands in §8 on 2026-08-28, not inferred from a plan.
 
 | Area | Status | Evidence |
 |---|---|---|
-| Backend | ✅ Stories 01, 02, 03, 16 A, 04 slices 1–2 | `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. `SupportCrm.Domain` still has **0 project and 0 package references** and no EF attribute (AD-2, AD-4) |
+| Backend | ✅ Stories 01, 02, 03, 16 A, 04 slices 1–3 | `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. `SupportCrm.Domain` still has **0 project and 0 package references** and no EF attribute (AD-2, AD-4) |
 | Frontend | ✅ Stories 01, 02, 03 | Angular 20.1.2 + PrimeNG 20.0.0 on Sakai `20.0.0`. `npm run build` succeeds; `npm run lint:styles` clean. Sign-in, guards, role redirect, staff shell avatar menu and the admin user screens all exercised in a real browser |
 | Database | ✅ Schema live | **`InitialSchema` and `Customers` both applied to real SQL Server**: `Branches`, `Departments`, `Users`, `AuditEntries`, **`Customers`, `CustomerNotes`, `Attachments`**. `Users.Email` **and `Customers.Email`** both carry `SQL_Latin1_General_CP1_CI_AS` at `nvarchar(256)` — the same address, the same width, the same collation, as §6.1 requires. `Users(CustomerId)` is a filtered unique index and **now has its foreign key to `Customers`**, closing the DM-1 link story 02 left open. `CK_Attachments_OwnerXor` is present and **proven to refuse both a no-owner and a both-owners row** (§5 constraint 20) |
 | Configuration | ✅ Validated at startup | Seven option types bound and `ValidateOnStart`. Six checks: every category maps to an existing department (A-14), every priority has an SLA target with positive hours (A-3), `DefaultBranchId` is an existing branch (A-15), `Priorities` equals the A-6 levels in order, `Min < Max` on the rating scale (structural only — **OQ-1 stays open**), and a positive attachment cap. **All six proven to stop the host** by starting the real API with each value broken in turn |
-| Seed data | ✅ Running at startup | 2 departments (both with a manager), 2 branches, 4 staff users — Administrator, Manager and **two Agents in different departments**, so Story 05's scoping tests have material. Password from configuration; no credential in source |
-| Tests | ✅ **114 passing**, 1 skipped by design, plus 4 front-end specs | Backend: `AuthorizationTests`, `UserAdminValidationTests`, `AuditRecordingTests`, `PlatformEndpointTests`, `OrganizationEndpointTests`, and story 16 Part A's `ConfigurationTierTests` (8), `ConfigurationValidationTests` (10) and `NoConfigurationEntityTests` (18). Includes the **AD-15 deactivation regression** and the indistinguishability of a wrong password from a deactivated account. `BranchIsNotABoundaryTests` is **skipped until story 05** creates `Ticket`. Story 04 slice 1 adds `CustomerDataLayerTests` (14) and `AttachmentStorageTests` (8); slice 2 adds `CustomerServiceTests` (24), which walks the **whole A-19 case table** — **46 tests** in all, none of them an endpoint test, because no slice has published an endpoint. Front end: `department-filter.component.spec.ts` — the repo's first specs; the karma target and its dependencies were already configured by story 01 |
-| Docker / infrastructure | ✅ Complete for the stack | `docker compose up --build` brings **db, api, web** up; the API waits for the database's health check. Story 04 slice 1 adds a **second named volume**, `supportcrm-attachments`, mounted at `/var/lib/supportcrm/attachments` — attachment bytes cannot live in the image (T2-A) |
+| Seed data | ✅ Running at startup | 2 departments (both with a manager), 2 branches, 4 staff users — Administrator, Manager and **two Agents in different departments**, so Story 05's scoping tests have material. **Story 04 slice 3 adds `CustomerSeeder` (`Order = 30`)**: 4 customers spread across **both** branches (which is what makes Story 05's "branch is not a boundary" test meaningful), **2 with a portal login and 2 deliberately without** — both DM-1 shapes, so A-19 is demonstrable by hand — plus one note and one attachment. A seeded portal login signs in successfully. Password from configuration; no credential in source |
+| Tests | ✅ **140 passing**, 1 skipped by design, plus 4 front-end specs | Backend: `AuthorizationTests`, `UserAdminValidationTests`, `AuditRecordingTests`, `PlatformEndpointTests`, `OrganizationEndpointTests`, and story 16 Part A's `ConfigurationTierTests` (8), `ConfigurationValidationTests` (10) and `NoConfigurationEntityTests` (18). Includes the **AD-15 deactivation regression** and the indistinguishability of a wrong password from a deactivated account. `BranchIsNotABoundaryTests` is **skipped until story 05** creates `Ticket`. Story 04 slice 1 adds `CustomerDataLayerTests` (14) and `AttachmentStorageTests` (8); slice 2 adds `CustomerServiceTests` (24), which walks the **whole A-19 case table**; slice 3 adds `CustomerNotesAndTimelineTests` (9), `AttachmentServiceTests` (11) and `CustomerSeederTests` (6) — **72 tests** in all, none of them an endpoint test, because no slice has published an endpoint. Front end: `department-filter.component.spec.ts` — the repo's first specs; the karma target and its dependencies were already configured by story 01 |
+| Docker / infrastructure | ✅ Complete for the stack | `docker compose up --build` brings **db, api, web** up; the API waits for the database's health check. Story 04 slice 1 adds a **second named volume**, `supportcrm-attachments`, mounted at `/var/lib/supportcrm/attachments` — attachment bytes cannot live in the image (T2-A). **Slice 3 fixed a real defect in that mount** (finding **I-8**): the image runs as a non-root user, the volume was created root-owned, and the first startup that actually wrote a file failed with `Access to the path … is denied`. The directory is now created and `chown`ed in the Dockerfile **before** the `USER` switch, so Docker initializes the volume with the right ownership |
 
 **Endpoints that exist (13):** `/health`, `/config/bootstrap`, **`/config`**, **`/config/staff`**,
 `/auth/login`, `/auth/me`, the five `/users` routes, and `GET /departments` and `GET /branches`. `POST /auth/register` is **deferred to
 Story 04** by S9-7. **Neither organization route has a write verb**, and neither ever will: T2-I
 makes departments and branches seeded configuration.
 
-**Still thirteen endpoints after story 04 slices 1 and 2**, which is the point:
-`GET /api/v1/customers`, `GET /api/v1/attachments/{id}/content` and `POST /api/v1/auth/register`
-were each called against the running API and each returned **`404`**, and `openapi/v1.json` still
-publishes **11 paths** with no customer or attachment route among them. The two slices built the
-entities and the service the later slices need, and published nothing.
+**Still thirteen endpoints after story 04 slices 1, 2 and 3**, which is the point: `/customers`,
+`/customers/{id}/notes`, `/customers/{id}/timeline`, `/customers/{id}/attachments`,
+`/attachments/{id}/content` and `/auth/register` were each called against the running API and each
+returned **`404`**, and `openapi/v1.json` still publishes **11 paths** with none of them among it.
+The three slices built the entities, the services and the demo data that the remaining slices need,
+and published nothing.
 
-**Next:** story 04 **slice 3** (plan tasks 4, 5, 6 and 9 — notes, the timeline read projection, the
-attachment service and the seeder), then slice 4 (task 8, the controllers — which is where the
-`RequireAgent` gate and plan task 10's `CustomerAccessTests` land), then slices 5–6, then story 05 —
-**all blocked on explicit approval.** Story 16 **Part B** stays at Phase 7: it reads audit rows that
-stories 04–06 have yet to write.
+**Next:** story 04 **slice 4** (plan task 8, the controllers — which is where the `RequireAgent`
+gate, the AP-19 download and plan task 10's `CustomerAccessTests` land), then slice 5 (task 7,
+registration) and slice 6 (the front end), then story 05 — **all blocked on explicit approval.**
+Story 16 **Part B** stays at Phase 7: it reads audit rows that stories 04–06 have yet to write.
 
 ---
 
@@ -511,10 +527,11 @@ below record a reproducible outcome, not a one-off.
 | Stage gate 5 → 6 | ✅ Met | Re-verified after the AD-15 correction |
 | Stage gate 6 → 7 | ✅ Met | Re-verified after the four clarifications |
 | **Story 16 Part A — configuration** | ✅ Passed 2026-08-27 | All four Part A verification steps. Build clean; the three suites **36 passing**. **Step 3, fail-fast by hand, run for all six checks against real SQL Server** — each starts the real API with one value broken and the host stops with a non-zero exit and a message naming the value: a dangling category department names `billing` and cites A-14; a dangling `DefaultBranchId` cites A-15; a fifth priority level, an inverted rating scale, a zero attachment cap and a priority with no SLA target all name their section. **Step 4, tier check with a real Customer token:** `/config` returns exactly `categories` and `feedback`, `departmentId` appears **nowhere** in the body, and `/config/staff` is `403`. `openapi/v1.json` now publishes 11 paths, `/config` and `/config/staff` among them, each with `get` and nothing else |
+| **Story 04 slice 3 — notes, timeline, attachments, seed** | ✅ Passed 2026-08-28 | Plan tasks 4, 5, 6 and 9. Build clean; **26 slice-3 tests pass and the whole suite is 140/0/1.** **Notes:** author and timestamp server-set and re-read from the row, newest first, and the service's public surface asserted to be exactly `AddAsync` + `ListAsync` — the plan's *"no update and no delete method, not merely no endpoint"* made into a test that a future `EditAsync` breaks. **Timeline:** an empty page (not an error) for a customer with no tickets — the intake's acceptance criterion, met now; `404` for an unknown customer; and notes present but **absent from the projection**, so a later "enrichment" that joined them would fail. **Attachments:** a real byte round-trip through `LocalDiskAttachmentStorage`; the original filename survives while the on-disk name does not; the cap rejects at `cap+1` with `attachment-too-large` and **writes no row**, and accepts at exactly `cap`; an empty file is `400`, not `500`; **AP-4 proven by comparison** — a `Customer`-role caller and a genuinely missing id produce the *same* message and slug; all three staff roles reach a customer-owned file (A-4 hierarchy); the ticket half **fails closed** until Story 05; and `storagePath` appears in neither the DTO's properties nor a serialized payload. **Seeder:** the three seeders run in real `Order`; 4 customers across **both** seeded branches, 2 portal logins in DM-1 shape and 2 profiles deliberately without one, a note and an attachment; the seeded login's email equals its customer's (A-19's invariant in the demo data); running twice changes nothing; and the seeded file reads back through the same storage the endpoint will use. **Against real SQL Server** (`docker compose up --build api`): the seeder ran at startup and produced exactly that data, a **seeded portal login signs in (`200`)**, newest-first `ORDER BY` works natively, and the timestamp columns are still `datetimeoffset` — `dotnet ef migrations has-pending-model-changes` reports **no model change**, so the SQLite-only guard of finding **I-7** genuinely does not touch production. **Regression:** all seven existing endpoints `200`. **Slice boundary checked:** all six task-8/task-7 routes are `404` and `openapi/v1.json` still lists 11 paths |
 | **Story 04 slice 2 — `CustomerService` and A-19** | ✅ Passed 2026-08-27 | Plan task 3 only. Build clean; **24 slice-2 tests pass and the whole suite is 114/0/1.** **The A-19 case table is walked case by case**, each its own test: email absent; the same address in a different case (a no-op, and explicitly *not* a `409` against the customer's own record); a collision with another **customer** (`customer-email-in-use`); a collision with a **staff user** (`user-already-exists`, PF-6's slug); the propagation itself; and a profile-only customer. **The two rejection cases re-read both rows afterwards** and assert neither was written — not merely that an exception was thrown. **The propagation is proven in both directions:** exactly one `UserEmailChanged` entry with `actorUserId` = the calling agent and `targetId` = the **linked user**, and a counted **zero** new entries for each of the four non-propagating cases. **One commit** is proven at runtime by counting `DbContext.SavedChanges` during the successful patch — it fires once. A separate test drives the propagation **twice**, which fails for any implementation that finds the login by matching the old email instead of by `User.CustomerId`. `AuditEntries.Add(` still appears **only** in `AuditRecorder.cs`, and no explicit transaction exists anywhere in `backend/src`. **Against real SQL Server:** `ORDER BY CreatedAt` works (SQLite refuses `DateTimeOffset` in `ORDER BY`, so the `createdAt` sort is verified here rather than in the suite), and the case-insensitive `WHERE Email = …` that both duplicate checks rely on matches a differently-cased row in **both** `Customers` and `Users`. **Slice boundary checked:** `/customers`, `/auth/register` and `/attachments/{id}/content` are each `404`, and `openapi/v1.json` still lists 11 paths |
 | **Story 04 slice 1 — customers domain and data layer** | ✅ Passed 2026-08-27 | Plan tasks 1 and 2 only. Build clean with `TreatWarningsAsErrors`. **22 slice tests pass and the whole suite is 90/0/1.** **Against real SQL Server** (`docker compose up --build api`, migration applied at startup): the three tables exist; `IX_Customers_Email` is unique and `IX_Customers_BranchId` is not; `Customers.Email` and `Users.Email` are both `nvarchar(256)` with `SQL_Latin1_General_CP1_CI_AS`; `FK_Users_Customers_CustomerId` exists. **Two product rules proven by attempted violation, inside a rolled-back transaction:** inserting `case.test@EXAMPLE.COM` after `Case.Test@Example.com` is refused with error **2601** — the case-insensitive uniqueness of A-10, which SQLite cannot verify — and an attachment with **neither** owner and one with **both** are each refused with error **547**, `CK_Attachments_OwnerXor` (§5 constraint 20). **Regression:** `/health`, `/config/bootstrap`, `/auth/login`, `/auth/me`, `/users`, `/departments`, `/branches` and `/config/staff` all `200` with a real Administrator token, and `storagePath`/`passwordHash` appear in none of their bodies. **Slice boundary checked, not assumed:** `/customers`, `/attachments/{id}/content` and `/auth/register` are each `404`. Plan verification steps 4, 5 and 7 are **not runnable in this slice** — they need the endpoints and screens of later slices |
 | Story verification | ✅ **Stories 01, 02 and 03 passed** | Story 01: all 8 steps, 2026-08-25 (re-run 2026-08-26). Story 02: all 6 steps, 2026-08-26. Story 03: **5 of its 6 steps, 2026-08-27** — step 6 names the story-05 ticket list and could not be run as written (see its row). Details in the rows below |
-| Unit / integration tests | ✅ **114 passing, 1 skipped** | `dotnet test backend/SupportCrm.sln` 2026-08-27, after story 04 slice 2: **114 passed, 0 failed, 1 skipped** (90 after slice 1; 68 before story 04). The skip is `BranchIsNotABoundaryTests.Ticket_has_no_branch_member`, **skipped by design** until story 05 creates the `Ticket` type it asserts about. Story 03 adds the two organization endpoints' role matrix, the `managerUserId`-is-absent-not-null contract check, and the no-write-verb lock. Front end: `npx ng test --watch=false --browsers=ChromeHeadless` — **4 passed**, the repo's first specs, on the karma target story 01 already configured. Story 02 adds the AD-15 regression (a user deactivated after their token was issued is `401` on the very next request), the wrong-password / deactivated-account indistinguishability check, token-claim absence, `passwordHash` absence from every response path, and the audit actor-attribution rules of §2.14 |
+| Unit / integration tests | ✅ **140 passing, 1 skipped** | `dotnet test backend/SupportCrm.sln` 2026-08-28, after story 04 slice 3: **140 passed, 0 failed, 1 skipped** (114 after slice 2; 90 after slice 1; 68 before story 04). The skip is `BranchIsNotABoundaryTests.Ticket_has_no_branch_member`, **skipped by design** until story 05 creates the `Ticket` type it asserts about. Story 03 adds the two organization endpoints' role matrix, the `managerUserId`-is-absent-not-null contract check, and the no-write-verb lock. Front end: `npx ng test --watch=false --browsers=ChromeHeadless` — **4 passed**, the repo's first specs, on the karma target story 01 already configured. Story 02 adds the AD-15 regression (a user deactivated after their token was issued is `401` on the very next request), the wrong-password / deactivated-account indistinguishability check, token-claim absence, `passwordHash` absence from every response path, and the audit actor-attribution rules of §2.14 |
 | Backend build | ✅ Clean | `dotnet build backend/SupportCrm.sln` 2026-08-25: **0 warnings, 0 errors** — and `TreatWarningsAsErrors` is on, so 0 warnings is enforced, not observed |
 | Frontend build | ✅ Clean | `npm ci && npm run build` 2026-08-25. `npm run lint:styles` clean; the physical-property ban was **proved to fire** by a throwaway probe file (3 errors), then removed — the rule is enforced, not vacuous |
 | API verification | ✅ Passed | 2026-08-25 against containerized SQL Server: `GET /api/v1/health` → `200 {"status":"ok","database":"reachable","utcNow":"…Z"}`. `openapi/v1.json` lists **exactly two paths** — `/api/v1/health` and `/api/v1/config/bootstrap` — and nothing else. Scalar UI at `/scalar/v1` → `200` |
@@ -525,7 +542,7 @@ below record a reproducible outcome, not a one-off.
 | **Story 02 — role UI** | ✅ Passed 2026-08-26 | Driven through the Chrome DevTools Protocol: all three seeded staff roles sign in, land on `/workspace`, and show display name, role and department in the avatar menu. The **Administration** section renders for Administrator only. An Agent deep-linking to `/admin/users` lands on `/403`; an Administrator sees all four users with no `passwordHash` anywhere in the DOM |
 | UI verification | ✅ Passed | 2026-08-25, driven through the Chrome DevTools Protocol against the running `web` container: the shell renders the configured product name (`Support CRM`), `--app-brand-primary: #0B5FFF` from `/config/bootstrap`, the health result and the language switcher. Clicking العربية moved `<html>` from `dir="ltr" lang="en"` to `dir="rtl" lang="ar"` with every label translated. **No reload and no state loss**: a `window` marker and a DOM attribute set before the switch both survived it, and the health timestamp did not change |
 | Docker startup | ✅ Passed | `cp .env.example .env` then `docker compose up --build` 2026-08-25: **db (healthy) · api · web** all running. The SPA reaches the API through the nginx `/api` proxy, and deep links fall back to `index.html` |
-| Working tree | 🟡 Slice 2 uncommitted | **`main` head is `54abd75`**, *"feat: story 16 Part A configuration, and story 04 slice 1 data layer"* — the user committed **both** before slice 2 began, and `git ls-tree HEAD` confirms Part A's option types, `ConfigurationValidator`, `/config`, `/config/staff` and slice 1's entities, migration and tests are all in it. *(An earlier snapshot of this row read head `634bad2` and called both uncommitted; that was true when it was written and is now superseded. **No history was rewritten.**)* **Story 04 slice 2 is in the working tree and not yet committed**, awaiting review. **`git status` is the live source — this row is a snapshot, not a claim to be trusted over the repository** |
+| Working tree | 🟡 Slice 3 uncommitted | **`main` head is `a4230b9`**, *"feat: story 04 slice 2 — CustomerService and the A-19 email propagation"*, on top of `54abd75` which carries story 16 Part A and story 04 slice 1. **History is linear and nothing has been rewritten, reordered or squashed.** **Story 04 slice 3 is in the working tree and not yet committed**, awaiting review. **`git status` is the live source — this row is a snapshot, not a claim to be trusted over the repository** |
 
 ---
 
@@ -533,7 +550,36 @@ below record a reproducible outcome, not a one-off.
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-27 (latest) — story 04 slice 2: `CustomerService` and the A-19 propagation
+### 2026-08-28 (latest) — story 04 slice 3: notes, timeline, attachments and demo data
+
+- **Plan tasks 4, 5, 6 and 9.** `CustomerNoteService`, `CustomerTimelineService`,
+  `AttachmentService` and `CustomerSeeder`. **No endpoint is published yet** — the controllers are
+  task 8, slice 4.
+- **Notes are immutable by construction, and the service proves it.** Its entire public surface is
+  `AddAsync` and `ListAsync`; there is no update and no delete *method*, which is what
+  docs/data-model.md §5 constraint 16 asks for rather than merely no route.
+- **The timeline is a read projection written against the empty ticket set**, exactly as the intake
+  authorizes. It returns a well-formed empty page today — the intake's *"renders an empty state
+  rather than an error"* criterion is **met now** — with a `// Story 06:` marker carrying the query
+  that replaces it, including the note that `TicketInternalNote` is absent from it **on purpose**.
+- **`AttachmentService` covers both owners** (S9-2). The customer half is complete; the ticket half's
+  bodies are written and **fail closed** through a single `EnsureTicketReachableAsync` seam that
+  Story 05 fills in, so a forgotten scoping check surfaces as a visible `404` rather than a hole.
+- **`CustomerSeeder` (`Order = 30`)** seeds 4 customers across both branches, 2 portal logins and 2
+  deliberately-unlinked profiles, a note and an attachment — both DM-1 shapes present, so **A-19 is
+  demonstrable by hand** against demo data.
+- **Four findings, none resolved by invention** (§6.8): **I-5** task 9 needs
+  `User.CreateCustomerUser`, which the plan assigns to task 7 — the factory moved, registration did
+  not; **I-6** `IFormFile` cannot cross into the Application layer, so the upload takes an
+  Application-owned `AttachmentUpload` following the `Stream`-based seam slice 1 already built;
+  **I-7** SQLite cannot `ORDER BY` a `DateTimeOffset`, which blocks the *mandated* newest-first
+  ordering of two endpoints, resolved with a SQLite-only value converter under a provider guard
+  mirroring the existing SQL Server collation guard; **I-8** a real deployment defect — the
+  attachment volume was root-owned and the non-root container could not write to it.
+- **Tests:** `CustomerNotesAndTimelineTests` (9), `AttachmentServiceTests` (11),
+  `CustomerSeederTests` (6). Suite: **140 passing, 1 skipped** (was 114).
+
+### 2026-08-27 — story 04 slice 2: `CustomerService` and the A-19 propagation
 
 - **Plan task 3 only.** The user narrowed slice 2 to the service; the controllers (task 8) moved to
   their own slice, so the slice map in
@@ -1167,28 +1213,27 @@ Newest first. Every meaningful project change gets an entry.
 
 ## 10. Current Next Steps
 
-0. **Story 04 slice 2 is done and verified — awaiting explicit approval before slice 3.** Story 04
+0. **Story 04 slice 3 is done and verified — awaiting explicit approval before slice 4.** Story 04
    is being delivered in slices at the user's instruction; the map lives in
    [.squad/plans/customer-management/00-overview.md](../.squad/plans/customer-management/00-overview.md).
-   Slice 2 was **narrowed to task 3 alone**, so the controllers now have their own slice and the map
-   is six slices rather than five.
 
    | Slice | Plan tasks | State |
    |---|---|---|
    | **1 — domain and data layer** | 1, 2 | ✅ **Done and verified 2026-08-27** |
    | **2 — `CustomerService`, carrying A-19** | 3 | ✅ **Done and verified 2026-08-27** |
-   | 3 — notes, timeline, attachments, seed | 4, 5, 6, 9 | ⬜ Next, blocked on approval |
-   | 4 — controllers | 8 — where the `RequireAgent` gate and task 10's `CustomerAccessTests` land | ⬜ Not started |
-   | 5 — registration | 7 + `User.CreateCustomerUser` | ⬜ Not started |
+   | **3 — notes, timeline, attachments, seed** | 4, 5, 6, 9 | ✅ **Done and verified 2026-08-28** |
+   | 4 — controllers | 8 — where the `RequireAgent` gate, the AP-19 download and task 10's `CustomerAccessTests` land | ⬜ Next, blocked on approval |
+   | 5 — registration | 7 — `RegisterAsync`, the route, the three A-15 outcomes | ⬜ Not started |
    | 6 — front end | 11, 12, 13, 14 | ⬜ Not started |
 
-   **Four findings have come out of these two slices and none is resolved by invention** — all are
-   in §6.8. Two are the user's call: the plan requires a "configured root" for attachment storage
-   that no approved document supplies (**I-1**), and data-model §6 declares no index for
-   `CustomerNote` where it declares one for the analogous `TicketInternalNote` (**I-2**). Two are
-   implementation consequences with no product content: A-19 required a `User.email` mutator Story
-   02 deliberately omitted (**I-3**), and SQLite cannot `ORDER BY` a `DateTimeOffset`, so the
-   `createdAt` sort is verified against real SQL Server instead (**I-4**).
+   **Eight findings have come out of these three slices and none is resolved by invention** — all
+   are in §6.8. **Two are the user's call:** the plan requires a "configured root" for attachment
+   storage that no approved document supplies (**I-1**), and data-model §6 declares no index for
+   `CustomerNote` where it declares one for the analogous `TicketInternalNote` (**I-2**). **One is
+   left open for slice 5 rather than decided here:** whether A-15's "configured default branch"
+   also sets `User.branchId` on a registering customer, or only `Customer.branchId` (**I-5**). The
+   rest are implementation consequences with no product content (**I-3, I-4, I-6, I-7**) plus one
+   real deployment defect found by running the stack and fixed (**I-8**).
 
 1. **Stories 01, 02 and 03 are done; phase 1 is closed.** The phase-1 interleave of S9-12 played out
    exactly as designed:
@@ -1217,8 +1262,9 @@ Newest first. Every meaningful project change gets an entry.
    that does not exist yet, and story 03 verification step 6, which names the `/workspace/tickets`
    department filter. Story 05 task 10 owns both.
 
-3. **Commit the working tree.** Story 16 Part A and story 04 slice 1 are committed as `54abd75`.
-   **Story 04 slice 2 is verified but deliberately uncommitted**, for review (§8, Working tree).
+3. **Commit the working tree.** Story 16 Part A and story 04 slice 1 are committed as `54abd75`,
+   slice 2 as `a4230b9`. **Story 04 slice 3 is verified but deliberately uncommitted**, for review
+   (§8, Working tree).
 
 4. **Answer the outstanding decisions, earliest first.** None blocked stories 01–03. **OQ-5, which
    gated story 04, was answered on 2026-08-27 (A-19), so nothing now blocks story 04.** The earliest

@@ -42,6 +42,7 @@ public static class DependencyInjection
         // Seeders run in ascending Order after migrations (AD-8).
         services.AddScoped<IDataSeeder, OrganizationSeeder>();
         services.AddScoped<IDataSeeder, IdentitySeeder>();
+        services.AddScoped<IDataSeeder, CustomerSeeder>();
 
         // ASP.NET Core's standard password hashing (docs/architecture.md §4.1). No password policy
         // engine, no account recovery — both out of scope.
@@ -68,10 +69,13 @@ public static class DependencyInjection
         services.AddScoped<OrganizationQueryService>();
         services.AddScoped<DepartmentValidator>();
 
-        // Story 04 Application services. CustomerService is registered even though no endpoint
-        // reaches it yet: its controller is task 8, and registering it here is what proves the
-        // service resolves from the real composition root with its real dependencies.
+        // Story 04 Application services. They are registered even though no endpoint reaches them
+        // yet: the controllers are task 8, and registering them here is what proves each service
+        // resolves from the real composition root with its real dependencies.
         services.AddScoped<CustomerService>();
+        services.AddScoped<CustomerNoteService>();
+        services.AddScoped<CustomerTimelineService>();
+        services.AddScoped<AttachmentService>();
 
         return services;
     }

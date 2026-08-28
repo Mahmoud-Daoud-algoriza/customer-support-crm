@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SupportCrm.Application.Abstractions;
 using SupportCrm.Domain.Modules.Administration;
 using SupportCrm.Domain.Modules.Customers;
@@ -86,5 +87,77 @@ public sealed class SupportCrmDbContext(DbContextOptions<SupportCrmDbContext> op
                 .Property(c => c.Email)
                 .UseCollation(UserConfiguration.CaseInsensitiveCollation);
         }
+
+        ApplySqliteDateTimeOffsetWorkaround(modelBuilder);
     }
+
+    /// <summary>
+    /// The mirror of the collation guard above, for the other provider.
+    ///
+    /// <para>
+    /// <b>SQLite cannot <c>ORDER BY</c> a <c>DateTimeOffset</c> at all</b> — its provider throws
+    /// <c>NotSupportedException</c>, because a stored offset makes the text form non-sortable in
+    /// general. SQL Server has no such limitation. That is not a cosmetic gap for this schema: the
+    /// notes list, the attachment list and (from Story 06) the interaction timeline are all
+    /// <b>newest first by contract</b> (docs/api-design.md §5.5), so on the hermetic test host those
+    /// reads could not execute at all and would have no automated coverage whatsoever.
+    /// </para>
+    ///
+    /// <para>
+    /// So under SQLite — <b>and only under SQLite</b> — every <c>DateTimeOffset</c> is stored as UTC
+    /// ticks, which sort correctly. <b>This is lossless here</b>: every timestamp in this system
+    /// comes from <c>TimeProvider.GetUtcNow()</c> and is serialized as UTC with a trailing <c>Z</c>
+    /// (docs/api-design.md §2, <c>UtcDateTimeOffsetConverter</c>), so no non-zero offset exists to
+    /// lose. Ordering by UTC ticks and ordering by <c>datetimeoffset</c> therefore agree.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Production is untouched.</b> On SQL Server the columns stay <c>datetimeoffset</c>, exactly
+    /// as the migrations declare. The guard is about the provider, not about the rule — the same
+    /// reasoning the collation guard above already states.
+    /// </para>
+    ///
+    /// <para>
+    /// The provider is matched by name rather than with <c>Database.IsSqlite()</c>, which lives in
+    /// the SQLite package: Infrastructure references only the SQL Server provider (AD-2), and
+    /// referencing a second one so that production code can name the test's database would be the
+    /// wrong trade.
+    /// </para>
+    /// </summary>
+    private void ApplySqliteDateTimeOffsetWorkaround(ModelBuilder modelBuilder)
+    {
+        if (Database.ProviderName != SqliteProviderName)
+        {
+            return;
+        }
+
+        var toTicks = new ValueConverter<DateTimeOffset, long>(
+            v => v.UtcTicks,
+            v => new DateTimeOffset(v, TimeSpan.Zero));
+
+        var nullableToTicks = new ValueConverter<DateTimeOffset?, long?>(
+            v => v == null ? null : v.Value.UtcTicks,
+            v => v == null ? null : new DateTimeOffset(v.Value, TimeSpan.Zero));
+
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entity.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTimeOffset))
+                {
+                    property.SetValueConverter(toTicks);
+                }
+                else if (property.ClrType == typeof(DateTimeOffset?))
+                {
+                    property.SetValueConverter(nullableToTicks);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// <c>Microsoft.EntityFrameworkCore.Sqlite</c>'s provider name. Only the test host uses it; see
+    /// <see cref="ApplySqliteDateTimeOffsetWorkaround"/>.
+    /// </summary>
+    private const string SqliteProviderName = "Microsoft.EntityFrameworkCore.Sqlite";
 }

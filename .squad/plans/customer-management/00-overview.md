@@ -40,20 +40,30 @@ each. The slice boundaries are not in the plan; the plan's numbered tasks are.
 |---|---|---|
 | **1 — domain and data layer** | **1, 2** — the three `Customers` entities, their EF configurations, the `Customers` migration, the `User.CustomerId` FK that completes DM-1, and the `IAttachmentStorage` seam with its local-disk implementation | ✅ **Done and verified 2026-08-27** |
 | **2 — customer service** | **3** — `CustomerService`, including the **A-19** propagation and its one `UserEmailChanged` audit entry | ✅ **Done and verified 2026-08-27** |
-| 3 — notes, timeline, attachments | 4, 5, 6, 9 | Not started |
-| 4 — controllers | 8 — the nine customer routes, the AP-19 download, and `POST /auth/register`'s route | Not started |
-| 5 — registration | 7, plus `User.CreateCustomerUser` | Not started |
+| **3 — notes, timeline, attachments, seed** | **4, 5, 6, 9** — `CustomerNoteService`, `CustomerTimelineService` (against the empty ticket set), `AttachmentService` (both owners, AP-19 download), and `CustomerSeeder` | ✅ **Done and verified 2026-08-28** |
+| 4 — controllers | 8 — the nine customer routes and the AP-19 download. **Plan task 10's `CustomerAccessTests` lands here**, because its `403` and `404`-not-`403` assertions need a route to call | Not started |
+| 5 — registration | 7 — `AuthService.RegisterAsync`, `POST /auth/register`, the three A-15 outcomes | Not started |
 | 6 — front end | 11, 12, 13, 14 | Not started |
 
 > **Slice 2 was narrowed to task 3 alone** at the user's instruction. The earlier map paired task 3
-> with task 8's customer routes; task 8 now has its own slice, so **no endpoint is published yet**.
+> with task 8's customer routes; task 8 now has its own slice.
+>
+> **`User.CreateCustomerUser` moved from slice 5 to slice 3**, because task 9 cannot seed *"at least
+> two with a linked portal `User`"* without it. The factory alone moved — `RegisterAsync`, the
+> endpoint and the three A-15 outcomes are all still slice 5's. See finding **I-5**.
 
-**Neither slice has published an endpoint**, which is checked rather than assumed: `/customers`,
+**No slice has published an endpoint**, which is checked rather than assumed: `/customers`,
+`/customers/{id}/notes`, `/customers/{id}/timeline`, `/customers/{id}/attachments`,
 `/attachments/{id}/content` and `/auth/register` all return `404` against the running API, and
-`openapi/v1.json` still lists **11 paths** with no customer or attachment route among them.
+`openapi/v1.json` still lists **11 paths** with none of them among it.
 
 **Tests so far:** `CustomerDataLayerTests` (14) and `AttachmentStorageTests` (8) from slice 1,
-`CustomerServiceTests` (24) from slice 2 — **46 tests** under
-[`tests/SupportCrm.Tests/Customers/`](../../../backend/tests/SupportCrm.Tests/Customers/). Plan task
-10's `CustomerAccessTests.cs` belongs to slice 4, which publishes the endpoints it exercises: its
-`403`, `404`-not-`403` and Problem Details assertions all need a route to call.
+`CustomerServiceTests` (24) from slice 2, and `CustomerNotesAndTimelineTests` (9),
+`AttachmentServiceTests` (11) and `CustomerSeederTests` (6) from slice 3 — **72 tests** under
+[`tests/SupportCrm.Tests/Customers/`](../../../backend/tests/SupportCrm.Tests/Customers/).
+
+**One Done Criterion is met early; three are met but not yet provable end to end.** The
+empty-timeline criterion is satisfied now and stays satisfied when Story 06 fills the projection in.
+The `storagePath`-in-no-response criterion is proven at the DTO and serialization level, the `413`
+cap at the service level, and the note-immutability criterion structurally — but each of their
+HTTP-level forms, and *"a Customer cannot browse the customer directory"*, wait on slice 4's routes.
