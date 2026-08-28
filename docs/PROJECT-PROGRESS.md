@@ -481,11 +481,11 @@ the commands in §8 on 2026-08-28, not inferred from a plan.
 | Area | Status | Evidence |
 |---|---|---|
 | Backend | ✅ Stories 01, 02, 03, 16 A, 04 slices 1–3 | `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. `SupportCrm.Domain` still has **0 project and 0 package references** and no EF attribute (AD-2, AD-4) |
-| Frontend | ✅ Stories 01, 02, 03 | Angular 20.1.2 + PrimeNG 20.0.0 on Sakai `20.0.0`. `npm run build` succeeds; `npm run lint:styles` clean. Sign-in, guards, role redirect, staff shell avatar menu and the admin user screens all exercised in a real browser |
+| Frontend | ✅ Stories 01, 02, 03 + error-handling layer | Angular 20.1.2 + PrimeNG 20.0.0 on Sakai `20.0.0`. `npm run build` succeeds; `npm run lint:styles` clean. Sign-in, guards, role redirect, staff shell avatar menu and the admin user screens all exercised in a real browser. **A cross-cutting HTTP error-handling layer landed 2026-08-28**: `errorInterceptor` applies the cross-cutting half of ui-design §9's status table — `401` ends the session, `403` routes to `/403` without ending it, `5xx` and network failures raise one translated toast, and `400`/`409`/`413`/`422`/`404`/`503` pass through untouched for the feature to render inline |
 | Database | ✅ Schema live | **`InitialSchema` and `Customers` both applied to real SQL Server**: `Branches`, `Departments`, `Users`, `AuditEntries`, **`Customers`, `CustomerNotes`, `Attachments`**. `Users.Email` **and `Customers.Email`** both carry `SQL_Latin1_General_CP1_CI_AS` at `nvarchar(256)` — the same address, the same width, the same collation, as §6.1 requires. `Users(CustomerId)` is a filtered unique index and **now has its foreign key to `Customers`**, closing the DM-1 link story 02 left open. `CK_Attachments_OwnerXor` is present and **proven to refuse both a no-owner and a both-owners row** (§5 constraint 20) |
 | Configuration | ✅ Validated at startup | Seven option types bound and `ValidateOnStart`. Six checks: every category maps to an existing department (A-14), every priority has an SLA target with positive hours (A-3), `DefaultBranchId` is an existing branch (A-15), `Priorities` equals the A-6 levels in order, `Min < Max` on the rating scale (structural only — **OQ-1 stays open**), and a positive attachment cap. **All six proven to stop the host** by starting the real API with each value broken in turn |
 | Seed data | ✅ Running at startup | 2 departments (both with a manager), 2 branches, 4 staff users — Administrator, Manager and **two Agents in different departments**, so Story 05's scoping tests have material. **Story 04 slice 3 adds `CustomerSeeder` (`Order = 30`)**: 4 customers spread across **both** branches (which is what makes Story 05's "branch is not a boundary" test meaningful), **2 with a portal login and 2 deliberately without** — both DM-1 shapes, so A-19 is demonstrable by hand — plus one note and one attachment. A seeded portal login signs in successfully. Password from configuration; no credential in source |
-| Tests | ✅ **140 passing**, 1 skipped by design, plus 4 front-end specs | Backend: `AuthorizationTests`, `UserAdminValidationTests`, `AuditRecordingTests`, `PlatformEndpointTests`, `OrganizationEndpointTests`, and story 16 Part A's `ConfigurationTierTests` (8), `ConfigurationValidationTests` (10) and `NoConfigurationEntityTests` (18). Includes the **AD-15 deactivation regression** and the indistinguishability of a wrong password from a deactivated account. `BranchIsNotABoundaryTests` is **skipped until story 05** creates `Ticket`. Story 04 slice 1 adds `CustomerDataLayerTests` (14) and `AttachmentStorageTests` (8); slice 2 adds `CustomerServiceTests` (24), which walks the **whole A-19 case table**; slice 3 adds `CustomerNotesAndTimelineTests` (9), `AttachmentServiceTests` (11) and `CustomerSeederTests` (6) — **72 tests** in all, none of them an endpoint test, because no slice has published an endpoint. Front end: `department-filter.component.spec.ts` — the repo's first specs; the karma target and its dependencies were already configured by story 01 |
+| Tests | ✅ **140 passing**, 1 skipped by design, plus **16 front-end specs** | Backend: `AuthorizationTests`, `UserAdminValidationTests`, `AuditRecordingTests`, `PlatformEndpointTests`, `OrganizationEndpointTests`, and story 16 Part A's `ConfigurationTierTests` (8), `ConfigurationValidationTests` (10) and `NoConfigurationEntityTests` (18). Includes the **AD-15 deactivation regression** and the indistinguishability of a wrong password from a deactivated account. `BranchIsNotABoundaryTests` is **skipped until story 05** creates `Ticket`. Story 04 slice 1 adds `CustomerDataLayerTests` (14) and `AttachmentStorageTests` (8); slice 2 adds `CustomerServiceTests` (24), which walks the **whole A-19 case table**; slice 3 adds `CustomerNotesAndTimelineTests` (9), `AttachmentServiceTests` (11) and `CustomerSeederTests` (6) — **72 tests** in all, none of them an endpoint test, because no slice has published an endpoint. Front end: `department-filter.component.spec.ts` (4) plus the cross-cutting `error.interceptor.spec.ts` (12) — **16 specs**, on the karma target story 01 already configured |
 | Docker / infrastructure | ✅ Complete for the stack | `docker compose up --build` brings **db, api, web** up; the API waits for the database's health check. Story 04 slice 1 adds a **second named volume**, `supportcrm-attachments`, mounted at `/var/lib/supportcrm/attachments` — attachment bytes cannot live in the image (T2-A). **Slice 3 fixed a real defect in that mount** (finding **I-8**): the image runs as a non-root user, the volume was created root-owned, and the first startup that actually wrote a file failed with `Access to the path … is denied`. The directory is now created and `chown`ed in the Dockerfile **before** the `USER` switch, so Docker initializes the volume with the right ownership |
 
 **Endpoints that exist (13):** `/health`, `/config/bootstrap`, **`/config`**, **`/config/staff`**,
@@ -542,13 +542,44 @@ below record a reproducible outcome, not a one-off.
 | **Story 02 — role UI** | ✅ Passed 2026-08-26 | Driven through the Chrome DevTools Protocol: all three seeded staff roles sign in, land on `/workspace`, and show display name, role and department in the avatar menu. The **Administration** section renders for Administrator only. An Agent deep-linking to `/admin/users` lands on `/403`; an Administrator sees all four users with no `passwordHash` anywhere in the DOM |
 | UI verification | ✅ Passed | 2026-08-25, driven through the Chrome DevTools Protocol against the running `web` container: the shell renders the configured product name (`Support CRM`), `--app-brand-primary: #0B5FFF` from `/config/bootstrap`, the health result and the language switcher. Clicking العربية moved `<html>` from `dir="ltr" lang="en"` to `dir="rtl" lang="ar"` with every label translated. **No reload and no state loss**: a `window` marker and a DOM attribute set before the switch both survived it, and the health timestamp did not change |
 | Docker startup | ✅ Passed | `cp .env.example .env` then `docker compose up --build` 2026-08-25: **db (healthy) · api · web** all running. The SPA reaches the API through the nginx `/api` proxy, and deep links fall back to `index.html` |
-| Working tree | 🟡 Slice 3 uncommitted | **`main` head is `a4230b9`**, *"feat: story 04 slice 2 — CustomerService and the A-19 email propagation"*, on top of `54abd75` which carries story 16 Part A and story 04 slice 1. **History is linear and nothing has been rewritten, reordered or squashed.** **Story 04 slice 3 is in the working tree and not yet committed**, awaiting review. **`git status` is the live source — this row is a snapshot, not a claim to be trusted over the repository** |
+| Working tree | 🟡 Cross-cutting change uncommitted | **`main` head is `5c716b1`**, *"feat: story 04 slice 3 — notes, timeline, attachments and demo data"*, on a linear chain: `54abd75` (story 16 Part A + story 04 slice 1) → `a4230b9` (slice 2) → `5c716b1` (slice 3). **Nothing has been rewritten, reordered or squashed.** The only uncommitted work is the **cross-cutting front-end HTTP error-handling layer** and this file. **`git status` is the live source — this row is a snapshot, not a claim to be trusted over the repository** |
 
 ---
 
 ## 9. Change Log
 
 Newest first. Every meaningful project change gets an entry.
+
+### 2026-08-28 (latest) — cross-cutting: front-end HTTP error handling
+
+**Not a story task.** A small cross-cutting change requested between story 04 slices 3 and 4, and
+scoped to the front end's HTTP layer. **No API contract changed and no product feature was added.**
+
+- **`errorInterceptor` now applies the cross-cutting half of [ui-design.md](ui-design.md) §9's
+  status table**, and only that half. It already normalized every failure into an `ApiProblem` and
+  handled `401`; it now also routes `403` to the existing `/403` screen **without clearing the
+  session** — a role denial is not an expired session — and raises **one translated toast** for
+  `5xx` and unreachable-server failures.
+- **The `401` rule was tightened rather than rewritten.** The anonymous-auth exclusion is now a list
+  (`/auth/login`, `/auth/register`) instead of a single URL, and a `401` arriving while the user is
+  already inside `/auth/*` clears the session without navigating — previously that would have
+  discarded a half-typed sign-in form.
+- **Structured errors are explicitly not swallowed.** `400`, `409`, `413`, `422` and `404` pass
+  through untouched, because §9 renders each of them *inline, in context* and only the feature knows
+  where. The problem is rethrown in every case, including the ones the interceptor acts on.
+- **`503` is deliberately excluded from the toast.** §9 scopes it to the AI panel — *"the rest of
+  the screen stays live"* — so a global surface would contradict it (AP-12).
+- **The one piece of missing infrastructure: there was no toast or notification mechanism at all**
+  — no `MessageService`, no `p-toast`, nothing. PrimeNG's `MessageService` is now provided at the
+  root and `<p-toast>` sits in `AppComponent`, so it survives the navigation a `401` or `403`
+  causes. **It is the transport-level surface only, and is not the A-13 notification centre**, which
+  is a stored per-recipient entity with an unread badge that story 09 delivers.
+- **Tests:** `error.interceptor.spec.ts` — 12 specs covering each row of the table in both
+  directions (what is handled, and what is left alone). Front end: **16 passing** (was 4).
+  `npm run build` and `npm run lint:styles` clean. Backend untouched: **140 passing, 1 skipped**.
+- **No new translation key was needed** — `errors.*` already carried `http-500`, `http-503`,
+  `network-unavailable` and `internal-error`, at full en/ar parity. An unmapped `5xx` slug falls back
+  to `errors.internal-error` rather than surfacing a code.
 
 ### 2026-08-28 (latest) — story 04 slice 3: notes, timeline, attachments and demo data
 
@@ -1263,8 +1294,16 @@ Newest first. Every meaningful project change gets an entry.
    department filter. Story 05 task 10 owns both.
 
 3. **Commit the working tree.** Story 16 Part A and story 04 slice 1 are committed as `54abd75`,
-   slice 2 as `a4230b9`. **Story 04 slice 3 is verified but deliberately uncommitted**, for review
-   (§8, Working tree).
+   slice 2 as `a4230b9`, slice 3 as `5c716b1`. **Only the cross-cutting front-end error-handling
+   layer is uncommitted**, for review (§8, Working tree).
+
+3a. **One cross-cutting front-end change sits alongside the story work.** The HTTP error-handling
+   layer landed 2026-08-28 between slices 3 and 4 (§9, change log). It is **not** part of story 04
+   and closes none of its Done Criteria; it is the only uncommitted work in the tree. **It added the front end's
+   first toast surface** — PrimeNG `MessageService` + `<p-toast>` at the root — because none
+   existed. Two things to know before slice 6 builds screens: the toast is the **transport-level**
+   surface only and must not be mistaken for the A-13 notification centre (story 09), and `503` is
+   deliberately excluded from it so story 11's AI panel can degrade locally as §9 requires.
 
 4. **Answer the outstanding decisions, earliest first.** None blocked stories 01–03. **OQ-5, which
    gated story 04, was answered on 2026-08-27 (A-19), so nothing now blocks story 04.** The earliest

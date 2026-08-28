@@ -4,6 +4,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScrolling } from '@angular/router';
 import { provideTransloco } from '@jsverse/transloco';
 import Aura from '@primeuix/themes/aura';
+import { MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { RuntimeConfigService } from './app/core/config/runtime-config.service';
@@ -19,6 +20,11 @@ export const appConfig: ApplicationConfig = {
         provideHttpClient(withFetch(), withInterceptors([authInterceptor, errorInterceptor])),
         provideAnimationsAsync(),
         providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } }),
+
+        // The toast channel errorInterceptor writes to, and <p-toast> in AppComponent reads from.
+        // Provided once at the root rather than per component, because an interceptor has no
+        // component to be provided by.
+        MessageService,
 
         // Runtime translation (AD-9): switching language must not reload the app or lose state, so
         // compile-time @angular/localize is rejected. Dictionaries are static assets.
