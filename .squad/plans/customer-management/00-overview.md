@@ -41,7 +41,7 @@ each. The slice boundaries are not in the plan; the plan's numbered tasks are.
 | **1 — domain and data layer** | **1, 2** — the three `Customers` entities, their EF configurations, the `Customers` migration, the `User.CustomerId` FK that completes DM-1, and the `IAttachmentStorage` seam with its local-disk implementation | ✅ **Done and verified 2026-08-27** |
 | **2 — customer service** | **3** — `CustomerService`, including the **A-19** propagation and its one `UserEmailChanged` audit entry | ✅ **Done and verified 2026-08-27** |
 | **3 — notes, timeline, attachments, seed** | **4, 5, 6, 9** — `CustomerNoteService`, `CustomerTimelineService` (against the empty ticket set), `AttachmentService` (both owners, AP-19 download), and `CustomerSeeder` | ✅ **Done and verified 2026-08-28** |
-| 4 — controllers | 8 — the nine customer routes and the AP-19 download. **Plan task 10's `CustomerAccessTests` lands here**, because its `403` and `404`-not-`403` assertions need a route to call | Not started |
+| **4 — controllers** | **8** — the nine customer routes and the AP-19 download, plus **plan task 10's `CustomerAccessTests`**, whose `403` and `404`-not-`403` assertions needed a route to call | ✅ **Done and verified 2026-08-28** |
 | 5 — registration | 7 — `AuthService.RegisterAsync`, `POST /auth/register`, the three A-15 outcomes | Not started |
 | 6 — front end | 11, 12, 13, 14 | Not started |
 
@@ -52,18 +52,22 @@ each. The slice boundaries are not in the plan; the plan's numbered tasks are.
 > two with a linked portal `User`"* without it. The factory alone moved — `RegisterAsync`, the
 > endpoint and the three A-15 outcomes are all still slice 5's. See finding **I-5**.
 
-**No slice has published an endpoint**, which is checked rather than assumed: `/customers`,
-`/customers/{id}/notes`, `/customers/{id}/timeline`, `/customers/{id}/attachments`,
-`/attachments/{id}/content` and `/auth/register` all return `404` against the running API, and
-`openapi/v1.json` still lists **11 paths** with none of them among it.
+**Slice 4 published all ten endpoints of api-design §5.5** — the nine customer-scoped routes and
+the AP-19 download. `openapi/v1.json` now lists **17 paths** (was 11). `POST /auth/register` is
+still `404`: task 8 lists its route, but it cannot exist without task 7's `RegisterAsync`, so it
+lands with slice 5.
 
 **Tests so far:** `CustomerDataLayerTests` (14) and `AttachmentStorageTests` (8) from slice 1,
-`CustomerServiceTests` (24) from slice 2, and `CustomerNotesAndTimelineTests` (9),
-`AttachmentServiceTests` (11) and `CustomerSeederTests` (6) from slice 3 — **72 tests** under
+`CustomerServiceTests` (24) from slice 2, `CustomerNotesAndTimelineTests` (9),
+`AttachmentServiceTests` (11) and `CustomerSeederTests` (6) from slice 3, and `CustomerAccessTests`
+(15) from slice 4 — **87 tests** under
 [`tests/SupportCrm.Tests/Customers/`](../../../backend/tests/SupportCrm.Tests/Customers/).
 
-**One Done Criterion is met early; three are met but not yet provable end to end.** The
-empty-timeline criterion is satisfied now and stays satisfied when Story 06 fills the projection in.
-The `storagePath`-in-no-response criterion is proven at the DTO and serialization level, the `413`
-cap at the service level, and the note-immutability criterion structurally — but each of their
-HTTP-level forms, and *"a Customer cannot browse the customer directory"*, wait on slice 4's routes.
+**Done Criteria after slice 4.** Met and proven end to end: create/read/edit/list/search; email
+uniqueness on both create and update; the note with author and timestamp that no route can change;
+the `413` cap; *"a Customer cannot browse the customer directory"*; `storagePath` and `passwordHash`
+in no response; `externalReference` returned and settable nowhere; and **A-19 in both directions,
+now also exercised live against SQL Server through `PATCH /customers/{id}`**. Met as far as this
+story can take them: the timeline renders empty until Story 06, and the **ticket** half of the
+attachment criterion completes in Story 05 (S9-2). Outstanding: `POST /auth/register` (slice 5) and
+the front-end screens (slice 6).
