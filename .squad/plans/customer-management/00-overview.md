@@ -39,13 +39,21 @@ each. The slice boundaries are not in the plan; the plan's numbered tasks are.
 | Slice | Plan tasks | Status |
 |---|---|---|
 | **1 — domain and data layer** | **1, 2** — the three `Customers` entities, their EF configurations, the `Customers` migration, the `User.CustomerId` FK that completes DM-1, and the `IAttachmentStorage` seam with its local-disk implementation | ✅ **Done and verified 2026-08-27** |
-| 2 — customer service and endpoints | 3, 8 (customer routes) — `CustomerService`, including the **A-19** propagation and its one `UserEmailChanged` audit entry | Not started |
-| 3 — notes, timeline, attachments | 4, 5, 6, 8 (remaining routes), 9 | Not started |
-| 4 — registration | 7, plus `User.CreateCustomerUser` | Not started |
-| 5 — front end | 11, 12, 13, 14 | Not started |
+| **2 — customer service** | **3** — `CustomerService`, including the **A-19** propagation and its one `UserEmailChanged` audit entry | ✅ **Done and verified 2026-08-27** |
+| 3 — notes, timeline, attachments | 4, 5, 6, 9 | Not started |
+| 4 — controllers | 8 — the nine customer routes, the AP-19 download, and `POST /auth/register`'s route | Not started |
+| 5 — registration | 7, plus `User.CreateCustomerUser` | Not started |
+| 6 — front end | 11, 12, 13, 14 | Not started |
 
-**Slice 1 published no endpoint**, which is checked rather than assumed: `/customers`,
-`/attachments/{id}/content` and `/auth/register` all return `404` against the running API. Its
-tests are `tests/SupportCrm.Tests/Customers/CustomerDataLayerTests.cs` and
-`AttachmentStorageTests.cs` — **22 tests**. Plan task 10's `CustomerAccessTests.cs` belongs to the
-slices that publish the endpoints it exercises.
+> **Slice 2 was narrowed to task 3 alone** at the user's instruction. The earlier map paired task 3
+> with task 8's customer routes; task 8 now has its own slice, so **no endpoint is published yet**.
+
+**Neither slice has published an endpoint**, which is checked rather than assumed: `/customers`,
+`/attachments/{id}/content` and `/auth/register` all return `404` against the running API, and
+`openapi/v1.json` still lists **11 paths** with no customer or attachment route among them.
+
+**Tests so far:** `CustomerDataLayerTests` (14) and `AttachmentStorageTests` (8) from slice 1,
+`CustomerServiceTests` (24) from slice 2 — **46 tests** under
+[`tests/SupportCrm.Tests/Customers/`](../../../backend/tests/SupportCrm.Tests/Customers/). Plan task
+10's `CustomerAccessTests.cs` belongs to slice 4, which publishes the endpoints it exercises: its
+`403`, `404`-not-`403` and Problem Details assertions all need a route to call.

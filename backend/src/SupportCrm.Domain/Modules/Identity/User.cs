@@ -158,4 +158,36 @@ public sealed class User
 
     /// <summary>A reporting attribute only. Clearing it is allowed — it is optional for staff.</summary>
     public void ChangeBranch(Guid? branchId) => BranchId = branchId;
+
+    /// <summary>
+    /// Sets the sign-in address. <b>Story 04, A-19 — and it has exactly one legitimate caller:
+    /// <c>CustomerService.UpdateAsync</c></b>, propagating a change to the linked
+    /// <c>Customer.Email</c> in the same unit of work (docs/product-scope.md A-19,
+    /// docs/api-design.md §5.5, docs/data-model.md §5 constraints 1a and 1b).
+    ///
+    /// <para>
+    /// <b>This does not make email patchable through <c>PATCH /users/{id}</c>.</b> That endpoint
+    /// still cannot change it, and <c>PatchUserRequest</c> still has <b>no <c>email</c> property</b>
+    /// (AP-10, docs/api-design.md §5.3) — the restriction lives in the request model, where AP-10
+    /// puts every such restriction, not in the absence of a domain mutator. A customer's address and
+    /// their sign-in are one address; a server-side consequence of editing the profile is precisely
+    /// how A-19 says that is kept true.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Uniqueness is not checked here and cannot be.</b> Constraint 1 applies the
+    /// case-insensitive uniqueness of <c>User.email</c> across <em>all</em> users, staff included,
+    /// which is a cross-row rule the Domain layer cannot see. The caller checks it and rejects the
+    /// whole operation on a collision, writing neither row.
+    /// </para>
+    ///
+    /// <para><b>The change is audited</b> by the caller as <c>UserEmailChanged</c>, against this
+    /// user, in that same unit of work — a sign-in identifier changing is a security event even
+    /// though the profile edit that caused it is not (AD-10).</para>
+    /// </summary>
+    public void ChangeEmail(string email)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+        Email = email.Trim();
+    }
 }

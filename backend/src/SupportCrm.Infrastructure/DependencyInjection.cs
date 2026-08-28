@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SupportCrm.Application.Abstractions;
 using SupportCrm.Application.Modules.Administration;
+using SupportCrm.Application.Modules.Customers;
 using SupportCrm.Application.Modules.Identity;
 using SupportCrm.Application.Modules.Organization;
 using SupportCrm.Domain.Modules.Identity;
@@ -66,6 +67,11 @@ public static class DependencyInjection
         // endpoint for a department by design (T2-I).
         services.AddScoped<OrganizationQueryService>();
         services.AddScoped<DepartmentValidator>();
+
+        // Story 04 Application services. CustomerService is registered even though no endpoint
+        // reaches it yet: its controller is task 8, and registering it here is what proves the
+        // service resolves from the real composition root with its real dependencies.
+        services.AddScoped<CustomerService>();
 
         return services;
     }
