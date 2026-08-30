@@ -105,3 +105,40 @@ public sealed record PatchUserRequest
 
     public Guid? BranchId { get; init; }
 }
+
+/// <summary>
+/// <c>POST /auth/register</c> — docs/api-design.md §5.2. <b>Exactly four fields</b>, and §5.2 names
+/// them: <c>{ email, password, fullName, phone? }</c>.
+/// <para>
+/// <b>What is absent is the contract, not an oversight.</b> §5.2: "The request <b>cannot</b> specify
+/// a branch, a role, or a customer id. Role is always <c>Customer</c>; branch is always the
+/// configured default (A-15)." Each is therefore omitted from this type rather than accepted and
+/// ignored (AP-10), and a request carrying one is a <c>400</c> — enforced by
+/// <c>UnmappedMemberHandling.Disallow</c> on the MVC JSON options (finding I-9).
+/// </para>
+/// <para>
+/// <c>fullName</c> becomes both <c>Customer.fullName</c> and the login's
+/// <c>User.displayName</c>: a self-registering customer is one person, and asking them for the same
+/// name twice would be inventing a field §5.2 does not list.
+/// </para>
+/// </summary>
+public sealed record RegisterRequest
+{
+    /// <summary>
+    /// The identifier, in A-10's sense — unique across customers <em>and</em> users, which
+    /// <see cref="AuthService.RegisterAsync"/> checks as the three A-15 outcomes require.
+    /// </summary>
+    [Required, EmailAddress, MaxLength(256)] public string Email { get; init; } = default!;
+
+    /// <summary>
+    /// <b>No strength rule is applied here, and that is deliberate.</b> No approved document states
+    /// one, and <c>POST /users</c> — the Administrator path that creates staff logins — applies none
+    /// either. Inventing a policy on one endpoint would make the two disagree.
+    /// </summary>
+    [Required] public string Password { get; init; } = default!;
+
+    [Required, MaxLength(200)] public string FullName { get; init; } = default!;
+
+    /// <summary>Optional, exactly as §5.2 writes it (<c>phone?</c>).</summary>
+    [MaxLength(64)] public string? Phone { get; init; }
+}
