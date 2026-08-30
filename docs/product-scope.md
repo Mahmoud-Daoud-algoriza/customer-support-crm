@@ -527,6 +527,34 @@ left open rather than invent.
   is what makes the change **traceable** afterwards — it is not a mitigation, and it does not undo
   anything.
 
+**A-20 · SLA due timestamps freeze at creation and do not move when priority changes.** Decided
+2026-08-30, resolving **OQ-2**, which [data-model.md](data-model.md) §2.6 invariant 6 raised on
+2026-08-24 and deliberately left open rather than invent.
+
+- **`firstResponseDueAt` and `resolutionDueAt` are computed once, at creation**, from `createdAt`
+  and the priority the ticket had then (A-3). **A later priority change — by an agent's `PATCH`, by
+  the manual escalate action, or by the automatic breach escalation — leaves both timestamps
+  exactly as they are.**
+- **The rejected alternative was recompute** — `createdAt` + the new priority's hours. It was
+  rejected because it lets an escalation tighten a deadline retroactively, so a ticket can become
+  breached *as a direct consequence of the escalation that its own breach triggered*
+  ([data-model.md](data-model.md) §2.6 invariant 6 names exactly this case).
+- **What escalation still does is unchanged.** It raises priority one level (`Urgent` stays
+  `Urgent`), leaves status alone, sets the latching breach flag, writes the activity row and
+  notifies the department manager (A-5, T2-D). **Only the deadline is untouched.**
+- **Why this reading.** A breach verdict stays a statement about service delivered against the
+  promise that was in force when the ticket arrived, rather than one that can be re-decided later by
+  changing the ticket's priority. It also keeps §9.2 SLA attainment stable under escalation, and it
+  is the simpler of the two rules — consistent with T2-D's *"simplest defensible model"* and with
+  A-3 already refusing business hours, holiday calendars, timezone arithmetic and pause-on-`Pending`.
+- **The cost is accepted.** Raising priority does not buy back time on a ticket that is already
+  late, and an escalated ticket keeps the deadline of its original priority. Urgency is expressed by
+  the priority value, the breach flag, the notification and the queue's breached-first ordering —
+  not by the due timestamps.
+- **This does not answer §9 question 5.** Real SLA policy — business hours, holiday calendars,
+  per-branch timezones, pause-on-customer-reply — is OQ-2's parent and **stays open**. A-20 settles
+  only what happens to two timestamps on a priority change.
+
 ---
 
 ## 8. Explicitly out of scope (T4)

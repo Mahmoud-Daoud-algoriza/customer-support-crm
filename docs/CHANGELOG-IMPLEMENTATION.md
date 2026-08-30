@@ -16,7 +16,48 @@
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-30 (latest) — story 04 slice 6: the customer front end
+### 2026-08-30 (latest) — OQ-2 answered: A-20, the SLA due timestamps freeze
+
+**A decision record only. No source code was written, no plan file was touched, and no story was
+started.** The question had gated story 05 since the stage 9 audit widened it there (**S9-3**).
+
+- **The product owner chose freeze**, and it is recorded as **A-20** in
+  [product-scope.md](product-scope.md) §7 — the register A-14…A-19 already use for exactly this
+  class of decision (a business question no source answered, decided after a design stage found it).
+  **`firstResponseDueAt` and `resolutionDueAt` are computed once at creation and a later priority
+  change does not move them.**
+- **Recompute was the rejected alternative**, and the reason is the one
+  [data-model.md](data-model.md) §2.6 invariant 6 had already written down: recomputing from
+  `createdAt` with the new priority's hours lets an escalation tighten a deadline retroactively, so
+  a ticket can become breached *as a direct consequence of the escalation its own breach triggered*.
+- **Escalation is otherwise unchanged.** It still raises priority one level (`Urgent` stays
+  `Urgent`), leaves status alone, latches the breach flag, writes the activity row and notifies the
+  department manager (A-5, T2-D). **Only the deadline is untouched.**
+- **The model needed no change, which is why it could stay open this long.** §2.6 stores both
+  timestamps and asserts no rule about them — *"compatible with either rule and asserts neither"*.
+  Invariant 6 and §5 constraint 12 now cite **A-20** instead of the open question; the field table
+  says frozen; the §8 register row is **struck through in place and closed**, and the question is
+  added to that section's *"Resolved and closed"* list. **Nothing was deleted or relocated.**
+- **`api-design.md` and `ui-design.md` needed no change at all.** Both readings write the same
+  fields, so the contract is identical either way — [ui-design.md](ui-design.md) §11 had already
+  established this: *"No UI dependency. Both readings write the same fields; the UI displays whatever
+  the server computes."* One visible consequence worth knowing before story 05's queue is built:
+  under freeze, the default `resolutionDueAt:asc` ordering **does not re-order** when a ticket is
+  escalated.
+- **Tracking updated:** OQ-2 struck through in place in [PROJECT-PROGRESS.md](PROJECT-PROGRESS.md)
+  §6.1 with the full resolution recorded as **R-16** in §6.3 — both halves, per the OQ-5 / R-15
+  precedent. Story 05's and story 09's blocker cells, the earliest-first ordering, and the §10
+  decision table all updated to reflect that the earliest blocker in the sequence is now **S9-4**
+  (story 11).
+- **§9 question 5 is untouched and stays open.** Real SLA policy — business hours, holiday
+  calendars, per-branch timezones, pause-on-customer-reply — is OQ-2's parent, and A-20 settles only
+  what happens to two timestamps on a priority change. **No other `OQ-*` was answered.**
+- **Deliberately not touched: the plan files.** Story 05's and story 09's ⚠ blocked-decision boxes
+  and `SlaClock.OnPriorityChanged`'s `NotImplementedException("OQ-2")` still read as blocked. Plans
+  are generated artefacts downstream of the design documents, and rewriting them is a separate
+  approved unit of work — reported to the user rather than taken.
+
+### 2026-08-30 — story 04 slice 6: the customer front end
 
 Plan **tasks 11, 12, 13 and 14** — story 04's **last slice**, and the one that makes the `Customers`
 module reachable by a person rather than only by `curl`. **Front end only:** no backend file changed,

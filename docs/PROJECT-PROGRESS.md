@@ -23,7 +23,7 @@
 | **SDD pipeline** | **9 of 10 stages complete** (90% of the pipeline) |
 | **Code written** | **Stories 01, 02, 03, story 16 Part A, and story 04 in full (all fourteen plan tasks).** Authentication, the four-role model, per-request identity resolution, user administration, the audit recorder, the two organization read endpoints and all three configuration tiers run. `backend/` holds the five-project solution, `frontend/` the Angular + PrimeNG app (built on PrimeNG Sakai `20.0.0`), `docker-compose.yml` runs three services and **two volumes** — story 04 slice 1 added the attachment volume. **The first business entities exist**: `Customers`, `CustomerNotes` and `Attachments` are mapped and migrated, and `User.CustomerId` carries its foreign key. The whole `Customers` module is **published and now reachable from a screen**: profiles with the **A-19 email propagation**, immutable notes, the timeline read projection and attachments on local disk, behind the **ten endpoints of api-design §5.5**, plus **`POST /auth/register`**. `openapi/v1.json` lists **18 paths** (was 11 before story 04). **Slice 6 adds the front end**: typed `customers` and `attachments` clients, the customer directory at `/workspace/customers` with its URL-borne `q` and `branchId` filters, the four-region customer detail, a shared `AttachmentList` + uploader, and the enabled registration form. Demo customers, portal logins, a note and a file are seeded at startup |
 | **Last updated** | 2026-08-30 |
-| **Current focus** | **Story 04 is complete — all six slices implemented and verified**, the first T1 business story to land end to end. Slice 6 (plan tasks 11–14) delivered the typed clients, the customer directory, the customer detail screen and the registration form, verified 2026-08-30 against the running stack and driven through a real browser. **Three findings are open and none blocks anything built:** **I-12** — no approved endpoint publishes the attachment size cap that ui-design §8 asks the uploader to show, so the cap line is absent by design and **needs a user decision**; **I-1** and **I-2** from earlier slices remain the user's call. **I-11 is closed** — it was a `sqlcmd` session-setting artefact, not a schema defect. **Awaiting explicit approval before story 05.** Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
+| **Current focus** | **Story 04 is complete — all six slices implemented and verified**, the first T1 business story to land end to end. Slice 6 (plan tasks 11–14) delivered the typed clients, the customer directory, the customer detail screen and the registration form, verified 2026-08-30 against the running stack and driven through a real browser. **Three findings are open and none blocks anything built:** **I-12** — no approved endpoint publishes the attachment size cap that ui-design §8 asks the uploader to show, so the cap line is absent by design and **needs a user decision**; **I-1** and **I-2** from earlier slices remain the user's call. **I-11 is closed** — it was a `sqlcmd` session-setting artefact, not a schema defect. **OQ-2 is closed** — decided 2026-08-30 as **A-20**: SLA due timestamps **freeze** at creation and a later priority change does not move them (R-16). Story 05 therefore has **no open question gating it** and waits on approval alone. **Awaiting explicit approval before story 05.** Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 35% is calculated
@@ -73,7 +73,7 @@ delivery carries the larger weight. A design-only project is not most of the way
 | # | Stage | Status | Artifact(s) | Doc? | Gate | Note |
 |---|---|---|---|---|---|---|
 | 1 | Requirements | ✅ Complete | [requirements.md](requirements.md) — 56 requirement lines | ✅ | n/a — given input | Never edited. Includes the stage-2 requirements analysis, delivered in conversation and distilled into scope |
-| 2 | Product Scope | ✅ Complete | [product-scope.md](product-scope.md) | ✅ | n/a | T1–T4 tiers, A-1…A-19, 7 open questions. Approved 2026-08-24; A-14…A-18 added 2026-08-24; **A-19 added 2026-08-27** (closes OQ-5) |
+| 2 | Product Scope | ✅ Complete | [product-scope.md](product-scope.md) | ✅ | n/a | T1–T4 tiers, A-1…A-20, 7 open questions. Approved 2026-08-24; A-14…A-18 added 2026-08-24; **A-19 added 2026-08-27** (closes OQ-5); **A-20 added 2026-08-30** (closes OQ-2) |
 | 3 | Story Intake / Backlog | ✅ Complete | 18 intakes + [story-backlog.md](story-backlog.md) | ✅ | ✅ Met | All 56 requirement lines mapped to a story |
 | 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan overviews (**filled at stage 9**) | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
 | 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
@@ -91,9 +91,9 @@ workflow stage). Rows 5–10 match its stages 5–10 exactly. The workflow docum
 
 **Blockers to the pipeline:** none — the pipeline itself is complete. **Blockers inside stage 10
 exist:** four acceptance criteria cannot be met until a decision is recorded (S9-1, S9-4, PF-4,
-PF-2 — §6.7), and three open questions gate individual stories (OQ-1, OQ-2, OQ-3 — §6.1;
+PF-2 — §6.7), and two open questions gate individual stories (OQ-1, OQ-3 — §6.1; **OQ-2 closed 2026-08-30**;
 **OQ-5 was closed on 2026-08-27 by A-19**).
-**None of the eight blocks stories 01–04**; the earliest is **OQ-2, which blocks story 05**.
+**None of the eight blocks stories 01–04.** **OQ-2 — which was the earliest, and blocked story 05 — was closed on 2026-08-30 by A-20** (see R-16); the earliest remaining is **S9-4**, which blocks story 11.
 
 The Stage 7 pre-flight audit raised one blocking finding, PF-1 (the `Pending` transition set and
 the effect of a customer reply); it was resolved the same day as R-13. The remaining pre-flight and
@@ -117,11 +117,11 @@ earlier reading in three places (S9-7, S9-8, S9-12).
 | 02 | `auth-and-roles` | identity-access | **T1** | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-26 | 01, **03 data** | — |
 | 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-27 | 01, 02 | — · tasks 1–3 landed early with story 02, tasks 4–8 after it, per S9-12 |
 | 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** — all 14 tasks | ✅ **Verified** 2026-08-30 — all six slices | 01–03, **16 A** | — · **OQ-5 closed 2026-08-27 (A-19)**, and **A-19 is implemented and proven** · sliced at the user's instruction; slice map in [00-overview.md](../.squad/plans/customer-management/00-overview.md) · **two Done Criteria complete in later stories by the plan's own text** — the timeline fills in story 06, the ticket half of the attachment criterion in story 05 (S9-2) · **finding I-12 open**, needing a user decision |
-| 05 | `ticket-core` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–04, **16 A** | ⚠ **OQ-2** |
+| 05 | `ticket-core` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01–04, **16 A** | — · **OQ-2 closed 2026-08-30 (A-20)** — the story's one blocked path is decided |
 | 06 | `ticket-lifecycle` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 05 | ⚠ OQ-3 *(no-manager branch only)* |
 | 07 | `ticket-intake-messaging` | ticket-management | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 05, 06, 04, 16 A | — |
 | 08 | `agent-dashboard` | agent-workspace | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 04–07, 16 A | ⛔ **S9-1** *(task region only)* |
-| 09 | `sla-routing-escalation` | sla-automation | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 03, 05, 06, 16 A | ⚠ **OQ-2**, OQ-3, PF-5 |
+| 09 | `sla-routing-escalation` | sla-automation | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 03, 05, 06, 16 A | ⚠ OQ-3, PF-5 · **OQ-2 closed 2026-08-30 (A-20)** |
 | 10 | `ai-service-seam` | ai-assist | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01 — **parallel** | — |
 | 11 | `ai-ticket-assists` | ai-assist | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 10, 05–08 | ⛔ **S9-4** |
 | 12 | `kb-articles-search` | knowledge-base | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 02; task 4 needs 05 | — |
@@ -295,7 +295,7 @@ R-12 in §6.3. It is no longer an open issue.)*
 | ID | Question | Impact | Blocks | Status |
 |---|---|---|---|---|
 | **OQ-1** | What is the CSAT rating scale? T2-F says "a one-question satisfaction rating" and fixes no scale | Determines portal control, server validation, and what the §9.4 average means. The model **encodes no range** | Story 13, and the satisfaction tile in story 15 | 🔴 Open — product decision |
-| **OQ-2** | On a priority change, do SLA due dates recompute from `createdAt` or stay frozen? A-3 is silent, and T2-D escalation changes priority routinely | Materially different §9.2 attainment numbers; recompute can breach a ticket as a consequence of the escalation the breach triggered | **Story 05** *(its `PATCH /tickets/{id}` is the **first** code path that changes a priority — widened by **S9-3**)*, story 09, and §9.2 in story 15 | 🔴 Open — business rule. **The earliest blocker in the whole implementation sequence** |
+| ~~**OQ-2**~~ | ~~On a priority change, do SLA due dates recompute from `createdAt` or stay frozen?~~ | Materially different §9.2 attainment numbers; recompute can breach a ticket as a consequence of the escalation the breach triggered | **Story 05** *(its `PATCH /tickets/{id}` is the **first** code path that changes a priority — widened by **S9-3**)*, story 09, and §9.2 in story 15 | **✅ Closed 2026-08-30 by A-20** — they **freeze** — see R-16 below |
 | **OQ-3** | Who is notified on breach when a department has no manager? T2-D says "notify the department manager"; absence is uncovered | Breach flag and priority raise are unaffected; only the recipient is undetermined. **No fallback invented** | **Story 06** *(the **manual** escalation action has the same undefined recipient — widened by **S9-3**)* and story 09 | 🔴 Open — product decision. **Non-blocking on the happy path:** every seeded department has a manager |
 
 | ~~**OQ-5**~~ | ~~When `Customer.email` is changed, does a linked portal login's sign-in email change with it?~~ | Raised 2026-08-25 by the N-2 correction | **✅ Closed 2026-08-27 by A-19** — see R-15 below | ✅ Answered |
@@ -304,7 +304,7 @@ R-12 in §6.3. It is no longer an open issue.)*
 scheduled each against the story and the single method that encodes it. OQ-4 was resolved on
 2026-08-24 (see R-11) and **OQ-5 on 2026-08-27 (see R-15)**.
 
-**Earliest-first order for stage 10:** **OQ-2** (story 05) → **S9-4** (story 11) → **OQ-1**
+**Earliest-first order for stage 10:** ~~**OQ-2** (story 05)~~ **— closed 2026-08-30 by A-20** → **S9-4** (story 11) → **OQ-1**
 (story 13) → **S9-1** (story 14) → **PF-4** (story 15) → **PF-2** (story 18). Restated in §10.
 **OQ-5 has left this list**: it gated story 04, which was the nearest of all of them, and it is
 answered.
@@ -315,7 +315,7 @@ answered.
 residency, ERP product, unbounded "external systems", tenancy model, real SLA policy, chatbot
 handoff, anonymous submission). [architecture.md](architecture.md) §9 confirms the architecture
 resolves none of them and places each behind a seam or configuration point **so they can stay
-open**. They do not block the assessment. Question 5 (real SLA policy) is the parent of OQ-2.
+open**. They do not block the assessment. Question 5 (real SLA policy) is the parent of OQ-2 and **stays open** — A-20 closed the child, not the parent.
 
 ### 6.3 Resolved Decisions
 
@@ -337,6 +337,7 @@ Kept, not deleted.
 | R-13 | **PF-1** — is `Pending -> Open` legal, and what does a customer reply do to a `Pending` ticket? | **Both answered: the transition is legal and a customer reply triggers it automatically.** The reply is the trigger; no agent action is required. It fires from `Pending` only — a reply on `New` leaves it `New`, and a reply on `Resolved` does not reopen it. Recorded as a same-transaction status change with a `StatusChanged` history entry attributed to the replying customer | 2026-08-24 | **A-5**, A-16, model 2.6 inv. 2b, 2.8, constraint 9a |
 | R-12 | Which backend module owns `CustomerFeedback`? The data model labelled it "Portal", which is not one of the ten modules | **The existing `Tickets` module.** Feedback is domain behaviour attached to a ticket, offered when the ticket reaches `Resolved`; `customer-portal` is a front-end and planning concern, not a backend module. **No new module; the ten-module architecture is unchanged**, and the entity's shape, fields and relationships are untouched — an ownership label only | 2026-08-24 | **DM-7**, model §2.15, arch §1 |
 | R-15 | **OQ-5** — does changing `Customer.email` change a linked portal login's sign-in email? | **Yes, and atomically.** A customer's email and their portal sign-in are one address: the two rows change in the same unit of work, and `User.email`'s existing case-insensitive uniqueness applies to the new value across all users — a collision rejects the whole operation and writes neither row. Divergence is not a reachable state, which also keeps A-15's three registration outcomes exhaustive. **Amended the same day:** the propagation writes one **`UserEmailChanged`** audit entry, actor = the calling agent, target = the linked user, in that same unit of work — Story 02's recorder unchanged, one new action constant, no schema change | 2026-08-27 | **A-19** |
+| R-16 | **OQ-2** — on a priority change, do the SLA due timestamps recompute or stay frozen? | **They freeze.** `firstResponseDueAt` and `resolutionDueAt` are computed once at creation from `createdAt` and the priority the ticket had then; a later priority change — agent `PATCH`, manual escalation, or the automatic breach escalation — leaves both exactly as they are. **Recompute was rejected** because it lets an escalation tighten a deadline retroactively, breaching a ticket as a direct consequence of the escalation its own breach triggered. Escalation still raises priority one level, latches the breach flag, writes the activity row and notifies the manager — only the deadline is untouched. **Decided by the product owner**, who was given both readings and their consequences and chose freeze. **Does not close [product-scope.md](product-scope.md) §9 question 5** (real SLA policy), which is OQ-2's parent and stays open | 2026-08-30 | **A-20** · data-model §2.6 invariant 6, §5 constraint 12, §8 |
 | R-11 | **OQ-4** — what is the customer cancellation window? | **Assignment is not the start of work.** A ticket may be assigned while still `New`; `New → Open` is an agent deliberately starting work. The customer's window runs from creation until an agent picks the ticket up, so it is real rather than theoretical | 2026-08-24 | **A-18** |
 
 ### 6.5 Pre-flight findings carried forward (non-blocking)
@@ -541,8 +542,8 @@ makes departments and branches seeded configuration.
 **Slice 6 added no endpoint, and the path count proves it** — still **18**, re-measured on
 2026-08-30 against the running API. A front-end slice must add none, and this one added none.
 
-**Next:** **story 05** (`ticket-core`) — **blocked on explicit approval**, and carrying **OQ-2**,
-which must be answered before it starts. Story 16 **Part B** stays at Phase 7: it reads audit rows
+**Next:** **story 05** (`ticket-core`) — **blocked on explicit approval only**. **OQ-2 is closed**
+(2026-08-30, A-20: the due timestamps freeze), so no open question gates it. Story 16 **Part B** stays at Phase 7: it reads audit rows
 that stories 05 and 06 have yet to write.
 
 ---
@@ -698,13 +699,14 @@ keeps the narrative history behind it.
    deliberately excluded from it so story 11's AI panel can degrade locally as §9 requires.
 
 4. **Answer the outstanding decisions, earliest first.** None blocked stories 01–03. **OQ-5, which
-   gated story 04, was answered on 2026-08-27 (A-19), so nothing now blocks story 04.** The earliest
-   remaining is needed before story 05:
+   gated story 04, was answered on 2026-08-27 (A-19), and OQ-2, which gated story 05, was answered
+   on 2026-08-30 (A-20 — the due timestamps freeze; see R-16).** **No open question now gates story
+   05.** The earliest remaining is needed before story 11:
 
    | When needed | Decision | Kind |
    |---|---|---|
    | ~~Before **story 04**~~ | ~~**OQ-5**~~ — **answered 2026-08-27 by A-19**: yes, atomically | ✅ Closed |
-   | Before **story 05** | **OQ-2** — do SLA due dates recompute or freeze on a priority change? **The earliest blocker.** | Business rule |
+   | ~~Before **story 05**~~ | ~~**OQ-2**~~ — **answered 2026-08-30 by A-20**: they **freeze** | ✅ Closed |
    | Before **story 11** | **S9-4** — how is AI suggestion acceptance/override carried to the server? | Contract (Stage 7) |
    | Before **story 13** | **OQ-1** — what is the CSAT rating scale? | Product |
    | Before **story 14** | **S9-1** — publish a cross-ticket task endpoint, or drop the dashboard task region? | Contract (Stage 7) **or** Stage 8 cut |

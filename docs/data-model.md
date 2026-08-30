@@ -348,8 +348,8 @@ silently editable by other users"; immutability is the cheapest way to guarantee
 | `isUrgent` | ✔ | Boolean, default false. **Customer input only** — an urgency indication that does **not** set priority; agents and the AI suggestion may use it when deciding priority (A-17) |
 | `createdByUserId` | ✔ | The agent or the customer who raised it |
 | `createdAt` | ✔ | **The SLA clock origin** (A-3) |
-| `firstResponseDueAt` | ✔ | At creation: `createdAt` + the configured hours for the ticket's priority (A-3). Behaviour on a later priority change is **undecided** — OQ-2 |
-| `resolutionDueAt` | ✔ | Same basis, same open question |
+| `firstResponseDueAt` | ✔ | At creation: `createdAt` + the configured hours for the ticket's priority (A-3). **A later priority change does not move it** — frozen at creation (**A-20**, closing OQ-2 on 2026-08-30) |
+| `resolutionDueAt` | ✔ | Same basis, same rule |
 | `firstRespondedAt` | ✖ | Set once, on the first outbound message |
 | `resolvedAt` | ✖ | Set on entering `Resolved` |
 | `closedAt` | ✖ | Set on entering `Closed` or `Cancelled` |
@@ -388,23 +388,25 @@ change writes a `TicketActivity` row.
 4. Escalation raises priority exactly one level and **Urgent stays Urgent** (A-5).
 5. **Breach flags latch.** Once true they never return to false, so history and SLA reporting stay
    honest even if priority later changes.
-6. **What happens to the due timestamps when priority changes is NOT decided by this model.**
-   A-3 fixes targets per priority and starts the clock at `createdAt`, but says nothing about a
-   ticket whose priority changes afterwards — which the escalation rule of T2-D causes routinely.
-   Two behaviours are consistent with what the sources actually say:
+6. **The due timestamps freeze at creation and do not move when priority changes** — **A-20**,
+   decided 2026-08-30, closing OQ-2. A-3 fixes targets per priority and starts the clock at
+   `createdAt` but said nothing about a ticket whose priority changes afterwards, which the
+   escalation rule of T2-D causes routinely. Two behaviours were consistent with the sources, and
+   this document deliberately settled neither:
 
    - **(a) Recompute** — due dates become `createdAt` + the new priority's hours. An escalation
      tightens the deadline, and a ticket can become breached the moment it is escalated.
    - **(b) Freeze** — due dates stay as computed at creation. Escalation raises urgency and
-     notifies, but does not move the deadline.
+     notifies, but does not move the deadline. ← **chosen**
 
-   Both are defensible; they produce materially different SLA-attainment numbers in the §9.2
-   report, and (a) can mark a ticket breached as a direct consequence of the escalation that the
-   breach itself triggered. **This is a business rule that must be decided before
-   `sla-routing-escalation` is implemented** — it is not a modelling detail and this document does
-   not settle it. The model stores the two timestamps and is compatible with either. Recorded as
-   OQ-2 in §8; the wider SLA policy question remains
-   [product-scope.md](product-scope.md) §9 question 5.
+   **(b) was chosen** because (a) can mark a ticket breached as a direct consequence of the
+   escalation that the breach itself triggered, and because a breach verdict should stay a statement
+   about the promise in force when the ticket arrived. The two readings produce materially different
+   SLA-attainment numbers in the §9.2 report, which is why this was a business rule for the product
+   owner and not a modelling detail. **The model is unchanged either way** — it stores the two
+   timestamps and asserts no rule about them; A-20 is what asserts the rule. The wider SLA policy
+   question remains [product-scope.md](product-scope.md) §9 question 5, and **A-20 does not close
+   it**.
 7. `Pending` does **not** pause any clock (A-3).
 
 ### 2.7 `TicketActivity` — the history spine
@@ -800,9 +802,10 @@ branch filter the reports ask for. Full audit of the sources in §2.3.
 
 **SLA**
 
-12. Due timestamps are computed at creation from `createdAt` and the ticket's priority. Their
-    behaviour on a later priority change is **an open business rule (OQ-2)**, not a constraint this
-    model asserts.
+12. Due timestamps are computed at creation from `createdAt` and the ticket's priority, and **a
+    later priority change does not move them** (**A-20**, closing OQ-2 on 2026-08-30). The rule is
+    asserted by A-20 rather than by this model, which stores the two timestamps and is compatible
+    with either reading.
 13. Breach flags latch — never reset.
 14. `Pending` does not pause the clock (A-3).
 
@@ -1068,11 +1071,21 @@ pre-empted by an assumption baked into the model.
 | # | Question | What the sources say | This model's position | Blocks |
 |---|---|---|---|---|
 | **OQ-1** | What is the CSAT rating scale? | T2-F says "a one-question satisfaction rating"; no scale anywhere | Stores an ordinal; **encodes no range** — no min, max, or step (§2.15) | `portal-self-service`, and the §9.4 average in `management-dashboard` |
-| **OQ-2** | When priority changes, do the SLA due dates recompute or stay frozen? | A-3 fixes per-priority targets and a `createdAt` origin; silent on later changes, which T2-D escalation causes routinely | Stores both timestamps; **compatible with either rule and asserts neither** (§2.6 invariant 6) | `sla-routing-escalation`, and §9.2 SLA attainment |
+| ~~**OQ-2**~~ | ~~When priority changes, do the SLA due dates recompute or stay frozen?~~ | A-3 fixes per-priority targets and a `createdAt` origin; silent on later changes, which T2-D escalation causes routinely | Stores both timestamps; **compatible with either rule and asserts neither** (§2.6 invariant 6) — **unchanged by the answer** | **✅ Closed 2026-08-30 by A-20 — they stay frozen.** See the resolved list below |
 | **OQ-3** | Who is notified on breach when a department has no manager? | T2-D and the intake both say "notify the department manager"; neither covers its absence | `managerUserId` optional; **no fallback recipient invented**. Breach flag and priority raise still occur (§2.2) | `sla-routing-escalation` |
 
 **Resolved and closed since the first draft of this document:**
 
+- **OQ-2 — the SLA due timestamps on a priority change** (raised 2026-08-24 by §2.6 invariant 6;
+  resolved 2026-08-30). **They freeze** (**A-20**): both timestamps are computed once at creation
+  and a later priority change — agent `PATCH`, manual escalation or automatic breach escalation —
+  leaves them exactly as they are. The alternative, recomputing from `createdAt` with the new
+  priority's hours, was rejected because it lets an escalation tighten a deadline retroactively and
+  breach a ticket as a consequence of the escalation its own breach triggered. **Model consequence:
+  none** — §2.6 stores both timestamps and asserts no rule about them, which is precisely why it
+  could stay open this long; constraint 12 and invariant 6 now cite A-20 rather than the question.
+  [product-scope.md](product-scope.md) §9 question 5 — real SLA policy — is its parent and **stays
+  open**.
 - **Whether a ticket needs its own branch relationship.** It does not — a ticket's branch is derived
   `Ticket → Customer → Branch`, no source requires otherwise, and §2.3 records the full audit.
 - **OQ-5 — a customer's email versus their portal sign-in** (raised 2026-08-25 by
