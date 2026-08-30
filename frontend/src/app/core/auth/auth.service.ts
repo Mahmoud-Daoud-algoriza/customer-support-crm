@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { firstValueFrom } from 'rxjs';
-import { IdentityClient } from '../api/identity.client';
+import { IdentityClient, RegisterRequest } from '../api/identity.client';
 import { AuthStore } from './auth.store';
 import { AuthToken } from './identity.model';
 
@@ -14,6 +14,23 @@ export class AuthService {
 
     login(email: string, password: string): Observable<AuthToken> {
         return this.api.login(email, password).pipe(
+            tap((token) => {
+                this.store.setToken(token.accessToken);
+                this.store.setIdentity(token.user);
+            })
+        );
+    }
+
+    /**
+     * Customer self-registration (A-15). The server answers `201` with an `AuthToken`, so a
+     * successful registration **signs the new customer in** — the same session-establishing step
+     * `login` performs, in one place rather than two.
+     *
+     * A `409 user-already-exists` never reaches here: it throws, nothing is stored, and the screen
+     * renders the translated invitation to sign in instead.
+     */
+    register(request: RegisterRequest): Observable<AuthToken> {
+        return this.api.register(request).pipe(
             tap((token) => {
                 this.store.setToken(token.accessToken);
                 this.store.setIdentity(token.user);

@@ -35,6 +35,19 @@ export abstract class ApiClientBase {
         return this.http.delete<T>(this.url(path));
     }
 
+    /**
+     * A binary response — the one shape `GET /attachments/{id}/content` returns (AP-19): the file
+     * stream, with no JSON body at all (docs/api-design.md §6.7).
+     *
+     * It goes through `HttpClient` like every other call **because that is the only way the bearer
+     * token is sent**: `authInterceptor` sets `Authorization` on an `HttpRequest`, and the token
+     * lives in `localStorage`, not in a cookie. A plain `<a href>` to the same path would carry no
+     * header and be answered `401`. See finding I-13.
+     */
+    protected getBlob(path: string): Observable<Blob> {
+        return this.http.get(this.url(path), { responseType: 'blob' });
+    }
+
     private url(path: string): string {
         return `${environment.apiBaseUrl}/${path.replace(/^\//, '')}`;
     }

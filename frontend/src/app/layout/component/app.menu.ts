@@ -45,8 +45,9 @@ export class AppMenu {
         if (this.store.isAtLeast('Agent')) {
             const workspace: MenuItem[] = [];
 
-            // TODO Story 05: My queue, Tickets. Story 04: Customers. Story 12: Knowledge.
+            // TODO Story 05: My queue, Tickets. Story 12: Knowledge.
             // Each is added by the story that builds the screen, so no entry is ever a dead link.
+            workspace.push({ label: t('nav.customers'), icon: 'pi pi-fw pi-users', routerLink: ['/workspace/customers'] });
 
             if (this.store.isAtLeast('Manager')) {
                 // TODO Story 15: Reports — Manager+ only (docs/ui-design.md §4.1).

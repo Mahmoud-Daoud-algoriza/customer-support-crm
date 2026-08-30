@@ -47,7 +47,9 @@
         "invalid-credentials": "Email or password is incorrect.",
         "user-already-exists": "A user with that email already exists.",
         "http-401": "Your session has ended. Please sign in again.",
-        "http-403": "You don't have access to this."
+        "http-403": "You don't have access to this.",
+        "customer-email-in-use": "That email is already in use by another customer.",
+        "attachment-too-large": "That file is larger than the allowed size."
     },
     "primeng": {
         "accept": "Yes",
@@ -64,8 +66,10 @@
         "password": "Password",
         "register": "Create an account",
         "registerPrompt": "New customer? Create an account",
-        "registerComingSoon": "Self-registration arrives with the customer records story. Ask an administrator for an account for now.",
-        "backToSignIn": "Back to sign in"
+        "backToSignIn": "Back to sign in",
+        "fullName": "Full name",
+        "phoneOptional": "Phone (optional)",
+        "alreadyRegistered": "An account already exists for that email. Sign in instead."
     },
     "roles": {
         "Customer": "Customer",
@@ -76,7 +80,8 @@
     "nav": {
         "workspace": "Workspace",
         "admin": "Administration",
-        "users": "Users"
+        "users": "Users",
+        "customers": "Customers"
     },
     "admin": {
         "users": {
@@ -108,5 +113,44 @@
             "select": "Select a department",
             "ownDepartmentHint": "You see your own department. Access is decided on the server."
         }
+    },
+    "customers": {
+        "title": "Customers",
+        "create": "Create customer",
+        "search": "Search name or email",
+        "anyBranch": "All branches",
+        "selectBranch": "Select a branch",
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone",
+        "branch": "Branch",
+        "openTickets": "Open tickets",
+        "since": "Customer since",
+        "externalReference": "External reference",
+        "emailIsSignIn": "This is also the customer’s portal sign-in address. Changing it changes how they sign in.",
+        "saved": "Changes saved.",
+        "emptyTitle": "No customers match",
+        "emptyMessage": "Adjust the filters, or create a customer.",
+        "timeline": {
+            "title": "Interaction timeline",
+            "emptyTitle": "No activity yet"
+        },
+        "notes": {
+            "title": "Notes",
+            "add": "Add a note",
+            "save": "Add note",
+            "emptyTitle": "No notes yet",
+            "emptyMessage": "A note records something worth keeping. Once added, it cannot be changed."
+        },
+        "attachments": {
+            "title": "Attachments"
+        }
+    },
+    "attachments": {
+        "add": "Attach a file",
+        "download": "Download",
+        "cap": "Maximum {{size}} per file.",
+        "emptyTitle": "No files attached",
+        "emptyMessage": "Attach a file to keep it with this record."
     }
 }

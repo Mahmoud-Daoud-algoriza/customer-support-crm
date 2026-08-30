@@ -38,6 +38,17 @@ export interface UserRow {
 }
 
 /**
+ * `UserSummary` — docs/api-design.md §6.1: *"embedded wherever a person is referenced"*. A note's
+ * author, an attachment's uploader, a timeline entry's actor — all of them are this and nothing
+ * more, because §6 says a display name beside an id is a projection, not a second call and not a
+ * second entity.
+ */
+export interface UserSummary {
+    id: string;
+    displayName: string;
+}
+
+/**
  * The A-4 hierarchy check, mirroring `UserRole.RankAtLeast` on the server.
  * It decides what to *show*; the server independently decides what is *allowed*.
  */

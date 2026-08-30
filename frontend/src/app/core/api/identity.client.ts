@@ -22,6 +22,20 @@ export interface PatchUserRequest {
     branchId?: string | null;
 }
 
+/**
+ * `POST /auth/register` — docs/api-design.md §5.2. **Exactly four fields, one of them optional.**
+ *
+ * There is **no branch and no role**, and neither may be added: A-15 fixes both server-side — role
+ * is always `Customer`, branch is always the configured default. A request carrying either is a
+ * `400` (AP-10), so the omission here is the contract, not a convenience.
+ */
+export interface RegisterRequest {
+    email: string;
+    password: string;
+    fullName: string;
+    phone?: string | null;
+}
+
 /** `GET /users` filters — docs/api-design.md §5.3. Names mirror the API exactly. */
 export interface UserListFilter extends PageRequest {
     role?: UserRole | null;
@@ -38,6 +52,19 @@ export interface UserListFilter extends PageRequest {
 export class IdentityClient extends ApiClientBase {
     login(email: string, password: string): Observable<AuthToken> {
         return this.post<AuthToken>('auth/login', { email, password });
+    }
+
+    /**
+     * `POST /auth/register` — anonymous customer self-registration (A-15).
+     *
+     * The response is an `AuthToken`, so a new customer is signed in rather than bounced back to
+     * the sign-in form (docs/api-design.md §6.1). An email that already has a login is `409`
+     * `user-already-exists` (**PF-6**); an email that already has an agent-created profile and no
+     * login is a `201` that **links** to that profile rather than duplicating it — all three
+     * outcomes are the server's, and the client distinguishes only the `409`.
+     */
+    register(request: RegisterRequest): Observable<AuthToken> {
+        return this.post<AuthToken>('auth/register', request);
     }
 
     /** The resolved identity. There is no logout endpoint (AP-8) — the client discards the token. */
