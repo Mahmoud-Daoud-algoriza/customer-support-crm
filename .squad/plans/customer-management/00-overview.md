@@ -43,7 +43,7 @@ each. The slice boundaries are not in the plan; the plan's numbered tasks are.
 | **3 — notes, timeline, attachments, seed** | **4, 5, 6, 9** — `CustomerNoteService`, `CustomerTimelineService` (against the empty ticket set), `AttachmentService` (both owners, AP-19 download), and `CustomerSeeder` | ✅ **Done and verified 2026-08-28** |
 | **4 — controllers** | **8** — the nine customer routes and the AP-19 download, plus **plan task 10's `CustomerAccessTests`**, whose `403` and `404`-not-`403` assertions needed a route to call | ✅ **Done and verified 2026-08-28** |
 | 5 — registration | 7 — `AuthService.RegisterAsync`, `POST /auth/register`, the three A-15 outcomes | Not started |
-| 6 — front end | 11, 12, 13, 14 | Not started |
+| 6 — front end | 11, 12, 13, 14 | ✅ **Done and verified 2026-08-30** |
 
 > **Slice 2 was narrowed to task 3 alone** at the user's instruction. The earlier map paired task 3
 > with task 8's customer routes; task 8 now has its own slice.

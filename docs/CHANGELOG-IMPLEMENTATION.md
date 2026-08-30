@@ -16,7 +16,82 @@
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-28 (latest) — story 04 slice 5: customer self-registration
+### 2026-08-30 (latest) — story 04 slice 6: the customer front end
+
+Plan **tasks 11, 12, 13 and 14** — story 04's **last slice**, and the one that makes the `Customers`
+module reachable by a person rather than only by `curl`. **Front end only:** no backend file changed,
+and `openapi/v1.json` still lists **18 paths**.
+
+- **Typed clients first (task 11).** `core/api/customers.client.ts` carries the nine customer calls
+  and the six §6.3 / §6.7 payload types; `core/api/attachments.client.ts` carries `downloadUrl` and
+  `download`. `ApiClientBase` gained one method, `getBlob` — the only binary response the contract
+  has. **No component calls `HttpClient`** (architecture §2.2), and neither client has a `delete`
+  method, because no endpoint does: deleting a customer is not an application operation
+  (data-model §2.4) and a note is immutable (§2.5).
+- **`UserSummary` landed in `identity.model.ts`**, where api-design **§6.1** defines it — *"embedded
+  wherever a person is referenced"*. A note's author, an attachment's uploader and a timeline entry's
+  actor are all it; the ticket payloads of stories 05–07 will be too.
+- **The customer directory (task 12)** renders exactly ui-design §5.4's five columns — name, email,
+  phone, branch, **open-ticket count** — and its filters are **`q` and `branchId` in the URL**
+  (**UI-9**), under the API's own names with no translation step. `openTicketCount` reads `0` on every
+  row today, which is the **true** aggregate until story 06 creates tickets, not a placeholder.
+  **Branch is a filter here and nothing more** (T2-K, A-2), so the control is a plain select and
+  deliberately **not** modelled on `app-department-filter` — that component exists to make *scoping*
+  legible, and branch is in no authorization predicate anywhere. **No department filter**, because a
+  customer has no department.
+- **A create dialog was added to the directory, and it is a judgment call, recorded as one.** Neither
+  task 12 nor ui-design §5.4 names a create control, but the plan's own Done Criteria require *"an
+  agent can create … customers"* and task 11 puts `create` in the client. It is modelled on story
+  02's `CreateUserDialogComponent`. **The branch is chosen here and required** — only a
+  *self-registering* customer gets the configured default and is never asked (A-15).
+- **The customer detail (task 13)** is four regions, each with its own loading, empty and error state
+  (§9), loading **independently** so one slow call never blanks the screen. **The email field carries
+  the A-19 helper line** — persistent, on the field, and **unconditional**, because the `Customer`
+  payload carries no "has a login" field and this story adds none. **Both `409`s render inline on
+  that field**: `customer-email-in-use` and `user-already-exists` both mean the address is taken and
+  neither wrote anything. **Notes render no edit and no delete control anywhere**, because no path
+  exists server-side. The timeline shows *"No activity yet"* — an empty state, never an error.
+- **`AttachmentList` + uploader went into `shared/`**, as task 13 says, so the ticket and portal
+  surfaces reuse it rather than re-inventing it. `413` surfaces **inline on the uploader**.
+- **The registration screen (task 14)** replaces the "coming soon" placeholder story 02 left. Four
+  fields, one optional, and **no branch selector and no role selector** — A-15 fixes both
+  server-side, which is why `RegisterRequest` has nowhere to put either. `409 user-already-exists`
+  reads as an invitation to sign in, not a failure (PF-6). A success returns an `AuthToken`, so the
+  new customer is **signed in** and routed by role.
+- **Two findings, neither resolved by invention.** **I-12 — no approved endpoint publishes the
+  attachment size cap** that ui-design §8 asks the uploader to show: it is in none of §6.9's three
+  configuration payloads, each of which enumerates its members exhaustively. The uploader takes an
+  optional `maxSizeBytes`, defaulted to `null`, so the cap line is absent while `413` still reads as
+  a translated sentence; publishing the cap means **adding a member to `StaffConfig`**, which is the
+  user's call. **Needs a decision.** **I-13 — the plan's download rationale was wrong about a
+  mechanism.** Task 11 says the auth interceptor supplies the bearer token for a bare
+  `downloadUrl` path; it does not, because the interceptor only sees `HttpClient` requests and the
+  token lives in `localStorage` (AD-7). `downloadUrl` exists exactly as named and is the one place
+  the path is built — from the **id**, never a storage path (AP-19) — and `download()` fetches
+  through `getBlob`, which makes the plan's own sentence true. **Informational.**
+- **Finding I-11 is closed, and its diagnosis corrected.** Restoring demo data re-tested it: the same
+  `DELETE` on the same row gives `Msg 8624` under `SET QUOTED_IDENTIFIER OFF` (`sqlcmd`'s default,
+  which SQL Server refuses to combine with a **filtered index**) and **`deleted: 1`** under
+  `QUOTED_IDENTIFIER ON`. **No index change is needed**, and the application never issued the failing
+  form — `Microsoft.Data.SqlClient` sets the option on by default.
+- **Verified against the running stack, and driven through a real browser.** The upload/download
+  round-trip returns the same bytes with the original file name; **18 of 18 CDP checks** pass on the
+  real screens; **no horizontal body scroll at 390 px** on all three; Arabic sets `dir="rtl"` and
+  **this slice's own CSS mirrors, measured** (`0/744` → `744/0` on the uploader). **The staff shell
+  sidebar does not mirror** — `layout/`, not this slice, and **story 17 Part B task 3 owns it by
+  name**. **The guard was proven load-bearing:** reverting the multipart part name turned 1 of 23
+  specs red, and the restore was confirmed by `grep`, `prettier --check` and a green re-run.
+- **Tests:** `customers.client.spec.ts` (7, new) — front end **23 passing** (was 16). Backend
+  **220 passing, 1 skipped — unchanged**, which is the evidence that no backend file moved.
+- **Deliberately not touched:** no backend file, no design document, no plan content beyond the
+  slice's status cell. `user-directory.component.ts` keeps its component-local filters — retrofitting
+  UI-9 there is cross-cutting work, not this slice's. No shared `PagedTable` was extracted: story 02
+  set the precedent of a screen-local `p-table` over the paged envelope, and extracting one now would
+  mean refactoring that screen too. The directory uses a table rather than stacked cards, because
+  ui-design §10.3's per-surface table names the agent queue, ticket detail and portal for card
+  treatment and **not** the customer directory.
+
+### 2026-08-28 — story 04 slice 5: customer self-registration
 
 Plan **task 7** and its route, deferred here from Story 02 because registration is the first point
 at which a `Customer`, a `Branch` and the configured default branch all exist (A-15). **Backend
