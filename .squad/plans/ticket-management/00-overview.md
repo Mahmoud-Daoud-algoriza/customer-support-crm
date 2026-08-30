@@ -16,6 +16,18 @@ which is the **global** execution sequence across all feature folders
 Tracker integration is `none`; story ids are the folder names under
 [`.squad/stories/ticket-management/`](../../stories/ticket-management/).
 
+## Implementation progress
+
+Story 05 was delivered **whole, not in slices** — the plan's thirteen numbered tasks were the unit
+of work, so this feature has no slice map of the kind
+[customer-management](../customer-management/00-overview.md) needed.
+
+| Story | Plan tasks | Status |
+|---|---|---|
+| **05 — ticket core** | **1–13** — the entities, `SlaClock`, the migration and seeder, `TicketScope`, `TicketService`, the activity recorder, ticket attachments, the controller, the tests, and the list / detail / assign screens | ✅ **Done and verified 2026-08-31** |
+| 06 — ticket lifecycle | 1–n | Not started |
+| 07 — ticket intake and messaging | 1–n | Not started |
+
 ## Dependency notes
 
 **Phases 3–4. The core loop the assessment stands or falls on.** Strictly sequential:

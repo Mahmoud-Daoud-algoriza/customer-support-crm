@@ -16,7 +16,114 @@
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-30 (latest) — OQ-2 answered: A-20, the SLA due timestamps freeze
+### 2026-08-31 (latest) — story 05: ticket core, delivered whole
+
+**The second T1 business story to land end to end, and the one the assessment's core loop rests
+on.** Delivered **whole rather than in slices** — the plan's thirteen numbered tasks were the unit of
+work — so there is no slice map for it. Code was committed as `a633923` with tracking deliberately
+left behind; **this entry is that tracking**.
+
+**What changed, and where.**
+
+- **Domain** — `Modules/Tickets/`: `Ticket`, `TicketActivity`, and the `TicketStatus`,
+  `TicketPriority`, `TicketActivityType`, `TicketActivityVisibility` and `TicketActorKind` enums;
+  `Modules/Sla/SlaClock.cs` beside them, because [architecture.md](architecture.md) §2.1 puts SLA
+  target calculation in the Domain. `SupportCrm.Domain` still has **zero project and zero package
+  references** (**AD-4**).
+- **Application** — `Modules/Tickets/`: **`TicketScope`**, the single department-scoping helper every
+  later ticket query composes (**AD-5**); `TicketService` with category→department auto-assignment
+  (**A-14**); `TicketActivityRecorder`; `TicketContracts`; `IAutoAssignmentPolicy`.
+- **Infrastructure** — `TicketConfiguration`, `TicketActivityConfiguration`, the
+  `20260830204837_Tickets` migration and `TicketSeeder` (6 tickets across both departments and a
+  spread of priorities and statuses).
+- **Api** — `TicketsController`, **seven operations**: `GET`/`POST /tickets`,
+  `GET`/`PATCH /tickets/{id}`, `POST /tickets/{id}/assignment`, `GET`/`POST /tickets/{id}/attachments`.
+  `openapi/v1.json` goes from **18 paths to 22**.
+- **Front end** — `core/api/tickets.client.ts`; the workspace ticket list, detail header, assign
+  control and customer panel; shared `StatusChip`, `PriorityChip` and `TicketFilterBar`; both i18n
+  dictionaries extended.
+
+**Why, with the ids cited.**
+
+- **A-20 is implemented as code rather than merely satisfied.** `SlaClock.OnPriorityChanged` is a
+  deliberate, commented **no-op**, and `TicketService.PatchAsync` **still calls it**. Story 06's
+  manual escalation and story 09's automatic breach escalation call the same seam, so scattering
+  *"we don't touch the dates"* across three call sites would have been the wrong shape. **OQ-2
+  reached this story rather than only story 09** because the first code path that changes a priority
+  is this `PATCH` — the widened blast radius recorded as **S9-3**.
+- **`Ticket` has no branch column** and never may have one: a ticket's branch is derived
+  `Ticket → Customer → Branch` ([data-model.md](data-model.md) §2.3). **A-2 / T2-K** keep a branch
+  filter off the ticket list.
+- **Out-of-scope tickets are `404`, not `403`**, on read *and* on write (**AP-4**).
+- **Assignment does not change status** (**A-18**), rendered as two independent facts.
+- Filtered-index predicates are written as two `<>` comparisons rather than `NOT IN` — a SQL Server
+  requirement (**I-17**).
+
+**Two audit findings are closed.** **S9-2** — the ticket half of story 04's attachment acceptance
+criterion — is discharged by the two ticket-attachment routes. **S9-5** — both SLA due timestamps
+required at creation — is implemented and proven live.
+
+**Findings recorded — seven, I-14…I-20, none resolved by invention** (PROJECT-PROGRESS §6.8).
+
+- **I-16 needs a user decision.** No approved endpoint lets an Agent list the staff in their own
+  department: all five `/users` routes are **Administrator-only** ([api-design.md](api-design.md)
+  §5.3), so the `Assign ▾` picker cannot be populated for the role that needs it most. **The current
+  behaviour was deliberately kept and no endpoint was added** — everyone gets *Assign to me*, which
+  needs no directory and is always legal because the ticket was loaded through the department scope;
+  an Administrator additionally gets a real picker. The intake, plan task 13 and
+  [ui-design.md](ui-design.md) §5.3 were each checked first, and **none explicitly requires an
+  agent-readable staff directory**. If the user reads *"an agent can assign and reassign a ticket
+  within their department"* as requiring an Agent to pick a colleague, that is a **§5 contract
+  addition for the user to take, not a screen's to invent**.
+- **I-20 is a verification-plan wording issue, not a code defect.** The plan's verification step 3
+  greps for `branch` in the ticket Domain folder and expects nothing — but `Ticket.cs` carries a
+  deliberate comment saying there is no branch column and there must never be one, so the literal
+  grep matches **its own guard rail**, and deleting that comment to satisfy it would remove the very
+  thing that stops the column being added. **The implementation was not changed.** The step's intent
+  is proven three stronger ways instead: the same grep with **comments stripped** returns zero hits;
+  the **type-level** `BranchIsNotABoundaryTests.Ticket_has_no_branch_member` reflects over `Ticket`'s
+  members and asserts the set is empty; and the **live SQL Server schema** shows `dbo.Tickets` with
+  19 columns and no branch column. **The plan text was left as approved** — rewording step 3 is a
+  plan edit outside a tracking task's scope, and is offered to the user rather than taken.
+- **I-14** (no approved document states how `priority` sorts — sorted by severity via the enum's own
+  declaration order, the only reading under which the whitelist entry is useful), **I-15** (A-20's
+  implementation is an empty method body, so two tests the plan did not name were added to make its
+  reversal fail loudly), **I-17** (`NOT IN` in a filtered-index predicate took the migration down at
+  startup on real SQL Server; SQLite accepts it, so only the real database could find it), **I-18**
+  (`NG0950` from reading a required signal input in a constructor — found by driving the real
+  screen), **I-19** (a deep link losing its filters on load, defeating **UI-9** — found by reloading
+  a filtered list in a real browser).
+
+**Verified 2026-08-31** — every command run in the tracking task, none inherited.
+
+- `dotnet build backend/SupportCrm.sln` → **0 warnings, 0 errors** with `TreatWarningsAsErrors`.
+- `dotnet test backend/SupportCrm.sln` → **251 passed, 0 failed, 0 skipped** (was **220/0/1**):
+  **+31 tests, and the suite's one by-design skip is gone** — `BranchIsNotABoundaryTests` was
+  skipped until story 05 created the `Ticket` type it asserts about, and now runs.
+- `npm run build` clean; `npm run lint:styles` clean; `npx ng test` → **23 specs, unchanged**, which
+  is the expected result for a story that added no spec.
+- **Against real SQL Server**, the plan's own steps: an out-of-department ticket is **`404` on
+  `GET`, on `POST /assignment` and on `PATCH`**; `POST /tickets` with no `departmentId` and
+  `categoryCode: billing` lands in **Billing** with **both** due timestamps set; `GET /customers`
+  returns a real **`openTicketCount`**; a Billing agent's list is **3 tickets, all in their own
+  department**. **A-20 proven at the API**: `High → Urgent` moved **neither** due timestamp.
+  **A-18 proven**: assigning a `New` ticket returned `status: New` with the assignee set.
+- **Demo data restored:** the one verification ticket was removed with its activity rows and the
+  counts re-read — `total tickets: 6`, the seeded number. Story 05 discloses **no** leftover row.
+  Removing it re-confirmed **I-11** on a second, independent table: `sqlcmd`'s default
+  `QUOTED_IDENTIFIER OFF` met the new filtered indexes and SQL Server named the cause outright
+  (**`Msg 1934`**); with `-I` the delete succeeded.
+
+**Deliberately not touched.** No approved document was edited — no new endpoint, no `StaffConfig`
+member, no contract addition for **I-16**. The plan's verification step 3 wording was left as
+approved (**I-20**). Story 06's `TransitionTo`, the A-5 legality machine, the A-16 authority matrix,
+escalation and `/activity` are **not** here — story 05 withholds them by design, and `Transition ▾`
+and `Escalate` are **not rendered**, because a disabled-looking control with no behaviour is worse
+than none. **OQ-3** and product-scope §9 question 5 remain open and are untouched by this story.
+
+---
+
+### 2026-08-30 — OQ-2 answered: A-20, the SLA due timestamps freeze
 
 **A decision record only. No source code was written, no plan file was touched, and no story was
 started.** The question had gated story 05 since the stage 9 audit widened it there (**S9-3**).
