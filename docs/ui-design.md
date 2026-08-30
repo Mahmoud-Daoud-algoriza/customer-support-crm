@@ -223,8 +223,8 @@ reports screen and the customer directory, never as a ticket scope.
   for the caller's role (A-5 + A-16), computed per UI-3.
 - **Escalate** is a separate control, never inside the transition menu — escalation is an action,
   not a status change (A-7, A-16). Its confirmation dialog states the effect: priority rises one
-  level, status is unchanged. **See §11 for the OQ-3 dependency on what it may claim about
-  notification.**
+  level, status is unchanged. **It may now also state that a manager will be notified** — true on
+  every rung of **A-21**, which closed OQ-3 on 2026-08-31 (see §11).
 - **Assign** does **not** change status. When an unassigned `New` ticket is assigned, the status
   chip stays `New` — A-18 made this explicit and the UI must not imply otherwise. The header shows
   assignee and status as two independent facts.
@@ -479,7 +479,7 @@ activity — scrolls inside its own container, so the page body never scrolls si
 |---|---|---|---|
 | **OQ-1** CSAT scale | Portal request detail — feedback control (§7.3) | **The control's shape is undecided.** An ordinal range renders as a rating scale; a binary scale renders as two buttons. The design **does not pick one** | Render from `feedback.ratingScale` in `GET /config`. **The plan must not hardcode a star widget** until OQ-1 is answered |
 | **OQ-2** SLA due dates on priority change | Ticket detail SLA region, queue ordering | **No UI dependency.** Both readings write the same fields; the UI displays whatever the server computes | None |
-| **OQ-3** breach with no department manager | Ticket detail — escalate confirmation (§5.3) | The dialog **must not claim "the department manager will be notified"**, because a department may have none and no fallback exists | Word the effect as priority rise + status unchanged. Add the notification claim only once OQ-3 is answered |
+| ~~**OQ-3**~~ breach with no department manager | Ticket detail — escalate confirmation (§5.3) | ✅ **Closed 2026-08-31 by A-21.** The constraint is lifted: a manager is notified on every rung of the cascade — the department's own, else every active `Manager`, else every active `Administrator` | **The dialog may now say a manager will be notified**, and should word it as "a manager" rather than "the department manager", because one unconditional sentence is true in both branches. **No new payload field**: the screen is not told which rung fired, and must not ask. Priority rise + status unchanged still stated |
 | **PF-4** "tickets assigned" semantics | Reports — agent performance (§5.7) | Currently-assigned and ever-assigned are different numbers under one label | Label it exactly as T2-G words it — "tickets assigned" — and add no clarifying tooltip that would assert a meaning |
 | **PF-5** `firstRespondedAt` null | Ticket detail SLA region | A ticket resolved without a reply has no first-response time | Render "—", not "breached" and not "0" |
 | **N-1** undefined response shapes | Every screen consuming User, Customer, Task, Article, Notification, Audit or report payloads | Field lists here are taken from [data-model.md](data-model.md) where [api-design.md](api-design.md) §6 is silent | Confirm against the response shapes when N-1 is completed **before stage 9** |

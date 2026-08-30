@@ -7,6 +7,7 @@ using SupportCrm.Application.Modules.Administration;
 using SupportCrm.Application.Modules.Customers;
 using SupportCrm.Application.Modules.Identity;
 using SupportCrm.Application.Modules.Organization;
+using SupportCrm.Application.Modules.Sla;
 using SupportCrm.Application.Modules.Tickets;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Infrastructure.Persistence;
@@ -88,6 +89,13 @@ public static class DependencyInjection
         // across active agents in the ticket's department (T2-D). Registering the no-op now is what
         // lets TicketService.CreateAsync depend on the seam rather than on its absence.
         services.AddScoped<IAutoAssignmentPolicy, NoAutoAssignmentPolicy>();
+
+        // The escalation-recipient seam — A-21, closing OQ-3 (docs/product-scope.md §7).
+        // Registered ahead of either caller for the same reason as the services above: Story 06's
+        // manual escalate and Story 09's automatic breach sweep must resolve recipients through
+        // ONE policy, and having it composed here is what makes that shared, rather than a rule
+        // each story re-expresses. Neither caller exists yet.
+        services.AddScoped<IEscalationRecipientPolicy, EscalationRecipientPolicy>();
 
         return services;
     }

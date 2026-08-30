@@ -23,7 +23,7 @@
 | **SDD pipeline** | **9 of 10 stages complete** (90% of the pipeline) |
 | **Code written** | **Stories 01, 02, 03, story 16 Part A, story 04 in full (all fourteen plan tasks), and story 05 in full (all thirteen plan tasks).** Authentication, the four-role model, per-request identity resolution, user administration, the audit recorder, the two organization read endpoints and all three configuration tiers run. `backend/` holds the five-project solution, `frontend/` the Angular + PrimeNG app (built on PrimeNG Sakai `20.0.0`), `docker-compose.yml` runs three services and **two volumes**. The `Customers` module is published and reachable from a screen: profiles with the **A-19 email propagation**, immutable notes, the timeline read projection and attachments on local disk, behind the **ten endpoints of api-design §5.5**, plus **`POST /auth/register`**. **Story 05 adds the ticket core** — `Tickets` and `TicketActivities` are mapped and migrated, `TicketScope` is the one department-scoping helper every later ticket query composes (AD-5), `SlaClock` computes both due timestamps at creation and **freezes them on a priority change (A-20)**, and the workspace has a filtered ticket list, a ticket detail header, an assign control and a customer panel. `openapi/v1.json` lists **22 paths** (was 18 after story 04, 11 before it). Demo tickets across two departments and four priorities are seeded at startup |
 | **Last updated** | 2026-08-31 |
-| **Current focus** | **Story 05 is complete — implemented and verified 2026-08-31**, delivered **whole rather than in slices**, so there is no slice map for it. It is the second T1 business story to land end to end and the one the assessment's core loop rests on. **A-20 is implemented as code, not merely satisfied:** `SlaClock.OnPriorityChanged` is a deliberate, commented no-op that `PatchAsync` still calls, so the rule has exactly one home for stories 06 and 09 to reuse — proven live (`High → Urgent` moved neither due timestamp) and pinned by two tests. `BranchIsNotABoundaryTests.Ticket_has_no_branch_member` **is no longer skipped**: the suite is now **251 passing, 0 skipped** (was 220 passing, 1 skipped). **Seven findings came out of this story (I-14…I-20)** and none is resolved by invention. **One needs a user decision — I-16:** no approved endpoint lets an Agent list the staff in their own department (`GET /users` is Administrator-only, api-design §5.3), so the assign picker cannot be populated for the role that needs it most; **the current behaviour is deliberately kept** — everyone gets *Assign to me*, an Administrator also gets a real picker — because no approved Story 05 requirement explicitly calls for an agent-readable staff directory. **I-1, I-2 and I-12 remain the user's call** from earlier stories. **Awaiting explicit approval before story 06.** Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
+| **Current focus** | **Story 05 is complete — implemented and verified 2026-08-31**, delivered **whole rather than in slices**, so there is no slice map for it. It is the second T1 business story to land end to end and the one the assessment's core loop rests on. **A-20 is implemented as code, not merely satisfied:** `SlaClock.OnPriorityChanged` is a deliberate, commented no-op that `PatchAsync` still calls, so the rule has exactly one home for stories 06 and 09 to reuse — proven live (`High → Urgent` moved neither due timestamp) and pinned by two tests. `BranchIsNotABoundaryTests.Ticket_has_no_branch_member` **is no longer skipped**: the suite is now **251 passing, 0 skipped** (was 220 passing, 1 skipped). **Seven findings came out of this story (I-14…I-20)** and none is resolved by invention. **One needs a user decision — I-16:** no approved endpoint lets an Agent list the staff in their own department (`GET /users` is Administrator-only, api-design §5.3), so the assign picker cannot be populated for the role that needs it most; **the current behaviour is deliberately kept** — everyone gets *Assign to me*, an Administrator also gets a real picker — because no approved Story 05 requirement explicitly calls for an agent-readable staff directory. **I-1, I-2 and I-12 remain the user's call** from earlier stories. **OQ-3 is closed** — decided 2026-08-31 as **A-21**: when a department has no usable manager, the escalation notification climbs to every active `Manager`, else every active `Administrator`, else nobody, and **escalation is never blocked** (R-17). Its foundation is in — `IEscalationRecipientPolicy` and its 8 tests — **but story 06 itself has not been started**. **Awaiting explicit approval before story 06.** Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
 | **Next immediate step** | See §10, item 1 |
 
 ### 1.1 How the 35% is calculated
@@ -78,7 +78,7 @@ delivery carries the larger weight. A design-only project is not most of the way
 | # | Stage | Status | Artifact(s) | Doc? | Gate | Note |
 |---|---|---|---|---|---|---|
 | 1 | Requirements | ✅ Complete | [requirements.md](requirements.md) — 56 requirement lines | ✅ | n/a — given input | Never edited. Includes the stage-2 requirements analysis, delivered in conversation and distilled into scope |
-| 2 | Product Scope | ✅ Complete | [product-scope.md](product-scope.md) | ✅ | n/a | T1–T4 tiers, A-1…A-20, 7 open questions. Approved 2026-08-24; A-14…A-18 added 2026-08-24; **A-19 added 2026-08-27** (closes OQ-5); **A-20 added 2026-08-30** (closes OQ-2) |
+| 2 | Product Scope | ✅ Complete | [product-scope.md](product-scope.md) | ✅ | n/a | T1–T4 tiers, A-1…A-21, 7 open questions. Approved 2026-08-24; A-14…A-18 added 2026-08-24; **A-19 added 2026-08-27** (closes OQ-5); **A-20 added 2026-08-30** (closes OQ-2); **A-21 added 2026-08-31** (closes OQ-3) |
 | 3 | Story Intake / Backlog | ✅ Complete | 18 intakes + [story-backlog.md](story-backlog.md) | ✅ | ✅ Met | All 56 requirement lines mapped to a story |
 | 4 | Squad Kit Initialization | ✅ Complete | [.squad/](../.squad/) — config, 18 stories across **14 feature slugs**, 14 plan overviews (**filled at stage 9**) | ✅ | ✅ `squad doctor`: 6 ok, 0 warn, 0 fail | v0.2.0, tracker `none`, agent `claude-code` |
 | 5 | Architecture | ✅ Complete | [architecture.md](architecture.md) | ✅ | ✅ Met, re-verified after the AD-15 correction | Approved 2026-08-24 |
@@ -96,9 +96,9 @@ workflow stage). Rows 5–10 match its stages 5–10 exactly. The workflow docum
 
 **Blockers to the pipeline:** none — the pipeline itself is complete. **Blockers inside stage 10
 exist:** four acceptance criteria cannot be met until a decision is recorded (S9-1, S9-4, PF-4,
-PF-2 — §6.7), and two open questions gate individual stories (OQ-1, OQ-3 — §6.1; **OQ-2 closed 2026-08-30**;
-**OQ-5 was closed on 2026-08-27 by A-19**).
-**None of the eight blocks stories 01–05.** **OQ-2 — which was the earliest, and blocked story 05 — was closed on 2026-08-30 by A-20** (see R-16) and **is now implemented and proven**; the earliest remaining is **⚠ OQ-3**, which reaches story 06's manual escalation, and then **S9-4**, which blocks story 11.
+PF-2 — §6.7), and **one** open question gates individual stories (OQ-1 — §6.1; **OQ-3 closed
+2026-08-31 by A-21**; **OQ-2 closed 2026-08-30 by A-20**; **OQ-5 closed 2026-08-27 by A-19**).
+**None of the seven blocks stories 01–05, and none now gates story 06.** **OQ-2 was closed on 2026-08-30 by A-20** (see R-16) and **is implemented and proven**; **OQ-3 — the last question standing between here and story 06 — was closed on 2026-08-31 by A-21** (see R-17), and its shared policy foundation is already in. The earliest remaining is **S9-4**, which blocks story 11.
 
 The Stage 7 pre-flight audit raised one blocking finding, PF-1 (the `Pending` transition set and
 the effect of a customer reply); it was resolved the same day as R-13. The remaining pre-flight and
@@ -124,10 +124,10 @@ earlier reading in three places (S9-7, S9-8, S9-12).
 | 03 | `departments-branches` | organization | **T1**+T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** | ✅ **Verified** 2026-08-27 | 01, 02 | — · tasks 1–3 landed early with story 02, tasks 4–8 after it, per S9-12 |
 | 04 | `customer-records` | customer-management | **T1**+T2 | Intake Complete | **Plan Complete** | ✅ **Implemented** — all 14 tasks | ✅ **Verified** 2026-08-30 — all six slices | 01–03, **16 A** | — · **OQ-5 closed 2026-08-27 (A-19)**, and **A-19 is implemented and proven** · sliced at the user's instruction; slice map in [00-overview.md](../.squad/plans/customer-management/00-overview.md) · **two Done Criteria complete in later stories by the plan's own text** — the timeline fills in story 06, the ticket half of the attachment criterion in story 05 (S9-2) · **finding I-12 open**, needing a user decision |
 | 05 | `ticket-core` | ticket-management | **T1** | Intake Complete | **Plan Complete** | ✅ **Implemented** — all 13 tasks | ✅ **Verified** 2026-08-31 | 01–04, **16 A** | — · **OQ-2 closed 2026-08-30 (A-20)**, and **A-20 is implemented and proven** · delivered **whole, not sliced**, so there is no slice map · **closes S9-2** (the ticket attachment endpoints) and **S9-5** (both SLA timestamps required at creation) · **finding I-16 open**, needing a user decision |
-| 06 | `ticket-lifecycle` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 05 | ⚠ OQ-3 *(no-manager branch only)* |
+| 06 | `ticket-lifecycle` | ticket-management | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 05 | — · **OQ-3 closed 2026-08-31 (A-21)** — the story's one open question is decided and its `IEscalationRecipientPolicy` foundation is already built and tested. **Nothing gates it but approval** |
 | 07 | `ticket-intake-messaging` | ticket-management | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 05, 06, 04, 16 A | — |
 | 08 | `agent-dashboard` | agent-workspace | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 04–07, 16 A | ⛔ **S9-1** *(task region only)* |
-| 09 | `sla-routing-escalation` | sla-automation | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 03, 05, 06, 16 A | ⚠ OQ-3, PF-5 · **OQ-2 closed 2026-08-30 (A-20)** |
+| 09 | `sla-routing-escalation` | sla-automation | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 03, 05, 06, 16 A | ⚠ PF-5 · **OQ-2 closed 2026-08-30 (A-20)**, **OQ-3 closed 2026-08-31 (A-21)** — task 4 calls the same `IEscalationRecipientPolicy` story 06 does |
 | 10 | `ai-service-seam` | ai-assist | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 01 — **parallel** | — |
 | 11 | `ai-ticket-assists` | ai-assist | **T1** | Intake Complete | **Plan Complete** | Not Started | Not Started | 10, 05–08 | ⛔ **S9-4** |
 | 12 | `kb-articles-search` | knowledge-base | T2 | Intake Complete | **Plan Complete** | Not Started | Not Started | 02; task 4 needs 05 | — |
@@ -302,13 +302,15 @@ R-12 in §6.3. It is no longer an open issue.)*
 |---|---|---|---|---|
 | **OQ-1** | What is the CSAT rating scale? T2-F says "a one-question satisfaction rating" and fixes no scale | Determines portal control, server validation, and what the §9.4 average means. The model **encodes no range** | Story 13, and the satisfaction tile in story 15 | 🔴 Open — product decision |
 | ~~**OQ-2**~~ | ~~On a priority change, do SLA due dates recompute from `createdAt` or stay frozen?~~ | Materially different §9.2 attainment numbers; recompute can breach a ticket as a consequence of the escalation the breach triggered | **Story 05** *(its `PATCH /tickets/{id}` is the **first** code path that changes a priority — widened by **S9-3**)*, story 09, and §9.2 in story 15 | **✅ Closed 2026-08-30 by A-20** — they **freeze** — see R-16 below |
-| **OQ-3** | Who is notified on breach when a department has no manager? T2-D says "notify the department manager"; absence is uncovered | Breach flag and priority raise are unaffected; only the recipient is undetermined. **No fallback invented** | **Story 06** *(the **manual** escalation action has the same undefined recipient — widened by **S9-3**)* and story 09 | 🔴 Open — product decision. **Non-blocking on the happy path:** every seeded department has a manager |
+| ~~**OQ-3**~~ | ~~Who is notified on breach when a department has no manager?~~ | Breach flag and priority raise were never in question; only the recipient was | ~~**Story 06** *(widened by **S9-3**)* and story 09~~ | **✅ Closed 2026-08-31 by A-21** — the notification climbs to the next authority level, and escalation is never blocked — see R-17 below |
 
 | ~~**OQ-5**~~ | ~~When `Customer.email` is changed, does a linked portal login's sign-in email change with it?~~ | Raised 2026-08-25 by the N-2 correction | **✅ Closed 2026-08-27 by A-19** — see R-15 below | ✅ Answered |
 
 **None of these blocked Stage 7, 8 or 9.** All are implementation-time decisions, and stage 9
 scheduled each against the story and the single method that encodes it. OQ-4 was resolved on
-2026-08-24 (see R-11) and **OQ-5 on 2026-08-27 (see R-15)**.
+2026-08-24 (see R-11), **OQ-5 on 2026-08-27 (see R-15)**, **OQ-2 on 2026-08-30 (see R-16)** and
+**OQ-3 on 2026-08-31 (see R-17)**. **OQ-1 is the only question left in this table**, and it reaches
+stories 13 and 15.
 
 **Earliest-first order for stage 10:** ~~**OQ-2** (story 05)~~ **— closed 2026-08-30 by A-20** → **S9-4** (story 11) → **OQ-1**
 (story 13) → **S9-1** (story 14) → **PF-4** (story 15) → **PF-2** (story 18). Restated in §10.
@@ -321,7 +323,7 @@ answered.
 residency, ERP product, unbounded "external systems", tenancy model, real SLA policy, chatbot
 handoff, anonymous submission). [architecture.md](architecture.md) §9 confirms the architecture
 resolves none of them and places each behind a seam or configuration point **so they can stay
-open**. They do not block the assessment. Question 5 (real SLA policy) is the parent of OQ-2 and **stays open** — A-20 closed the child, not the parent.
+open**. They do not block the assessment. Question 5 (real SLA policy) is the parent of OQ-2 and **stays open** — A-20 closed the child, not the parent, and **A-21 does not touch it either**.
 
 ### 6.3 Resolved Decisions
 
@@ -343,6 +345,7 @@ Kept, not deleted.
 | R-13 | **PF-1** — is `Pending -> Open` legal, and what does a customer reply do to a `Pending` ticket? | **Both answered: the transition is legal and a customer reply triggers it automatically.** The reply is the trigger; no agent action is required. It fires from `Pending` only — a reply on `New` leaves it `New`, and a reply on `Resolved` does not reopen it. Recorded as a same-transaction status change with a `StatusChanged` history entry attributed to the replying customer | 2026-08-24 | **A-5**, A-16, model 2.6 inv. 2b, 2.8, constraint 9a |
 | R-12 | Which backend module owns `CustomerFeedback`? The data model labelled it "Portal", which is not one of the ten modules | **The existing `Tickets` module.** Feedback is domain behaviour attached to a ticket, offered when the ticket reaches `Resolved`; `customer-portal` is a front-end and planning concern, not a backend module. **No new module; the ten-module architecture is unchanged**, and the entity's shape, fields and relationships are untouched — an ownership label only | 2026-08-24 | **DM-7**, model §2.15, arch §1 |
 | R-15 | **OQ-5** — does changing `Customer.email` change a linked portal login's sign-in email? | **Yes, and atomically.** A customer's email and their portal sign-in are one address: the two rows change in the same unit of work, and `User.email`'s existing case-insensitive uniqueness applies to the new value across all users — a collision rejects the whole operation and writes neither row. Divergence is not a reachable state, which also keeps A-15's three registration outcomes exhaustive. **Amended the same day:** the propagation writes one **`UserEmailChanged`** audit entry, actor = the calling agent, target = the linked user, in that same unit of work — Story 02's recorder unchanged, one new action constant, no schema change | 2026-08-27 | **A-19** |
+| R-17 | **OQ-3** — who is notified on breach when a department has no manager? | **The notification climbs to the next authority level; escalation is never blocked.** The cascade: the department's own manager when `managerUserId` is set **and that user is still active and still holds `Manager` or `Administrator`**; otherwise every active `Manager`; otherwise every active `Administrator`; otherwise nobody. The breach flag and the priority raise occur on **every** rung — a missing manager suppresses a notification, never an escalation. **Notifying nobody was rejected** because it lets T2-D's one automated safety net fail exactly when a department is unstaffed at the top; **making `managerUserId` required was rejected** as a schema and contract change taken to avoid a policy decision, contradicting data-model §2.2's own reason for optionality. **The cascade climbs and never spreads sideways:** only `Manager` and `Administrator` are notified, both of which already hold cross-department authority (A-4, A-16), so a `Notification`'s `ticketId` is always readable by its recipient and nothing crosses the boundary AP-4 protects. **No contract change** — no endpoint, payload, response field, error slug or column. **Decided by the product owner**, who was given four options with their API, authorization and front-end consequences and chose the cascade. Implemented once as `IEscalationRecipientPolicy`, which **story 06's manual escalate and story 09's automatic sweep both call**; the fallback logs at **`Warning`** inside the policy, standardising a level the two plans had specified differently. **Does not close [product-scope.md](product-scope.md) §9 question 5**, and does not make a manager mandatory | 2026-08-31 | **A-21** · product-scope §7 · data-model §2.2, §8 · api-design §5.6, §6.2 · ui-design §11 |
 | R-16 | **OQ-2** — on a priority change, do the SLA due timestamps recompute or stay frozen? | **They freeze.** `firstResponseDueAt` and `resolutionDueAt` are computed once at creation from `createdAt` and the priority the ticket had then; a later priority change — agent `PATCH`, manual escalation, or the automatic breach escalation — leaves both exactly as they are. **Recompute was rejected** because it lets an escalation tighten a deadline retroactively, breaching a ticket as a direct consequence of the escalation its own breach triggered. Escalation still raises priority one level, latches the breach flag, writes the activity row and notifies the manager — only the deadline is untouched. **Decided by the product owner**, who was given both readings and their consequences and chose freeze. **Does not close [product-scope.md](product-scope.md) §9 question 5** (real SLA policy), which is OQ-2's parent and stays open | 2026-08-30 | **A-20** · data-model §2.6 invariant 6, §5 constraint 12, §8 |
 | R-11 | **OQ-4** — what is the customer cancellation window? | **Assignment is not the start of work.** A ticket may be assigned while still `New`; `New → Open` is an agent deliberately starting work. The customer's window runs from creation until an agent picks the ticket up, so it is real rather than theoretical | 2026-08-24 | **A-18** |
 
@@ -403,7 +406,7 @@ A full traceability and consistency audit was run while generating the eighteen 
 | ID | Finding | Resolution |
 |---|---|---|
 | **S9-2** | `GET`/`POST /tickets/{id}/attachments` is assigned to **no story** in [api-design.md](api-design.md) §10.1, though §5.6 lists both and story 04's AC requires them | Shared service and the AP-19 download in story 04; the two ticket-scoped endpoints in story 05. Read from the intakes |
-| **S9-3** | **OQ-2 and OQ-3 reach further than §6.1 records.** OQ-2's first code path is story 05's `PATCH` priority, not story 09's escalation. OQ-3 reaches story 06's **manual** escalation | Both stories carry the block. **Neither question is answered.** §6.1 updated |
+| **S9-3** | **OQ-2 and OQ-3 reach further than §6.1 records.** OQ-2's first code path is story 05's `PATCH` priority, not story 09's escalation. OQ-3 reaches story 06's **manual** escalation | ✅ **Both halves are now answered, and the widening is what made each answer due when it was.** §6.1 was updated at the time; **OQ-2 closed 2026-08-30 (A-20, R-16)** and was implemented by story 05, **OQ-3 closed 2026-08-31 (A-21, R-17)** before story 06 began. The finding did its job: each question was decided at the story that first reached it, not at the story §6.1 had filed it against |
 | **S9-5** | Three entity placements deviate from [data-model.md](data-model.md) §7's story→entity map: `AuditEntry` (→ 02), `TicketActivity` (→ 05), SLA due-date computation (→ 05) | Placement rule adopted: **the entity lands with the story that first writes it; the read surface with the story that owns it.** No business rule and no schema changed |
 | **S9-6** | `GET /tickets` has no `customerId` filter, yet [ui-design.md](ui-design.md) §5.3's customer panel shows *"recent tickets"* | Derived client-side from the timeline response, which carries `ticketId` and `ticketSubject`. **No filter invented** |
 | **S9-7** | `POST /auth/register` cannot be implemented in story 02 — A-15 needs a `Customer`, a `Branch` and a default branch | ✅ **Implemented in story 04 slice 5** (2026-08-28), with all three A-15 outcomes |
@@ -513,6 +516,14 @@ indexes outright, and succeeded with `-I`. `Tickets` is a **different table** fr
 **different** filtered indexes, so the session-setting explanation recorded on 2026-08-30 now holds
 on two independent cases rather than one.
 
+
+**The A-21 foundation added one finding (2026-08-31).** It is a reading taken while implementing the
+decision the user had just made, recorded rather than absorbed silently.
+
+| ID | Finding | What was done, and why |
+|---|---|---|
+| **I-21** | **A-21's rung 1 says "when `Department.managerUserId` is set", and does not say what happens when the user it points at is no longer usable.** A manager can be deactivated (AD-15) or moved out of the `Manager`/`Administrator` roles after being appointed, because there is no write endpoint for a department (T2-I) to un-appoint them and `DepartmentValidator` runs only when a manager **is** assigned. Read literally, rung 1 would then resolve to an account that cannot act, and **the notification would be swallowed by exactly the gap A-21 was written to close** | **Rung 1 is implemented as "set *and still eligible*", falling through to rung 2 otherwise.** This is not an invention: [data-model.md](data-model.md) §2.2's invariant already requires the reference to be *"an active user of role `Manager` or `Administrator`"*, and **AD-15 makes the user row authoritative over a stale reference** — the same rule that makes a deactivated user's next request a `401`. The user's own wording for rungs 2 and 3 says *"every **active** Manager"* / *"every active Administrator"*, so activeness is plainly intended throughout. `An_ineligible_department_manager_falls_through_to_the_next_rung` asserts both cases — deactivated, and demoted to `Agent`. **Flagged for the user**: if rung 1 was meant literally — notify the appointed user whether or not they are still eligible — this is a one-line change in `EscalationRecipientPolicy`, and the two `[InlineData]` rows are what would go red |
+
 ### 6.4 Decision → document → story traceability
 
 Which documents and which story intakes each resolved decision actually changed. "—" means nothing
@@ -521,6 +532,7 @@ needed amending, because nothing in that artifact contradicted the decision.
 | Decision | Documents changed | Story intakes changed |
 |---|---|---|
 | **R-1 / AD-15** token asserts identity only | `architecture.md` §4.1, **new §4.1.1**, §3 flow, §4.3, AD-7, **new AD-15** | — |
+| **R-17 / A-21** escalation climbs to the next authority level when a department has no manager | `product-scope.md` **new A-21**; `data-model.md` §2.2 (the OQ-3 block replaced by the answer), §8 (row struck, resolution recorded); `api-design.md` §5.6 (`/escalate`), §6.2 (`Department`); `ui-design.md` §5.3, §11 (the wording constraint lifted). **No contract shape changed in any of them** | — |
 | **R-2** branch derived, not stored | `data-model.md` §2.3, §4, §8 | — |
 | **R-3 / DM-5** no AI entity | `data-model.md` §1 | — |
 | **R-4 / DM-1** `User` and `Customer` separate | `data-model.md` §1, §2.1, §2.4 | — |
@@ -554,7 +566,7 @@ not inferred from a plan.
 
 | Area | Status | Evidence |
 |---|---|---|
-| Backend | ✅ Stories 01, 02, 03, 16 A, **04 and 05 in full**, + the I-9 and I-10 fixes | `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. **AP-10 is enforced globally** since 2026-08-28 — `UnmappedMemberHandling.Disallow` on the MVC JSON options, so an unmapped request member is a `400` on all six body-binding endpoints (finding I-9, closed) — and **AP-2 now holds for every error path**: `ModelStateProblemDetails` gives the model-state `400` the same `validation-failed` slug and §6.12 envelope the exception path already had, with no .NET internals in the payload (finding I-10, closed). `SupportCrm.Domain` still has **0 project and 0 package references** and no EF attribute (AD-2, AD-4). **Story 05 adds the ticket core**: `Ticket` and `TicketActivity` in the Domain with `SlaClock` beside them (architecture §2.1 puts SLA target calculation there), **`TicketScope` as the single department-scoping helper every later ticket query composes** (AD-5), `TicketService` with auto-assignment by category→department (A-14), the `TicketActivityRecorder`, and `TicketsController`'s seven operations. **A-20 is code, not a comment**: `SlaClock.OnPriorityChanged` is a deliberate no-op that `PatchAsync` still calls, so stories 06 and 09 find one home for the rule |
+| Backend | ✅ Stories 01, 02, 03, 16 A, **04 and 05 in full**, + the I-9 and I-10 fixes | `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. **AP-10 is enforced globally** since 2026-08-28 — `UnmappedMemberHandling.Disallow` on the MVC JSON options, so an unmapped request member is a `400` on all six body-binding endpoints (finding I-9, closed) — and **AP-2 now holds for every error path**: `ModelStateProblemDetails` gives the model-state `400` the same `validation-failed` slug and §6.12 envelope the exception path already had, with no .NET internals in the payload (finding I-10, closed). `SupportCrm.Domain` still has **0 project and 0 package references** and no EF attribute (AD-2, AD-4). **Story 05 adds the ticket core**: `Ticket` and `TicketActivity` in the Domain with `SlaClock` beside them (architecture §2.1 puts SLA target calculation there), **`TicketScope` as the single department-scoping helper every later ticket query composes** (AD-5), `TicketService` with auto-assignment by category→department (A-14), the `TicketActivityRecorder`, and `TicketsController`'s seven operations. **A-20 is code, not a comment**: `SlaClock.OnPriorityChanged` is a deliberate no-op that `PatchAsync` still calls, so stories 06 and 09 find one home for the rule. **Ahead of story 06, the A-21 foundation is in**: `Application/Modules/Sla/EscalationRecipientPolicy.cs` behind `IEscalationRecipientPolicy` resolves escalation recipients through one cascade — department manager → every active `Manager` → every active `Administrator` → nobody — logging the fallback at `Warning` in the policy so the manual and automatic escalation paths cannot diverge. **It has no caller yet, by design**; story 06 adds the first |
 | Frontend | ✅ Stories 01, 02, 03, **04 and 05** + error-handling layer | Angular 20.1.2 + PrimeNG 20.0.0 on Sakai `20.0.0`. `npm run build` succeeds; `npm run lint:styles` clean. Sign-in, guards, role redirect, staff shell avatar menu and the admin user screens all exercised in a real browser. A cross-cutting HTTP error-handling layer landed 2026-08-28: `errorInterceptor` applies the cross-cutting half of ui-design §9's status table — `401` ends the session, `403` routes to `/403` without ending it, `5xx` and network failures raise one translated toast, and `400`/`409`/`413`/`422`/`404`/`503` pass through untouched for the feature to render inline. **Story 04 slice 6 adds the first business screens**: typed `CustomersClient` and `AttachmentsClient` (no component calls `HttpClient` — architecture §2.2), the **customer directory** at `/workspace/customers` with `q`, `branchId` and `page` in the URL (**UI-9**), the **four-region customer detail** each with its own loading, empty and error state (§9), a shared **`AttachmentList` + uploader** in `shared/` for the ticket and portal surfaces to reuse, and the **registration form** Story 02 scaffolded, now enabled. All driven through a real browser against the running `web` container — 18 UI checks and 3 phone-width checks, §8. **Story 05 adds the workspace ticket surface**: a typed `TicketsClient`, the ticket list at `/workspace/tickets` with a URL-borne filter bar (**UI-9**), the ticket detail header, the `Assign` control and the customer panel, plus shared `StatusChip`, `PriorityChip` and `TicketFilterBar`. Two front-end findings came out of driving it — **I-18** (`NG0950` from reading a required input in a constructor) and **I-19** (a deep link losing its filters on load) |
 | Database | ✅ Schema live | **`InitialSchema` and `Customers` both applied to real SQL Server**: `Branches`, `Departments`, `Users`, `AuditEntries`, **`Customers`, `CustomerNotes`, `Attachments`**. `Users.Email` **and `Customers.Email`** both carry `SQL_Latin1_General_CP1_CI_AS` at `nvarchar(256)` — the same address, the same width, the same collation, as §6.1 requires. `Users(CustomerId)` is a filtered unique index and **now has its foreign key to `Customers`**, closing the DM-1 link story 02 left open. `CK_Attachments_OwnerXor` is present and **proven to refuse both a no-owner and a both-owners row** (§5 constraint 20). **Story 05's `Tickets` migration is applied**: `Tickets` and `TicketActivities` exist, and `dbo.Tickets` has **19 columns with no branch column** — a ticket's branch is derived `Ticket → Customer → Branch` (data-model §2.3), verified against the live schema on 2026-08-31. The table carries the story's **filtered indexes**, whose predicates are written as two `<>` comparisons because a filtered-index predicate does not admit `NOT IN` on SQL Server (finding **I-17**, found only by applying the migration to the real database) |
 | Configuration | ✅ Validated at startup | Seven option types bound and `ValidateOnStart`. Six checks: every category maps to an existing department (A-14), every priority has an SLA target with positive hours (A-3), `DefaultBranchId` is an existing branch (A-15), `Priorities` equals the A-6 levels in order, `Min < Max` on the rating scale (structural only — **OQ-1 stays open**), and a positive attachment cap. **All six proven to stop the host** by starting the real API with each value broken in turn |
@@ -585,9 +597,11 @@ makes departments and branches seeded configuration.
 **The two ticket-attachment routes close S9-2**, which deferred the ticket half of story 04's
 attachment acceptance criterion into this story because no `Ticket` existed to own a file.
 
-**Next:** **story 06** (`ticket-lifecycle`) — **blocked on explicit approval only**, and carrying
-**⚠ OQ-3** on its no-manager escalation branch (§6.1). Story 16 **Part B** stays at Phase 7: it reads
-audit rows that story 06 has yet to write.
+**Next:** **story 06** (`ticket-lifecycle`) — **blocked on explicit approval only**. **OQ-3 is
+closed** (2026-08-31, A-21) and its shared foundation is already built: `IEscalationRecipientPolicy`
+resolves escalation recipients for both story 06's manual escalate and story 09's automatic sweep,
+with 8 tests covering every rung. **No open question gates story 06.** Story 16 **Part B** stays at
+Phase 7: it reads audit rows that story 06 has yet to write.
 
 ---
 
@@ -618,6 +632,9 @@ browser on 2026-08-31**. What was re-run for them today is `npm run build`, `lin
 | Stage gate 5 → 6 | ✅ Met | Re-verified after the AD-15 correction |
 | Stage gate 6 → 7 | ✅ Met | Re-verified after the four clarifications |
 | **Story 16 Part A — configuration** | ✅ Passed 2026-08-27 | All four Part A verification steps. Build clean; the three suites **36 passing**. **Step 3, fail-fast by hand, run for all six checks against real SQL Server** — each starts the real API with one value broken and the host stops with a non-zero exit and a message naming the value: a dangling category department names `billing` and cites A-14; a dangling `DefaultBranchId` cites A-15; a fifth priority level, an inverted rating scale, a zero attachment cap and a priority with no SLA target all name their section. **Step 4, tier check with a real Customer token:** `/config` returns exactly `categories` and `feedback`, `departmentId` appears **nowhere** in the body, and `/config/staff` is `403`. `openapi/v1.json` now publishes 11 paths, `/config` and `/config/staff` among them, each with `get` and nothing else |
+| **A-21 — the escalation-recipient policy** | ✅ Passed 2026-08-31 | **Not a story slice** — the foundation the OQ-3 decision needed to be coherent, built ahead of story 06 at the user's instruction. `dotnet build backend/SupportCrm.sln` → **0 Warning(s), 0 Error(s)** with `TreatWarningsAsErrors`; `dotnet test backend/SupportCrm.sln` → **`Passed! - Failed: 0, Passed: 259, Skipped: 0, Total: 259`** (was **251/0/0** — **+8, all of them A-21's**). **Every rung of the cascade is asserted, including the three the demo can never reach**: rung 1 notifies the department's manager *and only that manager*, proven with a second Manager present so a policy that ignored `ManagerUserId` could not pass by accident; rung 2 returns every active Manager while excluding an Agent and an inactive Manager; rung 3 climbs to Administrators when no Manager exists; rung 4 resolves **nobody without throwing**, which is what keeps the priority raise alive. A `[Theory]` covers **finding I-21** — an appointed manager who is deactivated, and one demoted to `Agent`, both fall through to rung 2. **The authorization guarantee is asserted directly**: over both a manager-present and a manager-absent department, the resolved set never contains an Agent or a Customer and every id is a `Manager` or `Administrator` — the roles A-4 and A-16 already give cross-department authority, so a `Notification`'s `ticketId` is always readable by its recipient. **Determinism is proven by repetition**, not by reading the code: two calls over four Managers return the same ordered list |
+| **A-21 — the guard is load-bearing** | ✅ Passed 2026-08-31 | The §4.1 technique, applied to the new policy. Reverted the fallback rungs to the **pre-decision behaviour** — resolve nobody when the department has no manager, which is exactly what the three plans carried as interim text — and re-ran the suite. **6 of the 8 tests went red.** The **2 that stayed green are rung 1 and rung 4**, which must pass either way: a department *with* a manager is unaffected by the cascade, and a world with no eligible user resolves nobody under both readings. Restored, rebuilt **0/0**, and the full suite re-run **259/0/0** — so the green above is a restored-and-re-proved result, not a remembered one |
+| **A-21 — composition and blast radius** | ✅ Passed 2026-08-31 | **The policy resolves from the real composition root**, not from a test double: `EscalationRecipientPolicyTests` pulls `IEscalationRecipientPolicy` out of `SupportCrmApiFactory.Services`, which builds the application's own container through `AddInfrastructure`. **It has no caller yet, by design** — story 06 adds the first — and the 251 pre-existing tests all still pass unchanged, which is the evidence that adding a registered-but-uncalled service changed no existing behaviour. **No contract surface moved:** no endpoint, payload, response field, error slug, entity or column was touched, so `openapi/v1.json` still publishes **22 paths**. **No migration was generated and none was needed** — A-21 is a policy over rows the model already carried |
 | **Story 05 — ticket core** | ✅ Passed 2026-08-31 | All thirteen plan tasks, **delivered whole rather than in slices**. All four canonical commands run in this task: `dotnet build backend/SupportCrm.sln` → **Build succeeded, 0 Warning(s), 0 Error(s)** with `TreatWarningsAsErrors`; `dotnet test backend/SupportCrm.sln` → **`Passed! - Failed: 0, Passed: 251, Skipped: 0, Total: 251`** (was **220/0/1** after story 04 — **+31 tests, and the one by-design skip is gone**); `cd frontend && npm run build` → *Application bundle generation complete*; `npm run lint:styles` → clean, exit 0. Front-end specs `npx ng test --watch=false --browsers=ChromeHeadless` → **TOTAL: 23 SUCCESS**, unchanged, which is the expected result for a story that added no spec |
 | **Story 05 — plan verification steps, against real SQL Server** | ✅ Passed 2026-08-31 | Run against the stack from `docker compose` (`db`, `api`, `web` up), signed in as the seeded Billing agent. **Step 4, scoping by hand:** a Technical-department ticket (`…444404`, department `…111102`) is **`404`** on `GET /tickets/{id}` — and **`404` on both write paths too**, `POST /tickets/{id}/assignment` and `PATCH /tickets/{id}`, which is the Done Criterion's *"`404`, not `403`, on read **and** on write"* proven rather than assumed. **Step 5, creation:** `POST /tickets` with **no `departmentId`** and `categoryCode: billing` landed in the **Billing** department (`…111101`) by the A-14 category→department map, with **both** due timestamps set (`firstResponseDueAt` +4h, `resolutionDueAt` +24h from creation) — data-model §2.6 requires both at creation (**S9-5**). **Step 6, regression:** `GET /customers` now returns a **real `openTicketCount`** (2, 1, 0, 2 across the seeded customers), and the customer timeline still returns an empty page as story 06 will fill it. **Department scoping:** the Billing agent's `GET /tickets` returns **3 tickets, every one in `…111101`** |
 | **Story 05 — A-20 proven live, not merely compiled** | ✅ Passed 2026-08-31 | The decision this story exists downstream of. `PATCH /tickets/{id}` moved a ticket **`High → Urgent`** — a tightening, the direction under which recompute would be unmissable — and **neither due timestamp moved**: `firstResponseDueAt` stayed `2026-08-31T01:21:15Z` and `resolutionDueAt` stayed `2026-08-31T21:21:15Z`, byte-identical to the values `POST` had returned. **A-20 is therefore observable at the API**, not only asserted in a unit test, and the two tests of finding **I-15** are what keep it that way |
@@ -670,8 +687,47 @@ keeps the narrative history behind it.
 
 ## 10. Current Next Steps
 
-0. **Story 05 is complete — implemented and verified 2026-08-31. Awaiting explicit approval before
-   story 06.** Story 05 was delivered **whole, not in slices**, so it has no slice map; the plan's
+0. **OQ-3 is closed, and story 06's shared foundation is in. Awaiting explicit approval before
+   story 06 itself — which has NOT been started.**
+
+   **The decision (2026-08-31, A-21, R-17).** The escalation notification recipient is a cascade:
+   the department's own manager when `managerUserId` is set **and that user is still active and
+   still holds `Manager` or `Administrator`**; otherwise every active `Manager`; otherwise every
+   active `Administrator`; otherwise nobody. **Escalation is never blocked** — the breach flag and
+   the priority raise occur on every rung. Taken by the product owner from four options with their
+   API, authorization and front-end consequences set out.
+
+   **What was built, and deliberately nothing more.** `IEscalationRecipientPolicy` and its one
+   implementation in `Application/Modules/Sla/`, registered in the composition root, with **8 tests
+   covering every rung**. **It has no caller yet** — story 06's manual escalate and story 09's
+   automatic sweep are its two callers and neither exists. This follows A-20's shape on purpose: a
+   rule with more than one caller gets **one named seam**, so the cascade is never re-expressed at a
+   call site.
+
+   **No contract surface moved.** No endpoint, payload, response field, error slug, entity, column
+   or migration. `openapi/v1.json` still publishes **22 paths**. The decision is observable only in
+   whose recipient-scoped notification list gains a row once story 09 writes them.
+
+   **The `Warning` log level is standardised**, in the policy rather than at the call sites — the
+   story 06 and story 09 plans had specified `Information` and `Warning` for the same condition, and
+   putting the line inside the policy is what makes the two paths unable to diverge at all.
+
+   **One finding — I-21, and it wants the user's eye.** A-21's rung 1 says *"when `managerUserId` is
+   set"* and does not say what happens when the user it points at is no longer usable. It is
+   implemented as **"set *and still eligible*"**, falling through to rung 2 for a manager who was
+   deactivated or demoted after appointment — because data-model §2.2's invariant already requires
+   the reference to be an active `Manager`/`Administrator`, AD-15 makes the user row authoritative
+   over a stale reference, and the user's own wording for rungs 2 and 3 says *"every **active**"*.
+   **If rung 1 was meant literally, it is a one-line change** and two `[InlineData]` rows are what
+   would go red.
+
+   **Documents amended, consistently:** product-scope §7 (**new A-21**), data-model §2.2 and §8,
+   api-design §5.6 and §6.2, ui-design §5.3 and §11 (**the dialog wording constraint is lifted** —
+   it may now say *a manager* will be notified, one sentence true on every rung, with no new payload
+   field), the story 06 and story 09 plans (**both now carry the same recipient rule and the same
+   log level**), three feature overviews, `00-implementation-plan.md` §7.3 and `00-index.md`.
+
+1. **Story 05 is complete — implemented and verified 2026-08-31.** Story 05 was delivered **whole, not in slices**, so it has no slice map; the plan's
    thirteen numbered tasks were the unit of work, and all thirteen are done. Evidence is in §8, from
    commands run in the tracking task of 2026-08-31.
 
@@ -714,7 +770,7 @@ keeps the narrative history behind it.
    discloses **no** leftover verification row — unlike story 04's audit-linked customer, which stays
    for the AD-10 reason recorded below.
 
-1. **Story 04 is complete — all six slices done and verified.** Story 04 was delivered in slices at the user's instruction; the map lives in
+2. **Story 04 is complete — all six slices done and verified.** Story 04 was delivered in slices at the user's instruction; the map lives in
    [.squad/plans/customer-management/00-overview.md](../.squad/plans/customer-management/00-overview.md).
 
    | Slice | Plan tasks | State |
@@ -749,7 +805,7 @@ keeps the narrative history behind it.
    (AD-10). The dev database therefore holds **10 customers, not the seeded 9** — the same situation
    slice 5's three verification rows left, and harmless for the same reason.
 
-2. **Stories 01, 02 and 03 are done; phase 1 is closed.** The phase-1 interleave of S9-12 played out
+3. **Stories 01, 02 and 03 are done; phase 1 is closed.** The phase-1 interleave of S9-12 played out
    exactly as designed:
 
    | Order | Work | State |
@@ -768,7 +824,7 @@ keeps the narrative history behind it.
    blocks story 04.** Story 16 **Part B** stays at Phase 7: it reads audit rows that stories 04–06
    have yet to write, and building it now would test an empty log.
 
-3. **Story 04 left one marker, and story 05 has now consumed both of its own.** Slice 6's is
+4. **Story 04 left one marker, and story 05 has now consumed both of its own.** Slice 6's is
    `AttachmentListComponent.maxSizeBytes` — the shaped hole for **I-12**, which needs nothing but a
    published cap to fill and changes no other line when it arrives. **Story 05 has consumed both of the
    markers left for it:** the `Skip` on `BranchIsNotABoundaryTests.Ticket_has_no_branch_member` is
@@ -777,7 +833,7 @@ keeps the narrative history behind it.
    marker for **I-16**, which needs nothing but an agent-readable endpoint to fill. **Story 17 Part B inherits one measurement** from slice 6's RTL check — the
    staff shell sidebar does not mirror in Arabic, which its task 3 already owns by name.
 
-3a. **Both placeholders are gone.** The create-user dialog and the user-detail form now bind a
+4a. **Both placeholders are gone.** The create-user dialog and the user-detail form now bind a
    selector populated from `GET /departments` instead of taking a department id as free text, and the
    avatar menu shows the department **name**. **Two markers remain for story 05**, both deliberate and
    both cross-referenced at their call sites: the `Skip` on
@@ -814,7 +870,7 @@ keeps the narrative history behind it.
    | Before **story 14** | **S9-1** — publish a cross-ticket task endpoint, or drop the dashboard task region? | Contract (Stage 7) **or** Stage 8 cut |
    | Before **story 15** | **PF-4 / S9-9** — "tickets assigned": currently or ever? | Metric semantics |
    | Before **story 18** | **PF-2 / S9-10** — who is the actor on an inbound channel message? | Product |
-   | Non-blocking | **OQ-3** (no-manager branch), **PF-5** (`firstRespondedAt` null), **F-1**, **N-5**, **S9-11** | — |
+   | Non-blocking | **PF-5** (`firstRespondedAt` null), **F-1**, **N-5**, **S9-11** | — · ~~OQ-3~~ **closed 2026-08-31 by A-21** |
 
 5. **Optionally apply the S9-11 header correction** to `ui-design.md` — it cites *"65 endpoints,
    AP-1…AP-18"* where `api-design.md` now has **66** and **AP-19**. It is an edit to an approved

@@ -16,7 +16,105 @@
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-31 (latest) — story 05: ticket core, delivered whole
+### 2026-08-31 (latest) — OQ-3 answered: A-21, escalation climbs to the next authority level
+
+**A decision, its documentation, and the one shared seam the decision needed to be coherent. Story
+06 has NOT been started** — its plan tasks are untouched, and the policy below has no caller.
+
+**The decision.** T2-D words escalation as *"flag breached → raise priority one level → notify the
+department manager"*, but `Department.managerUserId` is optional
+([data-model.md](data-model.md) §2.2), so the nominal recipient may not exist. That gap was **OQ-3**,
+open since 2026-08-24 and deliberately left uninvented by the data model. **The product owner chose
+the cascade**, recorded as **A-21** in [product-scope.md](product-scope.md) §7 — the register
+A-19 and A-20 already use for exactly this class of decision:
+
+1. The department's own manager, when `managerUserId` is set **and that user is still active and
+   still holds `Manager` or `Administrator`**.
+2. Otherwise **every active `Manager`**.
+3. Otherwise **every active `Administrator`**.
+4. Otherwise **nobody** — and the escalation still happens.
+
+**Escalation is never blocked by a missing recipient.** The breach flag and the priority raise occur
+on every rung; a missing manager suppresses a notification, never an escalation. That was already
+data-model §2.2's position and is now A-21's first clause.
+
+**Rejected alternatives, and why.** *Notify nobody and log it* — what the three plans carried as
+interim text — lets T2-D's one automated safety net fail precisely when a department is unstaffed at
+the top. *Make `managerUserId` required* is a schema and contract change taken to avoid a policy
+decision, and contradicts §2.2's own reason for optionality. *Notify Administrators only* loses the
+single unconditional UI sentence the cascade buys. *Refuse the escalation* was excluded by the
+approved text before it was offered.
+
+**The cascade climbs and never spreads sideways.** Only `Manager` and `Administrator` are ever
+notified, and A-4 and A-16 already give both cross-department authority. A `Notification` carries a
+`ticketId` (data-model §2.12), so a recipient who could not read that ticket would hold a dangling
+reference across the boundary **AP-4** exists to protect — which is why notifying the assignee or
+the department's agents was not on the table.
+
+**Code — one seam, ahead of both callers.**
+
+- `src/SupportCrm.Application/Modules/Sla/IEscalationRecipientPolicy.cs` — the seam, plus
+  `EscalationRecipients` and `EscalationRecipientTier` so a caller can tell which rung fired without
+  re-deriving the rule.
+- `src/SupportCrm.Application/Modules/Sla/EscalationRecipientPolicy.cs` — the one implementation.
+- Registered in `SupportCrm.Infrastructure/DependencyInjection.cs`.
+
+**Why a seam rather than an `if` in `EscalateAsync`:** the rule has **two** callers — Story 06's
+manual `POST /tickets/{id}/escalate` and Story 09's automatic breach sweep — and the Story 09 intake
+already requires the automatic trigger to reuse the manual path. This follows **A-20**'s shape
+deliberately: a rule with more than one caller gets one named home, which is what stopped
+*"we don't touch the dates"* being copied to three call sites.
+
+**The `Warning` log lives inside the policy**, not at the call sites. The two plans had specified
+different levels for the same condition — Story 06 `Information`, Story 09 `Warning` — and **the
+decision standardises `Warning`**; putting the line in the policy is what makes the two paths unable
+to diverge at all.
+
+**Finding recorded — I-21.** A-21's rung 1 says *"when `managerUserId` is set"* and does not cover
+the user it points at being no longer usable — a manager can be deactivated (AD-15) or demoted, and
+there is no write endpoint for a department (T2-I) to un-appoint them. **Implemented as "set *and
+still eligible*"**, falling through to rung 2 otherwise, because data-model §2.2's invariant already
+requires an active `Manager`/`Administrator`, AD-15 makes the user row authoritative over a stale
+reference, and A-21's own wording for rungs 2 and 3 says *"every **active**"*. **Flagged for the
+user**: if rung 1 was meant literally it is a one-line change, and two `[InlineData]` rows are what
+would go red.
+
+**Verified 2026-08-31**, every command run in this task.
+
+- `dotnet build backend/SupportCrm.sln` → **0 warnings, 0 errors** with `TreatWarningsAsErrors`.
+- `dotnet test backend/SupportCrm.sln` → **259 passed, 0 failed, 0 skipped** (was **251/0/0** —
+  **+8, all A-21's**). Every rung asserted, including the three the seeded demo can never reach,
+  plus the I-21 fall-through, the authorization guarantee (no Agent or Customer is ever a recipient,
+  over both a manager-present and a manager-absent department) and determinism by repetition.
+- **The guard is load-bearing:** reverting the fallback to the pre-decision behaviour turned **6 of
+  the 8** red; the 2 that stayed green are rung 1 and rung 4, which must pass either way. Restored,
+  rebuilt 0/0, suite re-run **259/0/0**.
+- `npm run build` clean; `npm run lint:styles` clean. **The front end was not touched.**
+- **The policy resolves from the real composition root** — the tests pull it out of the application's
+  own container, not a double.
+
+**Documents amended, consistently.** [product-scope.md](product-scope.md) §7 (new A-21);
+[data-model.md](data-model.md) §2.2 (the OQ-3 block replaced by the answer) and §8 (row struck,
+resolution recorded); [api-design.md](api-design.md) §5.6 and §6.2;
+[ui-design.md](ui-design.md) §5.3 and §11 — **the dialog wording constraint is lifted**, and the
+dialog may now say *a manager* will be notified, one sentence true on every rung, **with no new
+payload field**; the Story 06 and Story 09 plans, which **now carry the same recipient rule and the
+same log level**; the `ticket-management`, `sla-automation` and `organization` overviews;
+`00-implementation-plan.md` §7.3; `00-index.md`. In `PROJECT-PROGRESS.md`: OQ-3 struck in §6.1,
+**R-17** added to §6.3, **S9-3 closed** (both halves it widened are now answered), I-21 added to
+§6.8, traceability row in §6.4, three evidence rows in §8.
+
+**Deliberately not touched.** **No contract surface** — no endpoint, payload, response field, error
+slug, entity, column or migration; `openapi/v1.json` still publishes **22 paths**. **No story 06
+work**: no `TransitionTo`, no A-5 legality machine, no A-16 authority matrix, no `/escalate`
+endpoint, no `/activity` read, no `INotificationPublisher` — that is Story 06 task 4 and is not
+here. `DepartmentValidator` is unchanged and still says nothing about the null case, which stays
+correct: eligibility of a manager that *is* set and choice of recipient when there is none are two
+different rules. **OQ-1 and F-1 remain open**, as does product-scope §9 question 5.
+
+---
+
+### 2026-08-31 — story 05: ticket core, delivered whole
 
 **The second T1 business story to land end to end, and the one the assessment's core loop rests
 on.** Delivered **whole rather than in slices** — the plan's thirteen numbered tasks were the unit of

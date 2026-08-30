@@ -555,6 +555,47 @@ left open rather than invent.
   per-branch timezones, pause-on-customer-reply — is OQ-2's parent and **stays open**. A-20 settles
   only what happens to two timestamps on a priority change.
 
+**A-21 · Escalation notifies the next authority level when a department has no manager.** Decided
+2026-08-31, resolving **OQ-3**, which [data-model.md](data-model.md) §2.2 raised on 2026-08-24 and
+deliberately left open rather than invent.
+
+T2-D words the escalation rule as *"flag the ticket breached, raise priority one level, **notify the
+department manager**"*, but `Department.managerUserId` is **optional**, so the nominal recipient may
+not exist. The recipient is now defined as a cascade:
+
+1. **The department's own manager**, when `managerUserId` is set and that user is still active and
+   still holds `Manager` or `Administrator` — the eligibility [data-model.md](data-model.md) §2.2
+   already requires of the reference.
+2. **Otherwise every active `Manager`.**
+3. **Otherwise every active `Administrator`.**
+4. **Otherwise nobody** — and the escalation still happens.
+
+- **Escalation is never blocked by the absence of a recipient.** The breach flag and the priority
+  raise are unaffected in every case, as [data-model.md](data-model.md) §2.2 already stated. A
+  missing manager suppresses a notification; it never suppresses an escalation.
+- **The cascade climbs; it never spreads sideways.** Only `Manager` and `Administrator` are ever
+  notified, and both already hold authority over **all** departments (A-4, A-16). A `Notification`
+  carries a `ticketId` ([data-model.md](data-model.md) §2.12), so a recipient who could not read
+  that ticket would be handed a dangling reference across the boundary AP-4 exists to protect.
+  Notifying agents — the ticket's assignee, or the department's agents — was rejected for the
+  opposite reason: escalation exists to raise a ticket **above** the agent.
+- **The rejected alternative was to notify nobody** and log it, which is what the plans carried as
+  interim behaviour. It was rejected because it lets the one automated safety net T2-D provides fail
+  precisely when a department is unstaffed at the top — the case where it is most needed.
+- **Making `managerUserId` required was also rejected.** It would be a schema and contract change to
+  avoid a policy decision, and it contradicts [data-model.md](data-model.md) §2.2's stated reason
+  for optionality: a department can exist before anyone is appointed to it.
+- **No contract surface changes.** No endpoint, payload, response field, error slug or column is
+  added or altered by this decision. `Notification` is recipient-scoped, so which rung fired is
+  observable only in whose notification list gains a row.
+- **One home, two callers.** The rule is implemented once, behind
+  `IEscalationRecipientPolicy` — Story 06's **manual** `POST /tickets/{id}/escalate` and Story 09's
+  **automatic** breach sweep both resolve recipients through it, and the fallback is logged at
+  **`Warning`** inside the policy so the two paths cannot report the same condition differently.
+  This follows A-20's shape deliberately: a rule with more than one caller gets one named seam.
+- **This does not answer §9 question 5**, and it does not make a manager mandatory. It settles only
+  who is notified when there is none.
+
 ---
 
 ## 8. Explicitly out of scope (T4)

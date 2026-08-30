@@ -362,8 +362,13 @@ Legal transitions (A-5), and who may invoke each (A-16):
 `Closed` and `Cancelled` are terminal: any transition, message or note → `409`.
 
 **`POST /tickets/{id}/escalate`** — no body. Raises priority exactly one level (`Urgent` stays
-`Urgent`), leaves status unchanged, writes an `Escalated` activity entry, notifies the department
-manager. Returns `200` with the ticket. Not available to customers (A-16).
+`Urgent`), leaves status unchanged, writes an `Escalated` activity entry, and notifies the
+department manager — **or, when the department has none, the next authority level up** (**A-21**:
+every active `Manager`, else every active `Administrator`, else nobody). Returns `200` with the
+ticket **in every case** — the absence of a recipient never blocks the escalation and is never an
+error. **The response is identical on every rung** and names no recipient; who was notified is
+observable only through `GET /notifications`, which is recipient-scoped. Not available to customers
+(A-16).
 
 **`POST /tickets/{id}/assignment`** — assigning a user who is not an **active staff member of the
 ticket's department** → `422` `type: assignee-out-of-department`. **Assignment does not change
@@ -539,7 +544,10 @@ token claims.
 ### 6.2 Organization
 
 **Department** — `{ "id": "...", "name": "...", "managerUserId": "..." }`. `managerUserId` may be
-absent — a department need not have a manager ([data-model.md](data-model.md) §2.2, **OQ-3**).
+absent — a department need not have a manager ([data-model.md](data-model.md) §2.2). **When it is
+absent, escalation notifies the next authority level** ([product-scope.md](product-scope.md)
+**A-21**, closing OQ-3 on 2026-08-31); **the payload is unchanged by that decision** and names no
+recipient.
 
 **Branch** — `{ "id": "...", "name": "..." }`.
 

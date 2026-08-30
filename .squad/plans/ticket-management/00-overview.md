@@ -48,5 +48,10 @@ of work, so this feature has no slice map of the kind
   does not move them. It reached **Story 05's `PATCH` priority branch**, not only Story 09 (finding
   **S9-3**), which is why the answer was needed here. `SlaClock.OnPriorityChanged` is a deliberate
   no-op, implemented by Story 05 task 1.
-- ⚠ **OQ-3 reaches Story 06's manual escalation**, not only Story 09 (finding **S9-3**).
+- ✅ **OQ-3 is closed (2026-08-31) by A-21** — escalation notifies the department's manager, else
+  every active `Manager`, else every active `Administrator`, else nobody, and **is never blocked by
+  the absence of one**. It reached **Story 06's manual escalation**, not only Story 09 (finding
+  **S9-3**), which is why the answer was needed here. Story 06 resolves recipients through
+  **`IEscalationRecipientPolicy`**, which already exists; the cascade is not re-expressed in the
+  story.
 - 05 and 06 are **T1 and cannot be cut**. 07 is T2 and is **cut last among T2 items**.

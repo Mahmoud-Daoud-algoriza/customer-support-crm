@@ -22,9 +22,11 @@ seed data, the shared `InitialSchema` migration) run **before** Story 02; tasks 
 
 - The load-bearing outcome is a **negative** one: `Ticket` gets **no** `branchId`, now or ever.
   A ticket's branch is derived `Ticket → Customer → Branch` (data-model §2.3).
-- `Department.managerUserId` is **optional** and **no fallback escalation recipient is invented** —
-  **OQ-3** stays open. Seeded departments all have a manager; that is a demo convenience, not an
-  answer.
+- `Department.managerUserId` is **optional**, and ✅ **OQ-3 is closed (2026-08-31) by A-21** — when
+  a department has no usable manager, escalation notifies every active `Manager`, else every active
+  `Administrator`, else nobody, and **never blocks the escalation itself**. The field stays optional
+  and **this story's model was not changed**. Seeded departments all have a manager; that remains a
+  demo convenience rather than the answer.
 - Departments are **T1 and cannot be cut**; branch may degrade to a display and filter field.
 
 ## Delivery log
@@ -57,8 +59,10 @@ document states a string length anywhere, and SQL Server cannot build a unique i
 **Tooling added:** `backend/dotnet-tools.json` pinning `dotnet-ef` 10.0.11 as a local tool — the
 plans' own `dotnet ef migrations add` command had nothing to run.
 
-**OQ-3 is untouched.** No fallback escalation recipient exists anywhere in the code, and the
-`Department.ManagerUserId` doc comment says so at the point a future reader would look.
+**OQ-3 was untouched by this story**, correctly: no fallback escalation recipient existed anywhere
+in the code, and the `Department.ManagerUserId` doc comment said so at the point a future reader
+would look. ✅ **OQ-3 was closed on 2026-08-31 by A-21**, and the answer landed **outside this
+story**, in `Application/Modules/Sla/EscalationRecipientPolicy.cs`.
 
 ### 03 — Departments and branches — **complete** (2026-08-27)
 
@@ -103,9 +107,14 @@ and disabled with a hint while a `Manager` and an `Administrator` are enabled ac
 **Story 05 must run the step against the real screen**, and remove the `Skip` on
 `BranchIsNotABoundaryTests.Ticket_has_no_branch_member` (task 10).
 
-**OQ-3 is still open and still unanswered.** No fallback escalation recipient exists anywhere:
+**OQ-3 was open and unanswered when this story shipped**, and the shape it left was the right one:
 `DepartmentValidator` constrains only a manager that *is* set and says nothing about a department
 without one, and the seeded managers remain a demo convenience, commented as such at both ends.
+✅ **OQ-3 is now closed (2026-08-31) by A-21**, and the answer landed **outside this story** — in
+`Application/Modules/Sla/EscalationRecipientPolicy.cs`. **Nothing in this story changed:**
+`DepartmentValidator` is untouched and still says nothing about the null case, which is correct,
+because eligibility of a manager that *is* set and choice of recipient when there is none are two
+different rules.
 
 **Implementation choices not fixed by the approved documents**, both following the `/users`
 precedent: the sort whitelist for these two endpoints is `name` only (§2.1 requires *a* whitelist and

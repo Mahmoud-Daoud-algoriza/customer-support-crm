@@ -360,7 +360,7 @@ intakes. **Findings are reported, not resolved.** Four block a named acceptance 
 |---|---|---|
 | **OQ-1** | The CSAT rating scale | Story 13 task 9 (the control's shape) and Story 15's satisfaction tile |
 | **OQ-2** | On a priority change, do SLA due dates recompute or stay frozen? | Story 05's `PATCH` priority branch **and** Story 09 task 4 |
-| **OQ-3** | Who is notified on breach when a department has no manager? | The no-manager branch of Story 06's escalate and Story 09's sweep. **Neither is blocked on the happy path** |
+| ~~**OQ-3**~~ | ~~Who is notified on breach when a department has no manager?~~ | **Closed 2026-08-31 by A-21 — the notification climbs to the next authority level** (every active `Manager`, else every active `Administrator`, else nobody), and escalation is never blocked. Implemented once as `IEscalationRecipientPolicy`, which **Story 06's escalate and Story 09's sweep both call** rather than re-express |
 | ~~**OQ-5**~~ | ~~Does changing `Customer.email` change a linked portal login's sign-in email?~~ | **Closed 2026-08-27 by A-19 — yes, atomically.** Story 04 **task 3** implements it (the "task 5" this row named was always the wrong task; task 5 is the timeline) |
 | **F-1** | Should the ticket payload expose `allowedTransitions`? | **Nothing.** `ui-design.md` **UI-3** is approved and says compute client-side; the server remains the authority and a wrong offer gets `403`/`409`. The `sdd-workflow.md` gate 9 → 10 requires no decision here, so **F-1 stays open**. Story 06 confines the duplicated matrix to **one file**, `shared/lifecycle/transition-matrix.ts`, so closing F-1 later deletes exactly one file |
 | **PF-2** | System actor for inbound channel tickets | Story 18 — see **S9-10** |
@@ -503,6 +503,10 @@ before implementation begins.**
 **Before Stage 10 starts, four decisions are outstanding** — S9-1, S9-4, S9-9/PF-4 and
 S9-10/PF-2 — plus the open questions OQ-1, OQ-2 and OQ-3. **None blocks Story 01, and none blocks
 Phase 0 or Phase 1.** The earliest is **OQ-2, which blocks Story 05** in Phase 3.
+
+> **Since written:** **OQ-2 was closed 2026-08-30 by A-20** and implemented by Story 05; **OQ-3 was
+> closed 2026-08-31 by A-21**, with its shared `IEscalationRecipientPolicy` built before Story 06
+> began. **OQ-1 is the only open question left** of the three, and it reaches Stories 13 and 15.
 
 **OQ-5 was closed on 2026-08-27 by A-19** — a customer's email and their portal sign-in are one
 address — which unblocks Story 04 task 3. It was the only open question that gated Phase 2.

@@ -11,22 +11,35 @@
 - **Story 02 completed:** `IAuditRecorder` — ticket lifecycle actions are auditable actions
   (`audit-configuration` intake, architecture §2.4).
 
-> ### ⚠ Open question with a **bounded** effect — **OQ-3**
+> ### ✅ Decision taken — **OQ-3 is closed by A-21** (2026-08-31). No longer open.
 >
-> Escalation *"notifies the department manager"* (A-5, T2-D, intake AC). `data-model.md` §2.2
-> records that **a department may have no manager and no fallback recipient is invented**.
+> Escalation *"notifies the department manager"* (A-5, T2-D, intake AC), but
+> `data-model.md` §2.2 makes `Department.ManagerUserId` **optional**. The recipient in that case is
+> now defined ([product-scope.md](../../../docs/product-scope.md) §7, **A-21**) as a cascade:
 >
-> This does **not** block the story. Implement escalation so the **priority raise, the status
-> non-change and the `Escalated` activity row always occur**, and the notification is raised only
-> when `Department.ManagerUserId` is set. When it is null, log at `Information` with the ticket id
-> and **take no substitute action** — no routing to all Managers, no routing to Administrators, no
-> silent drop dressed up as a decision. Every seeded department has a manager (Story 03), so the
-> demo path is covered.
+> 1. **The department's own manager**, when set and that user is still **active** and still holds
+>    `Manager` or `Administrator` — the eligibility §2.2's invariant already requires.
+> 2. Otherwise **every active `Manager`**.
+> 3. Otherwise **every active `Administrator`**.
+> 4. Otherwise **nobody** — and the escalation still happens.
 >
-> `PROJECT-PROGRESS.md` §6.1 records OQ-3 against Story 09. It reaches **this** story too, because
-> the **manual** escalation action lives here and has the same undefined recipient. Recorded as
-> **S9-3** in `00-implementation-plan.md`. **The escalate confirmation dialog must not claim the
-> manager will be notified** (ui-design §11).
+> **The priority raise, the status non-change and the `Escalated` activity row always occur**, on
+> every rung. A missing manager suppresses a notification, never an escalation.
+>
+> **Do not re-express this rule here.** It is implemented once, in
+> `Application/Modules/Sla/EscalationRecipientPolicy.cs` behind **`IEscalationRecipientPolicy`**,
+> which **already exists** — it was built with the decision, ahead of both callers. Resolve
+> recipients through it and publish to the ids it returns. **The fallback is logged at `Warning`
+> inside the policy**, so this story and Story 09 cannot report the same condition differently.
+>
+> **No contract change comes with this decision** — no endpoint, payload, response field or column.
+> The cascade only ever notifies `Manager` and `Administrator`, both of which already hold
+> cross-department authority (A-4, A-16), so a `Notification`'s `ticketId` is always readable by its
+> recipient.
+>
+> OQ-3 reached **this** story as well as Story 09 because the **manual** escalation action lives
+> here — recorded as **S9-3** in `00-implementation-plan.md`, and why the answer was needed at this
+> point rather than at Story 09.
 
 ---
 
@@ -67,7 +80,8 @@ portal message endpoint of [Story 07](07-story-ticket-intake-messaging.md), whic
 5. `docs/ui-design.md` §5.3 (transition menu, escalate as a separate control, terminal statuses
    disabling the composer), **UI-3** (transitions computed client-side; see F-1 below), **UI-8**
    (no optimistic UI for lifecycle changes), **UI-12** (confirm dialogs name the effect), and
-   §11 (the OQ-3 wording constraint).
+   §11 (the ~~OQ-3~~ row — **the wording constraint is lifted by A-21**; the dialog may now say
+   *a manager* will be notified).
 6. `.squad/stories/ticket-management/ticket-lifecycle/intake.md` — thirteen acceptance criteria;
    every one is a Done Criterion below.
 
@@ -224,8 +238,10 @@ written here because it is a lifecycle rule, and **called** by Story 07's portal
 - Scope check, then `Escalation.RaiseOneLevel`. **Status is not touched.**
 - Write an `Escalated` activity row with the old and new priority, and an audit entry
   `TicketEscalated`.
-- Raise a `TicketEscalated` notification to `Department.ManagerUserId` **when it is set** — see the
-  OQ-3 box above.
+- Raise a `TicketEscalated` notification to **the recipients `IEscalationRecipientPolicy` returns**
+  (**A-21** — see the decision box above). One call, no branching here: the cascade and its
+  `Warning` log live in the policy. Publish one notification per returned id; an empty list is a
+  valid result and **must not** stop the escalation.
 - Customers -> `403` (A-16). Returns `200` with the ticket.
 - **Story 09 calls this same method from the breach path** — the intake requires the automatic
   trigger to *reuse this escalation path rather than duplicating it*. Keep the signature usable by
@@ -353,8 +369,10 @@ no database:
 - **`Escalate` is a separate control, never inside the transition menu** — escalation is an action,
   not a status change (AP-7, A-5).
 - **Confirmation dialogs name the effect** (UI-12). The escalate dialog says *priority rises one
-  level, status is unchanged*. **It must not claim "the department manager will be notified"** —
-  a department may have none and OQ-3 is open (ui-design §11).
+  level, status is unchanged*, and — since **A-21** closed OQ-3 — **may now also say a manager will
+  be notified**. Word it as *"a manager"*, not *"the department manager"*: one unconditional
+  sentence is true on every rung of the cascade, so the screen needs no conditional and **no new
+  payload field telling it which rung fired** (ui-design §11).
 - **No optimistic UI** (UI-8): the status chip changes **after** the server confirms, because a
   transition can be refused.
 - `409` renders contextually — *"This ticket has already been closed"* — from the problem `type`,
@@ -414,8 +432,10 @@ removing the empty-state-only path.
 - [ ] Ticket history and the audit log remain **independently queryable** (AD-10).
 - [ ] The automatic `Pending -> Open` rule is implemented and attributed to the **replying
       customer** with `actorKind = User` *(its trigger and its end-to-end test land in Story 07)*.
-- [ ] **OQ-3 is not answered here.** No fallback notification recipient was invented and the
-      escalate dialog claims none.
+- [ ] **A-21 is applied, not re-implemented.** Escalation resolves recipients through
+      `IEscalationRecipientPolicy` — the cascade appears nowhere in this story's own code — and the
+      escalate dialog may claim that *a manager* will be notified. **OQ-3 was closed on 2026-08-31
+      and is not reopened here.**
 - [ ] **F-1 remains open.** The client matrix lives in exactly one file, labelled with F-1.
 - [ ] `00-overview.md` updated with this story.
 

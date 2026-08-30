@@ -26,8 +26,11 @@ Tracker integration is `none`; story ids are the folder names under
   not change status** (A-18).
 - ⚠ **OQ-2 must be answered before task 4.** Its answer lives in exactly one method,
   `SlaClock.OnPriorityChanged`, which throws until then.
-- ⚠ **OQ-3** — no fallback recipient is invented when a department has no manager; the flag and the
-  priority raise still occur.
+- ✅ **OQ-3 is closed (2026-08-31) by A-21** — when a department has no usable manager the
+  notification climbs to every active `Manager`, else every active `Administrator`, else nobody; the
+  flag and the priority raise still occur in every case. Task 4 resolves recipients through
+  **`IEscalationRecipientPolicy`**, the same policy Story 06's manual escalate uses; the cascade is
+  **not** re-expressed here.
 - ⚠ **PF-5 stays open** — a ticket resolved without a reply is permanently first-response breached.
   Implemented as A-3 words it and **reported**, not silently changed.
 - T2. If cut, the queue keeps its ordering (S9-8) and

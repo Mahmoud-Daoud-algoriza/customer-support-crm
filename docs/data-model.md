@@ -215,26 +215,30 @@ user's `customerId` is unique across users (one login per profile) · deactivati
 **Mutability.** Mutable.
 **Invariants.** `managerUserId`, when set, must reference an active user of role `Manager` or
 `Administrator` — an Application-layer rule, not a foreign key.
-**OQ-3 · A department with no manager has no defined escalation behaviour.**
+**✅ A department with no manager — resolved 2026-08-31 as A-21. This was OQ-3.**
 `managerUserId` is optional because a department can exist before anyone is appointed to it, and
-because nothing in the sources makes it mandatory. That leaves a real gap:
+because nothing in the sources makes it mandatory. That left a real gap:
 [product-scope.md](product-scope.md) T2-D defines the single escalation rule as "flag the ticket
 breached, raise priority one level, **notify the department manager**", and the
-`sla-routing-escalation` intake requires that the manager receive an in-app notification on breach.
-**When no manager is set, the sources do not say who — if anyone — is notified.**
+`sla-routing-escalation` intake requires that the manager receive an in-app notification on breach —
+but **neither covered the manager's absence**.
 
-**No fallback is invented here.** This model does not nominate a substitute recipient, does not
-route to all Managers, does not route to Administrators, and does not silently drop the
-notification. Each of those is a product decision with different consequences, and choosing one
-in a data-model document would bury it where nobody would look for it.
+**The recipient is now a cascade** ([product-scope.md](product-scope.md) §7, **A-21**): the
+department's own manager when `managerUserId` is set and that user is still active and still holds
+`Manager` or `Administrator` — the eligibility this section's invariant already requires; otherwise
+**every active `Manager`**; otherwise **every active `Administrator`**; otherwise **nobody**.
 
-What the model does state: the first two effects of the rule — the breach flag and the priority
-raise — are unaffected by a missing manager and must still occur. Only the notification recipient
-is undetermined.
+**What this section stated before the decision remains true and is now the decision's first clause:**
+the breach flag and the priority raise are **unaffected** by a missing manager and must still occur.
+A missing manager suppresses a notification, never an escalation.
 
-**Must be resolved before `sla-routing-escalation` is implemented.** Until then, seed data appoints
-a manager for every department so the demo path is well defined; that is a seeding convenience and
-not an answer to the question. Recorded in §8.
+**Model consequence: none.** `managerUserId` stays optional, no column changes, and no entity gains
+a field — A-21 is a policy over rows this model already carries. `Notification` (§2.12) is unchanged
+and still recipient-scoped, which is why the decision alters no contract: which rung fired is
+observable only in whose notification list gains a row. Recorded in §8.
+
+**Seed data still appoints a manager for every department.** That remains a demo convenience rather
+than a requirement — A-21 is precisely what makes the un-seeded case well defined.
 
 ### 2.3 `Branch`
 
@@ -1072,10 +1076,22 @@ pre-empted by an assumption baked into the model.
 |---|---|---|---|---|
 | **OQ-1** | What is the CSAT rating scale? | T2-F says "a one-question satisfaction rating"; no scale anywhere | Stores an ordinal; **encodes no range** — no min, max, or step (§2.15) | `portal-self-service`, and the §9.4 average in `management-dashboard` |
 | ~~**OQ-2**~~ | ~~When priority changes, do the SLA due dates recompute or stay frozen?~~ | A-3 fixes per-priority targets and a `createdAt` origin; silent on later changes, which T2-D escalation causes routinely | Stores both timestamps; **compatible with either rule and asserts neither** (§2.6 invariant 6) — **unchanged by the answer** | **✅ Closed 2026-08-30 by A-20 — they stay frozen.** See the resolved list below |
-| **OQ-3** | Who is notified on breach when a department has no manager? | T2-D and the intake both say "notify the department manager"; neither covers its absence | `managerUserId` optional; **no fallback recipient invented**. Breach flag and priority raise still occur (§2.2) | `sla-routing-escalation` |
+| ~~**OQ-3**~~ | ~~Who is notified on breach when a department has no manager?~~ | T2-D and the intake both say "notify the department manager"; neither covers its absence | ✅ **Closed 2026-08-31 by A-21** — the notification escalates to the next authority level; `managerUserId` stays optional and **no model change was needed** (§2.2). Breach flag and priority raise still occur | ~~`sla-routing-escalation` |
 
 **Resolved and closed since the first draft of this document:**
 
+- **OQ-3 — the escalation recipient when a department has no manager** (raised 2026-08-24 by §2.2;
+  resolved 2026-08-31). **The notification escalates to the next authority level** (**A-21**): the
+  department's manager when set and still eligible, otherwise every active `Manager`, otherwise
+  every active `Administrator`, otherwise nobody — and **the escalation itself is never blocked**.
+  The rejected alternatives were notifying nobody (it lets the one automated safety net T2-D
+  provides fail exactly when a department is unstaffed at the top) and making `managerUserId`
+  required (a schema and contract change to avoid a policy decision, contradicting this section's
+  own reason for optionality). **Model consequence: none** — §2.2 keeps the field optional and
+  §2.12 is untouched, which is why it could stay open this long. The cascade climbs to `Manager` and
+  `Administrator` only, both of which already hold cross-department authority (A-4, A-16), so a
+  `Notification`'s `ticketId` is always readable by its recipient and nothing leaks across the
+  boundary AP-4 protects.
 - **OQ-2 — the SLA due timestamps on a priority change** (raised 2026-08-24 by §2.6 invariant 6;
   resolved 2026-08-30). **They freeze** (**A-20**): both timestamps are computed once at creation
   and a later priority change — agent `PATCH`, manual escalation or automatic breach escalation —

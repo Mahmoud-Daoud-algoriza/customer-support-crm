@@ -29,15 +29,35 @@
 > Do not encode a behaviour anywhere else. Product-scope §9 question 5 (real SLA policy) is this
 > question's parent and stays open regardless.
 
-> ### ⚠ Open question with a **bounded** effect — **OQ-3**
+> ### ✅ Decision taken — **OQ-3 is closed by A-21** (2026-08-31). No longer open.
 >
-> T2-D's rule is *"flag breached -> raise priority one level -> **notify the department manager**"*.
-> `data-model.md` §2.2 records that a department may have **no** manager and **no fallback recipient
-> is invented** — not all Managers, not Administrators, not a silent drop.
+> Escalation *"notifies the department manager"* (A-5, T2-D, intake AC), but
+> `data-model.md` §2.2 makes `Department.ManagerUserId` **optional**. The recipient in that case is
+> now defined ([product-scope.md](../../../docs/product-scope.md) §7, **A-21**) as a cascade:
 >
-> **The breach flag and the priority raise are unaffected and must still occur.** Only the recipient
-> is undetermined. Implement exactly that: publish when `ManagerUserId` is set; when it is null, log
-> at `Warning` with the ticket and department ids and take no substitute action.
+> 1. **The department's own manager**, when set and that user is still **active** and still holds
+>    `Manager` or `Administrator` — the eligibility §2.2's invariant already requires.
+> 2. Otherwise **every active `Manager`**.
+> 3. Otherwise **every active `Administrator`**.
+> 4. Otherwise **nobody** — and the escalation still happens.
+>
+> **The priority raise, the status non-change and the `Escalated` activity row always occur**, on
+> every rung. A missing manager suppresses a notification, never an escalation.
+>
+> **Do not re-express this rule here.** It is implemented once, in
+> `Application/Modules/Sla/EscalationRecipientPolicy.cs` behind **`IEscalationRecipientPolicy`**,
+> which **already exists** — it was built with the decision, ahead of both callers. Resolve
+> recipients through it and publish to the ids it returns. **The fallback is logged at `Warning`
+> inside the policy**, so this story and Story 09 cannot report the same condition differently.
+>
+> **No contract change comes with this decision** — no endpoint, payload, response field or column.
+> The cascade only ever notifies `Manager` and `Administrator`, both of which already hold
+> cross-department authority (A-4, A-16), so a `Notification`'s `ticketId` is always readable by its
+> recipient.
+>
+> **This story and Story 06 must not diverge.** Both resolve recipients through the same policy
+> instance and both inherit its `Warning` log — the two plans previously specified different levels
+> for this line, and A-21 standardises it.
 
 > ### ⚠ Open finding — **PF-5**
 >
@@ -85,7 +105,8 @@ All four lines of requirements §5, at the simplest defensible depth of A-3 and 
    **`POST /notifications/read-all` was removed as unrequested surface (AP-18)**. Then §6.6 — the
    `unreadCount` at the top level of the envelope, which is what the badge renders.
 5. `docs/ui-design.md` §5.8 (notification screen — **no mark-all-read control**), §4.1 (the bell in
-   the staff shell), §11 (the OQ-2, OQ-3 and PF-5 rows).
+   the staff shell), §11 (the OQ-2, ~~OQ-3~~ and PF-5 rows — **OQ-2 and OQ-3 are both closed**,
+   by A-20 and A-21; only PF-5 is still open).
 6. `.squad/stories/sla-automation/sla-routing-escalation/intake.md` — thirteen acceptance criteria
    and the Out of scope list.
 
@@ -167,8 +188,9 @@ composition root from `LoggingNotificationPublisher` to this one.
 3. Call **`TicketLifecycleService.EscalateAsync(ticketId, ActorKind.System)`** — Story 06's method,
    which raises priority one level, leaves status unchanged, writes the `Escalated` row and
    publishes the manager notification. **Do not re-implement any of it.**
-4. Publish an `SlaBreached` notification to the department manager **when `ManagerUserId` is set**
-   (OQ-3 box above).
+4. Publish an `SlaBreached` notification to **the recipients `IEscalationRecipientPolicy` returns**
+   (**A-21** — see the decision box above). Same policy instance as Story 06's manual escalate, one
+   notification per returned id; an empty list is valid and never stops the sweep.
 5. Apply the **OQ-2** decision through `SlaClock.OnPriorityChanged` — **the single method that
    encodes it**. Until OQ-2 is recorded, this call throws and the story cannot be completed. That
    is deliberate.
@@ -247,8 +269,11 @@ non-trivial values. Comment the intent, because a seeded breach otherwise looks 
 4. An `Urgent` breached ticket stays `Urgent`.
 5. **A ticket moved to `Pending` still breaches on schedule** — the A-3 no-pause rule, asserted
    explicitly.
-6. A department with **no** manager: the flag and the priority raise still happen and **no
-   notification row is created** — no substitute recipient (OQ-3).
+6. A department with **no** manager: the flag and the priority raise still happen, and the
+   notification goes to **every active `Manager`** — or, if there are none, every active
+   `Administrator`, or nobody (**A-21**). Assert the fallback rung produced rows for the right
+   recipients, not merely that the escalation survived. `EscalationRecipientPolicyTests` already
+   covers the cascade itself; this asserts the **sweep publishes to what it returns**.
 
 **Create file: `tests/SupportCrm.Tests/Sla/AutoAssignmentTests.cs`**
 
@@ -333,7 +358,9 @@ sets the flags, and that the queue's default ordering surfaces breached tickets 
 - [ ] Story 08's queue ordering consumes this SLA data (it already did; breach flags now populate).
 - [ ] SLA attainment data is queryable for Story 15.
 - [ ] **OQ-2 is answered before this story ships**, and its answer lives in exactly one method.
-- [ ] **OQ-3 is not answered here** — no fallback recipient invented.
+- [ ] **A-21 is applied, not re-implemented** — the sweep resolves recipients through
+      `IEscalationRecipientPolicy`, the same policy Story 06's manual escalate uses, and the cascade
+      appears nowhere in this story's own code. **OQ-3 was closed on 2026-08-31.**
 - [ ] **PF-5 remains open and its consequence is reported**, not silently changed.
 - [ ] `00-overview.md` updated with this story.
 
