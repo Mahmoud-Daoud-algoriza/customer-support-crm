@@ -49,7 +49,8 @@
         "http-401": "Your session has ended. Please sign in again.",
         "http-403": "You don't have access to this.",
         "customer-email-in-use": "That email is already in use by another customer.",
-        "attachment-too-large": "That file is larger than the allowed size."
+        "attachment-too-large": "That file is larger than the allowed size.",
+        "assignee-out-of-department": "That agent is not in this ticket’s department."
     },
     "primeng": {
         "accept": "Yes",
@@ -81,7 +82,8 @@
         "workspace": "Workspace",
         "admin": "Administration",
         "users": "Users",
-        "customers": "Customers"
+        "customers": "Customers",
+        "tickets": "Tickets"
     },
     "admin": {
         "users": {
@@ -152,5 +154,52 @@
         "cap": "Maximum {{size}} per file.",
         "emptyTitle": "No files attached",
         "emptyMessage": "Attach a file to keep it with this record."
+    },
+    "tickets": {
+        "title": "Tickets",
+        "search": "Search subject or description",
+        "subject": "Subject",
+        "customer": "Customer",
+        "description": "Description",
+        "statusLabel": "Status",
+        "priorityLabel": "Priority",
+        "categoryLabel": "Category",
+        "assigneeLabel": "Assignee",
+        "breachLabel": "SLA",
+        "anyStatus": "Any status",
+        "anyPriority": "Any priority",
+        "anyCategory": "Any category",
+        "anyAssignee": "Anyone",
+        "anyBreach": "Any SLA state",
+        "assignedToMe": "Assigned to me",
+        "breachedOnly": "Breached",
+        "notBreached": "Within target",
+        "breached": "Breached",
+        "unassigned": "Unassigned",
+        "urgentFlag": "Marked urgent by the customer",
+        "firstResponseDue": "First response due",
+        "resolutionDue": "Resolution due",
+        "assign": "Assign",
+        "assignPlaceholder": "Choose an agent",
+        "assignToMe": "Assign to me",
+        "customerPanel": "Customer",
+        "openProfile": "Open profile",
+        "recentActivity": "Recent activity",
+        "emptyTitle": "No tickets match",
+        "emptyMessage": "Adjust the filters to see more.",
+        "status": {
+            "New": "New",
+            "Open": "Open",
+            "Pending": "Pending",
+            "Resolved": "Resolved",
+            "Closed": "Closed",
+            "Cancelled": "Cancelled"
+        },
+        "priority": {
+            "Low": "Low",
+            "Medium": "Medium",
+            "High": "High",
+            "Urgent": "Urgent"
+        }
     }
 }

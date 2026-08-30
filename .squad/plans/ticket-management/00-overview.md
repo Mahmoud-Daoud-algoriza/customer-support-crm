@@ -32,6 +32,9 @@ Tracker integration is `none`; story ids are the folder names under
 - **07** supplies the **trigger** for the automatic `Pending → Open` rule 06 implements (R-13,
   R-14), and the channel-agnostic message model
   [Story 18](../integration-seams/18-story-channel-erp-adapters.md) must match.
-- ⚠ **OQ-2 blocks Story 05's `PATCH` priority branch**, not only Story 09 (finding **S9-3**).
+- ✅ **OQ-2 is closed (2026-08-30) by A-20** — the SLA due timestamps **freeze**; a priority change
+  does not move them. It reached **Story 05's `PATCH` priority branch**, not only Story 09 (finding
+  **S9-3**), which is why the answer was needed here. `SlaClock.OnPriorityChanged` is a deliberate
+  no-op, implemented by Story 05 task 1.
 - ⚠ **OQ-3 reaches Story 06's manual escalation**, not only Story 09 (finding **S9-3**).
 - 05 and 06 are **T1 and cannot be cut**. 07 is T2 and is **cut last among T2 items**.

@@ -5,6 +5,7 @@ using SupportCrm.Domain.Modules.Administration;
 using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Organization;
+using SupportCrm.Domain.Modules.Tickets;
 using SupportCrm.Infrastructure.Persistence.Configurations;
 
 namespace SupportCrm.Infrastructure.Persistence;
@@ -61,6 +62,19 @@ public sealed class SupportCrmDbContext(DbContextOptions<SupportCrmDbContext> op
     /// <c>Tickets</c> modules; there is deliberately no second attachment type (§3).
     /// </summary>
     public DbSet<Attachment> Attachments => Set<Attachment>();
+
+    /// <summary>
+    /// Story 05 — the unit of support work (docs/data-model.md §2.6). <c>DepartmentId</c> is the
+    /// authorization boundary (A-2), applied through <c>TicketScope</c> and <b>never</b> through a
+    /// global query filter (AD-5).
+    /// </summary>
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+
+    /// <summary>
+    /// Story 05 — the append-only history spine (docs/data-model.md §2.7). Written only by
+    /// <c>TicketActivityRecorder</c>; there is no update or delete path anywhere.
+    /// </summary>
+    public DbSet<TicketActivity> TicketActivities => Set<TicketActivity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

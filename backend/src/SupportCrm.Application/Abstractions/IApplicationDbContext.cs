@@ -3,6 +3,7 @@ using SupportCrm.Domain.Modules.Administration;
 using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Organization;
+using SupportCrm.Domain.Modules.Tickets;
 
 namespace SupportCrm.Application.Abstractions;
 
@@ -34,6 +35,12 @@ public interface IApplicationDbContext
     DbSet<CustomerNote> CustomerNotes { get; }
 
     DbSet<Attachment> Attachments { get; }
+
+    /// <summary>Story 05 — docs/data-model.md §2.6. Scoped through <c>TicketScope</c> (AD-5).</summary>
+    DbSet<Ticket> Tickets { get; }
+
+    /// <summary>Story 05 — the append-only spine of docs/data-model.md §2.7.</summary>
+    DbSet<TicketActivity> TicketActivities { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

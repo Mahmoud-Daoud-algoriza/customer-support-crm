@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SupportCrm.Application.Abstractions;
+using SupportCrm.Application.Modules.Tickets;
 using SupportCrm.Application.Configuration;
 using SupportCrm.Application.Modules.Identity;
 using SupportCrm.Domain.Modules.Customers;
@@ -17,6 +18,7 @@ namespace SupportCrm.Application.Modules.Customers;
 /// ticket-side method bodies are written here too. <b>The two
 /// <c>/tickets/{id}/attachments</c> endpoints are published by Story 05</b>, where <c>Ticket</c> and
 /// its scoping helper exist — finding <b>S9-2</b>, resolved from the intakes rather than invented.
+/// Story 05 has since published both, so the ticket half of Story 04's attachment criterion is met.
 /// </para>
 ///
 /// <para>
@@ -60,9 +62,9 @@ public sealed class AttachmentService(
     }
 
     /// <summary>
-    /// <c>POST /tickets/{id}/attachments</c> — <b>the body is here; the endpoint is Story 05's</b>
-    /// (S9-2). It is unreachable today: <see cref="EnsureTicketReachableAsync"/> refuses every
-    /// ticket, because no <c>Ticket</c> exists and no caller can be scoped to one.
+    /// <c>POST /tickets/{id}/attachments</c> — the body landed with Story 04 and <b>Story 05
+    /// publishes the endpoint and wires the scope</b> (S9-2, now closed). Reachability is decided
+    /// by <see cref="EnsureTicketReachableAsync"/>, which composes <c>TicketScope</c>.
     /// </summary>
     public async Task<AttachmentMetadataDto> UploadForTicketAsync(
         Guid ticketId, AttachmentUpload upload, CancellationToken ct)
@@ -90,8 +92,8 @@ public sealed class AttachmentService(
     }
 
     /// <summary>
-    /// <c>GET /tickets/{id}/attachments</c> — as with the upload, the body is here and the endpoint
-    /// is Story 05's (S9-2).
+    /// <c>GET /tickets/{id}/attachments</c> — as with the upload, the body landed with Story 04 and
+    /// Story 05 published the endpoint (S9-2, now closed).
     /// </summary>
     public async Task<PagedResult<AttachmentMetadataDto>> ListForTicketAsync(
         Guid ticketId, PageQuery? page, CancellationToken ct)
@@ -115,7 +117,7 @@ public sealed class AttachmentService(
     ///   <item>a <b>customer-owned</b> file requires the caller to be an Agent or above — a customer
     ///     profile is staff-visible (docs/data-model.md §2.11);</item>
     ///   <item>a <b>ticket-owned</b> file requires the ticket to be reachable by the caller through
-    ///     Story 05's scoping helper.</item>
+    ///     <c>TicketScope</c> — the same helper every ticket endpoint composes (AD-5).</item>
     /// </list>
     ///
     /// <para>
@@ -152,29 +154,38 @@ public sealed class AttachmentService(
     }
 
     /// <summary>
-    /// <b>Story 05: replace this body with the ticket scoping helper.</b>
+    /// A ticket-owned attachment inherits <b>the ticket's</b> scope — Story 05 task 7.
     ///
     /// <para>
-    /// It must answer the §4.3 question — an Agent reaches tickets in their own department, a
-    /// Customer reaches only their own, a Manager and an Administrator reach all — and it must
-    /// answer <c>404</c> for both "no such ticket" and "not yours" (AP-4). <b>Branch must not appear
-    /// in it</b> (A-2, docs/data-model.md §5 constraint 6).
+    /// It answers the §4.3 question through the one helper that expresses it: an Agent reaches
+    /// tickets in their own department, a Customer only their own, a Manager and an Administrator
+    /// all of them. <c>TicketScope</c> is composed rather than restated, so this path cannot drift
+    /// from the ticket endpoints (AD-5, 00-implementation-plan §6).
     /// </para>
     ///
     /// <para>
-    /// Until then it <b>refuses everything</b>, which is correct rather than a placeholder: no
-    /// <c>Ticket</c> row can exist, so no ticket-owned <see cref="Attachment"/> can exist either,
-    /// and the honest answer to "may I reach ticket X" is that there is no ticket X. Failing closed
-    /// also means that if Story 05 publishes the two endpoints and forgets the scoping check, the
-    /// result is a visible <c>404</c> on every request rather than a silent hole.
+    /// <b>"No such ticket" and "not yours" are the same answer</b> — <c>404</c>, with the same
+    /// message as a missing attachment (AP-4). <c>LoadScopedAsync</c> already throws exactly that,
+    /// but its message names a ticket, and telling a caller that the <em>ticket</em> was not found
+    /// while they asked about an <em>attachment</em> would leak which of the two exists. So the
+    /// answer is re-thrown with this class's one constant.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Branch does not appear here</b>, and cannot: <c>TicketScope</c> has no branch predicate
+    /// and <c>Ticket</c> has no branch member (A-2, docs/data-model.md §5 constraint 6).
     /// </para>
     /// </summary>
-    private Task EnsureTicketReachableAsync(Guid ticketId, CancellationToken ct)
+    private async Task EnsureTicketReachableAsync(Guid ticketId, CancellationToken ct)
     {
-        _ = ticketId;
-        _ = ct;
+        var reachable = await db.Tickets.AsNoTracking()
+            .ForCaller(currentUser)
+            .AnyAsync(t => t.Id == ticketId, ct);
 
-        throw new NotFoundException(NotReachable);
+        if (!reachable)
+        {
+            throw new NotFoundException(NotReachable);
+        }
     }
 
     /// <summary>

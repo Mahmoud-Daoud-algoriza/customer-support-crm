@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
+using SupportCrm.Domain.Modules.Tickets;
 
 namespace SupportCrm.Infrastructure.Persistence.Configurations;
 
@@ -72,11 +73,15 @@ public sealed class AttachmentConfiguration : IEntityTypeConfiguration<Attachmen
             .HasForeignKey(a => a.CustomerId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // TicketId carries no foreign key yet: Ticket arrives with Story 05, which adds the
-        // relationship in its own migration (this story's plan, task 2). The column and the XOR
-        // check constraint exist now, because the owner rule is part of this entity's shape
-        // regardless of when the other side lands — exactly as Story 02 did for User.CustomerId.
+        // Story 05 task 3 completes this relationship. The column and the XOR check constraint
+        // existed from Story 04, because the owner rule is part of this entity's shape regardless
+        // of when the other side lands — exactly as Story 02 did for User.CustomerId. Restrict, for
+        // the same reason as the customer side: an attachment must not outlive its owner silently.
         builder.Property(a => a.TicketId);
+        builder.HasOne<Ticket>()
+            .WithMany()
+            .HasForeignKey(a => a.TicketId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Restrict: the uploader must stay resolvable, since docs/api-design.md §6.7 returns
         // uploadedBy as a UserSummary. A user is deactivated, never deleted (§2.1).

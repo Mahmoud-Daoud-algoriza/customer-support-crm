@@ -13,23 +13,35 @@
   ticket can be created. See
   [16-story-audit-configuration.md](../administration/16-story-audit-configuration.md) §"Part A".
 
-> ### ⚠ Blocked decision — **OQ-2** must be answered before task 5's priority branch is implemented
+> ### ✅ Decision taken — **OQ-2 is closed by A-20** (2026-08-30). No longer blocking.
 >
-> `PATCH /tickets/{id}` changes `priority`. `data-model.md` §2.6 invariant 6 states that **what
-> happens to `firstResponseDueAt` and `resolutionDueAt` when priority changes is not decided** —
+> This box previously said the decision was open and that task 5's priority branch must not invent
+> it. It is now made: **SLA due timestamps freeze at creation and do not move when priority
+> changes** (product-scope **A-20**, data-model §2.6 invariant 6, §5 constraint 12).
+>
+> `PATCH /tickets/{id}` changes `priority`. `data-model.md` §2.6 invariant 6 offered two readings —
 > **(a) recompute** from `createdAt` with the new priority's hours, or **(b) freeze** at their
-> creation values. Both are consistent with A-3; they produce materially different §9.2 numbers.
+> creation values — both consistent with A-3 and producing materially different §9.2 numbers.
+> **(b) freeze was chosen**, because recompute lets an escalation tighten a deadline retroactively
+> and breach a ticket as a direct consequence of the escalation its own breach triggered.
 >
-> `PROJECT-PROGRESS.md` §6.1 records OQ-2 as blocking **Story 09**. It blocks this story too,
-> because **the first code path that changes a priority is this story's `PATCH`, not Story 09's
-> escalation.** That widened blast radius is recorded as **S9-3** in `00-implementation-plan.md`.
+> *(OQ-2 reached this story, not only Story 09, because **the first code path that changes a
+> priority is this story's `PATCH`, not Story 09's escalation.** That widened blast radius is
+> recorded as **S9-3** in `00-implementation-plan.md`, and it is why the answer is needed here.)*
 >
-> **Do not pick one.** Implement `PATCH` so it updates `priority` and writes the
-> `PriorityChanged` activity row — behaviour every source already fixes — and leave the due-date
-> consequence behind a single explicitly-named method,
-> `SlaClock.OnPriorityChanged(ticket, newPriority)`, whose body is a `throw new
-> NotImplementedException("OQ-2")` until the decision is recorded. **Obtain the answer before
-> implementing this story.**
+> **What this story must implement:** `PATCH` updates `priority` and writes the `PriorityChanged`
+> activity row — behaviour every source already fixed — and the due-date consequence stays behind
+> the single explicitly-named method `SlaClock.OnPriorityChanged(ticket, newPriority)`, whose body
+> is now **a deliberate no-op** rather than a `NotImplementedException`. See task 1.
+>
+> **The method still exists, and deleting it would be wrong.** A-20 is one rule with one home:
+> Story 06's manual escalation and Story 09 task 4's automatic breach escalation both call this same
+> method. A no-op with a comment is the implementation; scattering "we don't touch the dates" across
+> three call sites is not.
+>
+> **This closes OQ-2 only.** [product-scope.md](../../../docs/product-scope.md) §9 question 5 — real
+> SLA policy, business hours, holiday calendars, per-branch timezones, pause-on-customer-reply — is
+> OQ-2's parent and **stays open**. Do not read A-20 as settling any of it.
 
 ---
 
@@ -133,10 +145,21 @@ A-3, in the Domain because architecture §2.1 puts SLA target calculation there:
 public static (DateTimeOffset FirstResponseDueAt, DateTimeOffset ResolutionDueAt)
     ComputeAtCreation(DateTimeOffset createdAt, TicketPriority priority, SlaTargets targets);
 
-// OQ-2 — undecided. See the blocked-decision box at the top of this plan.
-public static void OnPriorityChanged(Ticket ticket, TicketPriority newPriority) =>
-    throw new NotImplementedException("OQ-2: recompute vs freeze is an open business rule.");
+// A-20 (2026-08-30, closing OQ-2): the due timestamps FREEZE at creation. A priority change —
+// this story's PATCH, Story 06's manual escalation, or Story 09's automatic breach escalation —
+// does not move firstResponseDueAt or resolutionDueAt. This no-op IS the rule, and it is called
+// rather than inlined so the rule has exactly one home.
+public static void OnPriorityChanged(Ticket ticket, TicketPriority newPriority)
+{
+    // Intentionally empty. Do not "fix" this by recomputing: recompute was the rejected reading
+    // (data-model §2.6 invariant 6), because it lets an escalation tighten a deadline retroactively
+    // and breach a ticket as a consequence of the escalation its own breach triggered.
+}
 ```
+
+**Keep the call site.** `TicketService.PatchAsync` calls `OnPriorityChanged` even though it does
+nothing today — that is what makes A-20 a decision the code states rather than one it merely
+happens to satisfy, and it is the seam Stories 06 and 09 already expect to find.
 
 `SlaTargets` is a Domain-side record of per-priority `FirstResponseHours` / `ResolutionHours`,
 populated from configuration. **No business hours, no holiday calendar, no timezone arithmetic, no
@@ -411,8 +434,10 @@ regions are added by Stories 06, 07, 11, 12 and 14 into the region slots left he
 - [ ] **`Ticket` has no branch column**, and an agent sees in-department tickets regardless of the
       customer's branch.
 - [ ] Seed data demonstrates filtering across departments and priorities.
-- [ ] **OQ-2 is not answered here.** `SlaClock.OnPriorityChanged` remains explicitly unimplemented
-      until the decision is recorded.
+- [ ] **A-20 is implemented.** `SlaClock.OnPriorityChanged` is a **deliberate, commented no-op** —
+      the due timestamps do not move on a priority change — and `PatchAsync` still calls it, so the
+      rule has one home for Stories 06 and 09 to reuse. **OQ-2 was closed on 2026-08-30 and is not
+      reopened here**; product-scope §9 question 5 remains open and is not answered by this story.
 - [ ] Story 04's ticket-attachment acceptance criterion is now met.
 - [ ] `00-overview.md` updated with this story.
 

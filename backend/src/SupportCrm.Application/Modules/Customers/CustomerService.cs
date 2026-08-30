@@ -4,6 +4,7 @@ using SupportCrm.Application.Modules.Administration;
 using SupportCrm.Application.Modules.Organization;
 using SupportCrm.Domain.Modules.Administration;
 using SupportCrm.Domain.Modules.Customers;
+using SupportCrm.Domain.Modules.Tickets;
 
 namespace SupportCrm.Application.Modules.Customers;
 
@@ -101,14 +102,23 @@ public sealed class CustomerService(
                 x.Customer.Phone,
                 new BranchDto(x.Branch.Id, x.Branch.Name),
 
-                // Story 05: replace the constant 0 with the ticket subquery — an aggregate over this
-                // customer's NON-TERMINAL tickets (docs/api-design.md §6.3). Ticket does not exist
-                // yet, so the column is a literal and the list is honest about knowing nothing.
+                // An aggregate over this customer's NON-TERMINAL tickets (docs/api-design.md §6.3),
+                // filled in by Story 05 task 6. It is a correlated subquery inside the same
+                // projection, so EF emits ONE statement for the page rather than one query per row
+                // — the N+1 the plan warned about.
                 //
-                // Story 05 task 6 owns this line. COMPUTE IT IN ONE GROUPED SUBQUERY, not one query
-                // per row: the directory is a paged list, and a per-row count would be N+1 by
-                // construction.
-                0))
+                // "Open" here means not yet finished: every status except the two terminal ones of
+                // A-5, Closed and Cancelled. It deliberately does not mean `status == Open`, which
+                // would exclude New and Pending tickets that are plainly still outstanding.
+                //
+                // It is NOT scoped by TicketScope, and that is correct: this endpoint is
+                // RequireAgent, the count is a property of the customer rather than of the caller,
+                // and narrowing it per-viewer would make two agents see different totals for the
+                // same customer. Reporting aggregates must not be silently narrowed (AD-5).
+                db.Tickets.Count(t =>
+                    t.CustomerId == x.Customer.Id &&
+                    t.Status != TicketStatus.Closed &&
+                    t.Status != TicketStatus.Cancelled)))
             .ToPagedResultAsync(pageNumber, pageSize, ct);
     }
 

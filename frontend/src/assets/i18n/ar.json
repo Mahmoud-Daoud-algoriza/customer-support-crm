@@ -49,7 +49,8 @@
         "http-401": "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
         "http-403": "ليست لديك صلاحية الوصول إلى هذا.",
         "customer-email-in-use": "هذا البريد الإلكتروني مستخدم بالفعل لعميل آخر.",
-        "attachment-too-large": "حجم هذا الملف أكبر من الحد المسموح به."
+        "attachment-too-large": "حجم هذا الملف أكبر من الحد المسموح به.",
+        "assignee-out-of-department": "هذا الوكيل ليس ضمن قسم هذه التذكرة."
     },
     "primeng": {
         "accept": "نعم",
@@ -81,7 +82,8 @@
         "workspace": "مساحة العمل",
         "admin": "الإدارة",
         "users": "المستخدمون",
-        "customers": "العملاء"
+        "customers": "العملاء",
+        "tickets": "التذاكر"
     },
     "admin": {
         "users": {
@@ -152,5 +154,52 @@
         "cap": "الحد الأقصى {{size}} لكل ملف.",
         "emptyTitle": "لا توجد ملفات مرفقة",
         "emptyMessage": "أرفق ملفاً ليُحفظ مع هذا السجل."
+    },
+    "tickets": {
+        "title": "التذاكر",
+        "search": "ابحث في الموضوع أو الوصف",
+        "subject": "الموضوع",
+        "customer": "العميل",
+        "description": "الوصف",
+        "statusLabel": "الحالة",
+        "priorityLabel": "الأولوية",
+        "categoryLabel": "الفئة",
+        "assigneeLabel": "المسؤول",
+        "breachLabel": "اتفاقية الخدمة",
+        "anyStatus": "أي حالة",
+        "anyPriority": "أي أولوية",
+        "anyCategory": "أي فئة",
+        "anyAssignee": "أي شخص",
+        "anyBreach": "أي حالة لاتفاقية الخدمة",
+        "assignedToMe": "المسندة إليّ",
+        "breachedOnly": "متجاوزة المهلة",
+        "notBreached": "ضمن المهلة",
+        "breached": "تجاوزت المهلة",
+        "unassigned": "غير مُسندة",
+        "urgentFlag": "وسمها العميل بأنها عاجلة",
+        "firstResponseDue": "موعد أول رد",
+        "resolutionDue": "موعد الحل",
+        "assign": "إسناد",
+        "assignPlaceholder": "اختر وكيلاً",
+        "assignToMe": "أسندها إليّ",
+        "customerPanel": "العميل",
+        "openProfile": "فتح الملف",
+        "recentActivity": "النشاط الأخير",
+        "emptyTitle": "لا تذاكر مطابقة",
+        "emptyMessage": "عدّل عوامل التصفية لعرض المزيد.",
+        "status": {
+            "New": "جديدة",
+            "Open": "مفتوحة",
+            "Pending": "بانتظار العميل",
+            "Resolved": "تم حلها",
+            "Closed": "مغلقة",
+            "Cancelled": "ملغاة"
+        },
+        "priority": {
+            "Low": "منخفضة",
+            "Medium": "متوسطة",
+            "High": "عالية",
+            "Urgent": "عاجلة"
+        }
     }
 }

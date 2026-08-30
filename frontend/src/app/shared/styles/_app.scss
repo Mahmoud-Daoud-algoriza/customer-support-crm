@@ -325,3 +325,117 @@
     flex-direction: column;
     gap: 0.375rem;
 }
+
+// Story 05 — the ticket queue's two presentations, the detail layout and the customer panel.
+// Logical properties only (ui-design §10.2).
+// UI-10: PrimeNG table on desktop, stacked cards below the table breakpoint. One data source, two
+// presentations — the breakpoint switches which is visible, never what it contains.
+.app-table-view {
+    @include bp.tablet-down {
+        display: none;
+    }
+}
+
+.app-card-view {
+    display: none;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @include bp.tablet-down {
+        display: flex;
+    }
+}
+
+.app-ticket-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.875rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+
+    &__subject {
+        font-weight: 600;
+    }
+
+    &__chips {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    &__meta {
+        margin: 0;
+        font-size: 0.8125rem;
+        color: var(--p-text-muted-color);
+    }
+}
+
+// Breached is visually distinct, not merely a different word (ui-design §8, SlaIndicator).
+.app-breach {
+    color: var(--p-red-500, #ef4444);
+    font-weight: 600;
+    margin-inline-start: 0.375rem;
+}
+
+// The ticket detail: main column plus the customer panel as a side region on desktop, stacking to
+// a single column at tablet width and below (UI-4, ui-design §10.3).
+.app-ticket-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    gap: 1.5rem;
+    align-items: start;
+
+    @include bp.tablet-down {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.app-ticket-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-inline-size: 0;
+}
+
+.app-ticket-description {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.app-customer-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+
+    &__name {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    &__meta {
+        margin: 0;
+        font-size: 0.8125rem;
+        color: var(--p-text-muted-color);
+    }
+
+    &__subtitle {
+        margin: 0.75rem 0 0;
+        font-size: 0.9375rem;
+        font-weight: 600;
+    }
+}
+
+.app-assign {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}

@@ -8,10 +8,19 @@ import { Routes } from '@angular/router';
  * `403` to a caller whose role is insufficient (docs/architecture.md §4.2) — a Customer cannot
  * browse the customer directory because `GET /customers` refuses them, not because this file does.
  *
- * Story 04 adds `customers` and `customers/:id`. The rest arrive with Stories 05–09, 12, 14, 15,
- * each added by the story that builds the screen so no route is ever a dead link.
+ * Story 04 adds `customers` and `customers/:id`; Story 05 adds `tickets` and `tickets/:id`. The
+ * rest arrive with Stories 06–09, 12, 14, 15, each added by the story that builds the screen so no
+ * route is ever a dead link.
  */
 export const workspaceRoutes: Routes = [
+    {
+        path: 'tickets',
+        loadComponent: () => import('./tickets/ticket-list.component').then((m) => m.TicketListComponent)
+    },
+    {
+        path: 'tickets/:id',
+        loadComponent: () => import('./tickets/ticket-detail.component').then((m) => m.TicketDetailComponent)
+    },
     {
         path: 'customers',
         loadComponent: () => import('./customers/customer-directory.component').then((m) => m.CustomerDirectoryComponent)

@@ -7,6 +7,7 @@ using SupportCrm.Application.Modules.Administration;
 using SupportCrm.Application.Modules.Customers;
 using SupportCrm.Application.Modules.Identity;
 using SupportCrm.Application.Modules.Organization;
+using SupportCrm.Application.Modules.Tickets;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Infrastructure.Persistence;
 using SupportCrm.Infrastructure.Persistence.Seeders;
@@ -43,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IDataSeeder, OrganizationSeeder>();
         services.AddScoped<IDataSeeder, IdentitySeeder>();
         services.AddScoped<IDataSeeder, CustomerSeeder>();
+        services.AddScoped<IDataSeeder, TicketSeeder>();
 
         // ASP.NET Core's standard password hashing (docs/architecture.md §4.1). No password policy
         // engine, no account recovery — both out of scope.
@@ -76,6 +78,16 @@ public static class DependencyInjection
         services.AddScoped<CustomerNoteService>();
         services.AddScoped<CustomerTimelineService>();
         services.AddScoped<AttachmentService>();
+
+        // Story 05 Application services.
+        services.AddScoped<TicketService>();
+        services.AddScoped<TicketActivityRecorder>();
+
+        // The automatic-assignment seam. Story 05 delivers MANUAL assignment only (the ticket-core
+        // intake), so the registered policy assigns nobody; Story 09 replaces it with round-robin
+        // across active agents in the ticket's department (T2-D). Registering the no-op now is what
+        // lets TicketService.CreateAsync depend on the seam rather than on its absence.
+        services.AddScoped<IAutoAssignmentPolicy, NoAutoAssignmentPolicy>();
 
         return services;
     }
