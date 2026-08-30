@@ -293,18 +293,17 @@ public sealed class CustomerAccessTests(CustomerApiFixture fixture) : IClassFixt
     /// <c>Customer</c> exposes no mutator.
     ///
     /// <para>
-    /// <b>Known gap — the request is accepted rather than refused.</b> AP-10 says a request carrying
-    /// a server-derived field is a <c>400</c>, "so a client is never misled into thinking it
-    /// worked". It is not, because <c>System.Text.Json</c> ignores unmapped members unless
-    /// <c>UnmappedMemberHandling.Disallow</c> is configured, and nothing configures it. **This is
-    /// pre-existing, not introduced here** — <c>PATCH /users/{id}</c> has behaved the same way since
-    /// Story 02. Closing it is a one-line global change to the JSON options that alters the contract
-    /// of every endpoint, so it is recorded as finding I-9 rather than taken inside this slice.
+    /// <b>The request is refused, not accepted-and-ignored</b> — AP-10, closed as finding <b>I-9</b>.
+    /// A body carrying <c>externalReference</c> is a <c>400</c>, "so a client is never misled into
+    /// thinking it worked", because <c>UnmappedMemberHandling.Disallow</c> is configured once on the
+    /// MVC JSON options in <c>Program.cs</c>. Until that was set the same request returned
+    /// <c>200</c> and dropped the field silently.
     /// </para>
     ///
     /// <para>
-    /// This test therefore asserts the guarantee that <em>does</em> hold — the value is unreachable —
-    /// and pins the current status so that closing I-9 shows up here as a deliberate change.
+    /// <b>The refusal is whole.</b> The legitimate <c>fullName</c> sent alongside is <em>not</em>
+    /// applied: deserialization fails before the action runs, so there is no partial write to
+    /// reason about. That is the difference the <c>400</c> buys, and it is asserted below.
     /// </para>
     /// </summary>
     [Fact]
@@ -312,28 +311,38 @@ public sealed class CustomerAccessTests(CustomerApiFixture fixture) : IClassFixt
     {
         var (client, branchId) = await AgentAsync("extref");
         var customerId = await CreateAsync(client, NewCustomer("extref@x.local", branchId));
+        var originalName = "extref";
 
         var fetched = await client.GetFromJsonAsync<JsonElement>($"{Customers}/{customerId}");
 
         // Absent from the JSON because it is null and nulls are omitted (docs/api-design.md §2) —
         // which is the point: it is never populated by any request.
         Assert.False(fetched.TryGetProperty("externalReference", out _));
+        Assert.Equal(originalName, fetched.GetProperty("fullName").GetString());
 
         var patched = await client.PatchAsJsonAsync(
             $"{Customers}/{customerId}", new { externalReference = "ERP-123", fullName = "Renamed" });
 
-        // Today: accepted and ignored (I-9). When I-9 is closed this becomes BadRequest.
-        Assert.Equal(HttpStatusCode.OK, patched.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, patched.StatusCode);
 
-        // The assertion that actually matters, and that holds either way: the seam field was NOT
-        // written, while the legitimate field alongside it was.
+        // The seam field was not written — and neither was the legitimate field beside it, because
+        // the whole body was refused rather than partially applied.
         var row = await Factory.WithDbAsync(db => db.Customers.AsNoTracking()
             .Where(c => c.Id == customerId)
             .Select(c => new { c.ExternalReference, c.FullName })
             .SingleAsync());
 
         Assert.Null(row.ExternalReference);
-        Assert.Equal("Renamed", row.FullName);
+        Assert.Equal(originalName, row.FullName);
+
+        // The same patch WITHOUT the unmapped member still succeeds — the refusal is about the
+        // field that does not exist, not about the endpoint.
+        var legitimate = await client.PatchAsJsonAsync(
+            $"{Customers}/{customerId}", new { fullName = "Renamed" });
+
+        Assert.Equal(HttpStatusCode.OK, legitimate.StatusCode);
+        Assert.Equal("Renamed", await Factory.WithDbAsync(db => db.Customers.AsNoTracking()
+            .Where(c => c.Id == customerId).Select(c => c.FullName).SingleAsync()));
     }
 
     /// <summary>An unknown sort field is a <c>400</c>, never silently ignored (AP-15).</summary>

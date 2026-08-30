@@ -403,7 +403,7 @@ transition menu is computed client-side; the server remains the authority and a 
 plan confines the duplicated matrix to **one file**, `shared/lifecycle/transition-matrix.ts`, so
 closing F-1 later deletes exactly one file.
 
-### 6.8 Implementation findings — story 04 slices 1–4 (2026-08-27 / 28)
+### 6.8 Implementation findings — story 04 slices 1–4, and the I-9 fix (2026-08-27 / 28)
 
 Two gaps in the approved documents surfaced while building story 04's first slice. **Neither is
 resolved by invention.** Each records what was done, why, and what the user has to decide if the
@@ -418,18 +418,29 @@ Slice 4 added one, and it is **pre-existing rather than introduced**.
 
 | ID | Finding | What was done, and why |
 |---|---|---|
-| **I-9** | **AP-10 is not actually enforced.** It says server-derived fields are *"never accepted in a request body… A request containing one is `400`, so a client is never misled into thinking it worked"*, with "accepting and ignoring them" as the **rejected** alternative. But `System.Text.Json` ignores unmapped members unless `UnmappedMemberHandling.Disallow` is configured, and nothing configures it — so `PATCH /customers/{id}` with `externalReference`, and `PATCH /users/{id}` with `email`, both return `200` and silently drop the field. **Verified against the running API on both endpoints; `/users` has behaved this way since Story 02** | **Not fixed in slice 4.** The fix is one line in `Program.cs`'s JSON options, but it changes the contract of **all 23 endpoints** at once — a request that works today would start failing — so it is a cross-cutting decision, not a controller change. **The safety property still holds either way:** the field is unreachable, because the request models have no property for it and `Customer.ExternalReference` has no mutator. `CustomerAccessTests` asserts the value is not written *and* pins the current `200`, so closing I-9 surfaces there as a deliberate change rather than a silent one. **Requires a decision** |
+| **I-9** | **AP-10 was not actually enforced.** It says server-derived fields are *"never accepted in a request body… A request containing one is `400`, so a client is never misled into thinking it worked"*, with "accepting and ignoring them" as the **rejected** alternative. But `System.Text.Json` ignores unmapped members unless `UnmappedMemberHandling.Disallow` is configured, and nothing configured it — so `PATCH /customers/{id}` with `externalReference`, and `PATCH /users/{id}` with `email`, both returned `200` and silently dropped the field. **Verified against the running API on both endpoints; `/users` had behaved this way since Story 02** | ✅ **CLOSED 2026-08-28, on the user's instruction, between slices 4 and 5.** `UnmappedMemberHandling.Disallow` is now set once on the MVC JSON options in `Program.cs`, so every request model enforces AP-10 by the shape it already had — no attribute, no filter, no per-endpoint check. **The blast radius is six endpoints, not the 23 this row first estimated:** only six bind a JSON body, and the other seventeen are `GET`s, a bodyless `POST` or the multipart upload. All six are covered by the new `UnmappedRequestMemberTests` (16 tests), and both named cases are re-verified against real SQL Server as `400`. **Two smaller findings came out of the fix — I-10 and I-11 below** |
+
+**Closing I-9 surfaced two more.** Neither is introduced by the fix; both were found by it.
+
+| ID | Finding | What was done, and why |
+|---|---|---|
+| **I-10** | **A model-state `400` did not match the AP-2 / §6.12 error contract.** §6.12 fixes the envelope as `{ type, title, status, detail, instance, errors? }` with `type` a **stable slug**; AP-2 exists so the front end can localize by `type` (T2-J). The API had **two divergent `400` shapes**: `ValidationException` → `ProblemDetailsExceptionHandler` emitted the contract shape, while `[ApiController]`'s automatic model-state response emitted `type = https://tools.ietf.org/html/rfc9110#section-15.5.1`, no `detail`, no `instance`, and `errors` whose messages named .NET internals (`SupportCrm.…PatchUserRequest`, ``System.Nullable`1[System.Guid]``, byte offsets). Its `errors` keys were inconsistent too — camelCase field names for DataAnnotations and query binding, JSON paths (`$.email`) plus a spurious `"request"` entry for anything the JSON reader rejected. **User-visible:** Transloco's default missing-key handler returns the key, so a failed `POST /users` rendered the literal `errors.https://tools.ietf.org/html/rfc9110#section-15.5.1` in the dialog | ✅ **CLOSED 2026-08-28, on the user's instruction, after a focused investigation.** `Errors/ModelStateProblemDetails.cs` registers two things once: `JsonOptions.AllowInputFormatterExceptionMessages = false` (the framework's own purpose-built leak control) and an `InvalidModelStateResponseFactory` that emits the §6.12 envelope with `validation-failed`, normalizes `$.email` → `email`, and drops the action's `request` parameter key. **Nothing was invented:** `error.interceptor.spec.ts` already pinned that exact shape and both i18n dictionaries already shipped an `errors.validation-failed` string — the server was the only part not complying, and **the front end needed no change**. **Seven producers** are covered by `ModelStateProblemDetailsTests` (27 tests), including a raw-body scan for `SupportCrm.`, `System.`, generic arity, parser internals and the RFC URL. **Pre-existing, not caused by I-9** — every model-state `400` had this shape since Story 02 |
+| **I-11** | **No row can be deleted from `Customers` on real SQL Server.** `DELETE FROM Customers` fails at plan compilation with `Msg 8624, Internal Query Processor Error: The query processor could not produce a query plan` — by primary key, with no child rows, and with `OPTION (RECOMPILE)`. Isolated by comparison: `Branches`, `Departments` and `AuditEntries` all compile a delete plan fine, and `Customers` is the **only** parent whose referencing index is a **filtered unique index** (`IX_Users_CustomerId`, `WHERE CustomerId IS NOT NULL`) | **Nothing done, and nothing is affected.** No endpoint deletes a customer and the approved contract publishes none, so the application never issues this statement. It surfaced only while clearing two rows this verification created. **Consequence to know about:** those two dev rows — `i9.verify@x.local` and `i9.pascal@x.local` — **are still in the dev database**, and a later story or test teardown that needs a customer delete will hit this. The workaround is a change to an approved index, so it is recorded rather than taken. **Requires a decision if a delete is ever needed** |
 
 **None of these blocks a later slice**, and each is visible in the code at the point it matters:
 I-1 in `AttachmentOptions.StorageRoot`'s doc comment, I-2 in `CustomerNoteConfiguration`'s, I-3 on
 `User.ChangeEmail`, I-5 on `User.CreateCustomerUser`, I-6 on `AttachmentUpload`, I-7 in
-`SupportCrmDbContext.ApplySqliteDateTimeOffsetWorkaround`, I-8 in the Dockerfile, and I-9 on the
-`External_reference_is_returned_but_settable_through_no_endpoint` test.
+`SupportCrmDbContext.ApplySqliteDateTimeOffsetWorkaround`, I-8 in the Dockerfile, and **I-9 on the
+`UnmappedMemberHandling` line in `Program.cs`** — whose comment is the longest in that file
+precisely because a one-line setting is where a contract rule is easiest to delete by accident.
 
-**Three remain the user's call** — I-1 (a configuration key architecture §6.3's table does not
-list), I-2 (an index data-model §6 declares for `TicketInternalNote` but not for `CustomerNote`) and
-**I-9 (AP-10 is not enforced anywhere in the API)**. The rest are implementation consequences with
-no product content.
+**Two remain the user's call** — I-1 (a configuration key architecture §6.3's table does not
+list) and I-2 (an index data-model §6 declares for `TicketInternalNote` but not for `CustomerNote`).
+**I-9 and I-10 are both closed**, in that order and on the user's instruction: AP-10 is enforced,
+and the `400` that enforces it now carries the AP-2 slug and the §6.12 envelope. **I-11** —
+`Customers` rows cannot be deleted on real SQL Server because the referencing index is filtered —
+is recorded above and affects nothing the contract publishes; its only visible consequence is two
+leftover dev rows. The rest are implementation consequences with no product content.
 
 Slice 2 added two more. Both are **implementation consequences with no product content**, recorded
 so they are not mistaken for silent decisions.
@@ -488,12 +499,12 @@ the commands in §8 on 2026-08-28, not inferred from a plan.
 
 | Area | Status | Evidence |
 |---|---|---|
-| Backend | ✅ Stories 01, 02, 03, 16 A, 04 slices 1–4 | `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. `SupportCrm.Domain` still has **0 project and 0 package references** and no EF attribute (AD-2, AD-4) |
+| Backend | ✅ Stories 01, 02, 03, 16 A, 04 slices 1–4, + the I-9 fix | `dotnet build`: **0 warnings, 0 errors** with `TreatWarningsAsErrors`. **AP-10 is enforced globally** since 2026-08-28 — `UnmappedMemberHandling.Disallow` on the MVC JSON options, so an unmapped request member is a `400` on all six body-binding endpoints (finding I-9, closed) — and **AP-2 now holds for every error path**: `ModelStateProblemDetails` gives the model-state `400` the same `validation-failed` slug and §6.12 envelope the exception path already had, with no .NET internals in the payload (finding I-10, closed). `SupportCrm.Domain` still has **0 project and 0 package references** and no EF attribute (AD-2, AD-4) |
 | Frontend | ✅ Stories 01, 02, 03 + error-handling layer | Angular 20.1.2 + PrimeNG 20.0.0 on Sakai `20.0.0`. `npm run build` succeeds; `npm run lint:styles` clean. Sign-in, guards, role redirect, staff shell avatar menu and the admin user screens all exercised in a real browser. **A cross-cutting HTTP error-handling layer landed 2026-08-28**: `errorInterceptor` applies the cross-cutting half of ui-design §9's status table — `401` ends the session, `403` routes to `/403` without ending it, `5xx` and network failures raise one translated toast, and `400`/`409`/`413`/`422`/`404`/`503` pass through untouched for the feature to render inline |
 | Database | ✅ Schema live | **`InitialSchema` and `Customers` both applied to real SQL Server**: `Branches`, `Departments`, `Users`, `AuditEntries`, **`Customers`, `CustomerNotes`, `Attachments`**. `Users.Email` **and `Customers.Email`** both carry `SQL_Latin1_General_CP1_CI_AS` at `nvarchar(256)` — the same address, the same width, the same collation, as §6.1 requires. `Users(CustomerId)` is a filtered unique index and **now has its foreign key to `Customers`**, closing the DM-1 link story 02 left open. `CK_Attachments_OwnerXor` is present and **proven to refuse both a no-owner and a both-owners row** (§5 constraint 20) |
 | Configuration | ✅ Validated at startup | Seven option types bound and `ValidateOnStart`. Six checks: every category maps to an existing department (A-14), every priority has an SLA target with positive hours (A-3), `DefaultBranchId` is an existing branch (A-15), `Priorities` equals the A-6 levels in order, `Min < Max` on the rating scale (structural only — **OQ-1 stays open**), and a positive attachment cap. **All six proven to stop the host** by starting the real API with each value broken in turn |
 | Seed data | ✅ Running at startup | 2 departments (both with a manager), 2 branches, 4 staff users — Administrator, Manager and **two Agents in different departments**, so Story 05's scoping tests have material. **Story 04 slice 3 adds `CustomerSeeder` (`Order = 30`)**: 4 customers spread across **both** branches (which is what makes Story 05's "branch is not a boundary" test meaningful), **2 with a portal login and 2 deliberately without** — both DM-1 shapes, so A-19 is demonstrable by hand — plus one note and one attachment. A seeded portal login signs in successfully. Password from configuration; no credential in source |
-| Tests | ✅ **155 passing**, 1 skipped by design, plus **16 front-end specs** | Backend: `AuthorizationTests`, `UserAdminValidationTests`, `AuditRecordingTests`, `PlatformEndpointTests`, `OrganizationEndpointTests`, and story 16 Part A's `ConfigurationTierTests` (8), `ConfigurationValidationTests` (10) and `NoConfigurationEntityTests` (18). Includes the **AD-15 deactivation regression** and the indistinguishability of a wrong password from a deactivated account. `BranchIsNotABoundaryTests` is **skipped until story 05** creates `Ticket`. Story 04 slice 1 adds `CustomerDataLayerTests` (14) and `AttachmentStorageTests` (8); slice 2 adds `CustomerServiceTests` (24), which walks the **whole A-19 case table**; slice 3 adds `CustomerNotesAndTimelineTests` (9), `AttachmentServiceTests` (11) and `CustomerSeederTests` (6); slice 4 adds `CustomerAccessTests` (15), the **first endpoint suite** for this story — **87 tests** in all. Front end: `department-filter.component.spec.ts` (4) plus the cross-cutting `error.interceptor.spec.ts` (12) — **16 specs**, on the karma target story 01 already configured |
+| Tests | ✅ **198 passing**, 1 skipped by design, plus **16 front-end specs** | Backend: `AuthorizationTests`, `UserAdminValidationTests`, `AuditRecordingTests`, `PlatformEndpointTests`, `OrganizationEndpointTests`, and story 16 Part A's `ConfigurationTierTests` (8), `ConfigurationValidationTests` (10) and `NoConfigurationEntityTests` (18). Includes the **AD-15 deactivation regression** and the indistinguishability of a wrong password from a deactivated account. `BranchIsNotABoundaryTests` is **skipped until story 05** creates `Ticket`. Story 04 slice 1 adds `CustomerDataLayerTests` (14) and `AttachmentStorageTests` (8); slice 2 adds `CustomerServiceTests` (24), which walks the **whole A-19 case table**; slice 3 adds `CustomerNotesAndTimelineTests` (9), `AttachmentServiceTests` (11) and `CustomerSeederTests` (6); slice 4 adds `CustomerAccessTests` (15), the **first endpoint suite** for this story — **87 tests** in all. The cross-cutting **I-9 fix adds `UnmappedRequestMemberTests` (16)**, which covers **all six** JSON-body endpoints for AP-10 and pins the three behaviours the fix deliberately left alone (query-string binding, case-insensitive matching, empty `PATCH` bodies). The **I-10 fix adds `ModelStateProblemDetailsTests` (27)**, which walks **seven** distinct producers of a model-state `400` — data annotations, four JSON-reader failure modes, query binding, and the `ValidationException` path they must agree with — asserting the whole §6.12 envelope, camelCase keys, and a **raw-body scan** proving no `SupportCrm.`, `System.`, generic arity, parser internal or RFC URL survives. Front end: `department-filter.component.spec.ts` (4) plus the cross-cutting `error.interceptor.spec.ts` (12) — **16 specs**, on the karma target story 01 already configured |
 | Docker / infrastructure | ✅ Complete for the stack | `docker compose up --build` brings **db, api, web** up; the API waits for the database's health check. Story 04 slice 1 adds a **second named volume**, `supportcrm-attachments`, mounted at `/var/lib/supportcrm/attachments` — attachment bytes cannot live in the image (T2-A). **Slice 3 fixed a real defect in that mount** (finding **I-8**): the image runs as a non-root user, the volume was created root-owned, and the first startup that actually wrote a file failed with `Access to the path … is denied`. The directory is now created and `chown`ed in the Dockerfile **before** the `USER` switch, so Docker initializes the volume with the right ownership |
 
 **Endpoints that exist (13):** `/health`, `/config/bootstrap`, **`/config`**, **`/config/staff`**,
@@ -534,12 +545,14 @@ below record a reproducible outcome, not a one-off.
 | Stage gate 5 → 6 | ✅ Met | Re-verified after the AD-15 correction |
 | Stage gate 6 → 7 | ✅ Met | Re-verified after the four clarifications |
 | **Story 16 Part A — configuration** | ✅ Passed 2026-08-27 | All four Part A verification steps. Build clean; the three suites **36 passing**. **Step 3, fail-fast by hand, run for all six checks against real SQL Server** — each starts the real API with one value broken and the host stops with a non-zero exit and a message naming the value: a dangling category department names `billing` and cites A-14; a dangling `DefaultBranchId` cites A-15; a fifth priority level, an inverted rating scale, a zero attachment cap and a priority with no SLA target all name their section. **Step 4, tier check with a real Customer token:** `/config` returns exactly `categories` and `feedback`, `departmentId` appears **nowhere** in the body, and `/config/staff` is `403`. `openapi/v1.json` now publishes 11 paths, `/config` and `/config/staff` among them, each with `get` and nothing else |
+| **Cross-cutting — AP-2 for model-state errors (finding I-10)** | ✅ Passed 2026-08-28 | Not a story task; requested after I-9 and before slice 5, following a focused investigation the user approved. Two registrations in `Errors/ModelStateProblemDetails.cs`. Build clean; **27 new tests pass and the whole suite is 198/0/1.** **Verified live against real SQL Server across all seven producers** — data annotations, unmapped member, type mismatch, malformed JSON, empty body, root garbage, query binding — each now returning `type: validation-failed`, `title: Invalid request`, a `detail`, an `instance` of `METHOD /path`, and `errors` keyed by **camelCase field name**. **The leak is gone:** `$.email` → `email`, the `request` parameter key is dropped, and `SupportCrm.Application.Modules.Identity.PatchUserRequest`, ``System.Nullable`1[System.Guid]``, `LineNumber` and `BytePositionInLine` no longer appear — asserted over the **raw response text**, not a parsed field, so a leak anywhere in the envelope fails the test. **The two paths agree:** a `ValidationException` `400` (AP-15's sort whitelist) and a model-state `400` now carry the same slug, title and status, which one test asserts by comparing them directly. **The slug is proven renderable:** a test reads **both shipped i18n dictionaries** and fails if the server ever emits a `type` they have no string for. **The guard is load-bearing:** removing the one registration turns **36 of the 43** tests in the two error suites red. **Regression:** every success path unchanged (login, both patches, empty patch, note, multipart upload); **every other slug untouched** — `customer-email-in-use`, `not-found`, `invalid-credentials` and the `403` role denial all verified live; `openapi/v1.json` still **17 paths**. **Front end deliberately not touched** — `error.interceptor.spec.ts` already encoded this shape, so its passing unchanged *is* the proof the server conformed rather than the client being bent to fit; `npm run build` clean, **16/16 specs**. Demo data restored: the verification note and attachment removed, seeded values re-read |
+| **Cross-cutting — AP-10 enforced (finding I-9)** | ✅ Passed 2026-08-28 | Not a story task; requested between slices 4 and 5. One setting in `Program.cs`: `UnmappedMemberHandling.Disallow` on the MVC JSON options. Build clean; **16 new tests pass and the whole suite is 171/0/1.** **The defect was reproduced live before the fix** — on the running pre-fix image `PATCH /customers/{id}` with `externalReference` and `PATCH /users/{id}` with `email` both returned `200`. **After `docker compose up -d --build api` both return `400`**, each naming the refused member at its JSON path (`$.externalReference`, `$.email`) in an `application/problem+json` body. **The guard is proven to be load-bearing:** reverting the one line turns **12 of the 16** new tests red, and the 4 that stay green are exactly the nothing-legitimate-broke checks that must pass either way. **All six body-binding endpoints covered** — `POST /auth/login` (anonymous, so the rule is proven not to be authorization-gated), `POST /customers`, `PATCH /customers/{id}`, `POST /customers/{id}/notes`, `POST /users`, `PATCH /users/{id}` — and the refusal is proven **whole**: a legitimate `fullName` or `displayName` sent beside the illegal member is **not** applied, and no row is written. **Three non-changes pinned by test:** query-string binding (an unknown query key is still ignored; AP-15's sort whitelist still `400`s from its own path), case-insensitive property matching (a `PascalCase` body still binds), and empty `PATCH` bodies (still `200`). **Regression against real SQL Server:** login, both patches, an empty patch, a note, two creates, a `PascalCase` create, a multipart upload and both AP-15 query cases all as before; `openapi/v1.json` still lists **17 paths** and the six request schemas publish exactly their mapped fields. Seeded rows touched by the sweep were patched back and re-read. **Front end:** unchanged — its request interfaces already mirror the server models; `npm run build` clean, **16/16 specs pass**. **Two findings recorded, neither introduced by the fix:** I-10 (a model-state `400` has no stable AP-2 `type` slug — pre-existing since Story 02, **needs a decision**) and I-11 (`Customers` rows cannot be deleted on SQL Server, `Msg 8624`, because the referencing index is filtered — so two verification rows remain in the dev database) |
 | **Story 04 slice 4 — controllers** | ✅ Passed 2026-08-28 | Plan tasks 8 and 10. Build clean; **15 slice-4 tests pass and the whole suite is 155/0/1.** The suite is the first for this story that speaks HTTP, and it covers plan task 10 point by point: the directory is `403` to a Customer, `401` anonymous and `200` to Agent, Manager and Administrator (the A-4 hierarchy), and **every** customer route carries the same gate, not just the list; a duplicate email is `409 customer-email-in-use` on create and on patch, and a collision with a **staff** user is `409 user-already-exists` with **neither row written**; the timeline is a `200` empty page; an oversized upload is `413 attachment-too-large` and **leaves no metadata row**; and **AP-4 is proven by comparison** — a real attachment id the caller cannot reach and a fictional one return the *same status and the same body*. `storagePath` and `passwordHash` are swept for across five routes, searching for the value actually stored in the database as well as the property name. **Against real SQL Server** (`docker compose up --build api`): all ten routes answer, the role matrix holds with a genuine seeded portal token, the seeded attachment downloads with `Content-Type: text/plain` and its **original** file name in `Content-Disposition`, and **A-19 was exercised end to end** — patching Amina's email through `PATCH /customers/{id}` moved her sign-in with it (old address `401`, new address `200`), wrote **exactly one** `UserEmailChanged` entry with the calling agent as actor and the linked user as target, and recorded **no address** in it; the seeded value was then patched back and re-verified. **Regression:** all seven pre-existing endpoints `200`, `POST /departments` still `405` (T2-I), `POST /auth/register` still `404`, front end untouched |
 | **Story 04 slice 3 — notes, timeline, attachments, seed** | ✅ Passed 2026-08-28 | Plan tasks 4, 5, 6 and 9. Build clean; **26 slice-3 tests pass and the whole suite is 140/0/1.** **Notes:** author and timestamp server-set and re-read from the row, newest first, and the service's public surface asserted to be exactly `AddAsync` + `ListAsync` — the plan's *"no update and no delete method, not merely no endpoint"* made into a test that a future `EditAsync` breaks. **Timeline:** an empty page (not an error) for a customer with no tickets — the intake's acceptance criterion, met now; `404` for an unknown customer; and notes present but **absent from the projection**, so a later "enrichment" that joined them would fail. **Attachments:** a real byte round-trip through `LocalDiskAttachmentStorage`; the original filename survives while the on-disk name does not; the cap rejects at `cap+1` with `attachment-too-large` and **writes no row**, and accepts at exactly `cap`; an empty file is `400`, not `500`; **AP-4 proven by comparison** — a `Customer`-role caller and a genuinely missing id produce the *same* message and slug; all three staff roles reach a customer-owned file (A-4 hierarchy); the ticket half **fails closed** until Story 05; and `storagePath` appears in neither the DTO's properties nor a serialized payload. **Seeder:** the three seeders run in real `Order`; 4 customers across **both** seeded branches, 2 portal logins in DM-1 shape and 2 profiles deliberately without one, a note and an attachment; the seeded login's email equals its customer's (A-19's invariant in the demo data); running twice changes nothing; and the seeded file reads back through the same storage the endpoint will use. **Against real SQL Server** (`docker compose up --build api`): the seeder ran at startup and produced exactly that data, a **seeded portal login signs in (`200`)**, newest-first `ORDER BY` works natively, and the timestamp columns are still `datetimeoffset` — `dotnet ef migrations has-pending-model-changes` reports **no model change**, so the SQLite-only guard of finding **I-7** genuinely does not touch production. **Regression:** all seven existing endpoints `200`. **Slice boundary checked:** all six task-8/task-7 routes are `404` and `openapi/v1.json` still lists 11 paths |
 | **Story 04 slice 2 — `CustomerService` and A-19** | ✅ Passed 2026-08-27 | Plan task 3 only. Build clean; **24 slice-2 tests pass and the whole suite is 114/0/1.** **The A-19 case table is walked case by case**, each its own test: email absent; the same address in a different case (a no-op, and explicitly *not* a `409` against the customer's own record); a collision with another **customer** (`customer-email-in-use`); a collision with a **staff user** (`user-already-exists`, PF-6's slug); the propagation itself; and a profile-only customer. **The two rejection cases re-read both rows afterwards** and assert neither was written — not merely that an exception was thrown. **The propagation is proven in both directions:** exactly one `UserEmailChanged` entry with `actorUserId` = the calling agent and `targetId` = the **linked user**, and a counted **zero** new entries for each of the four non-propagating cases. **One commit** is proven at runtime by counting `DbContext.SavedChanges` during the successful patch — it fires once. A separate test drives the propagation **twice**, which fails for any implementation that finds the login by matching the old email instead of by `User.CustomerId`. `AuditEntries.Add(` still appears **only** in `AuditRecorder.cs`, and no explicit transaction exists anywhere in `backend/src`. **Against real SQL Server:** `ORDER BY CreatedAt` works (SQLite refuses `DateTimeOffset` in `ORDER BY`, so the `createdAt` sort is verified here rather than in the suite), and the case-insensitive `WHERE Email = …` that both duplicate checks rely on matches a differently-cased row in **both** `Customers` and `Users`. **Slice boundary checked:** `/customers`, `/auth/register` and `/attachments/{id}/content` are each `404`, and `openapi/v1.json` still lists 11 paths |
 | **Story 04 slice 1 — customers domain and data layer** | ✅ Passed 2026-08-27 | Plan tasks 1 and 2 only. Build clean with `TreatWarningsAsErrors`. **22 slice tests pass and the whole suite is 90/0/1.** **Against real SQL Server** (`docker compose up --build api`, migration applied at startup): the three tables exist; `IX_Customers_Email` is unique and `IX_Customers_BranchId` is not; `Customers.Email` and `Users.Email` are both `nvarchar(256)` with `SQL_Latin1_General_CP1_CI_AS`; `FK_Users_Customers_CustomerId` exists. **Two product rules proven by attempted violation, inside a rolled-back transaction:** inserting `case.test@EXAMPLE.COM` after `Case.Test@Example.com` is refused with error **2601** — the case-insensitive uniqueness of A-10, which SQLite cannot verify — and an attachment with **neither** owner and one with **both** are each refused with error **547**, `CK_Attachments_OwnerXor` (§5 constraint 20). **Regression:** `/health`, `/config/bootstrap`, `/auth/login`, `/auth/me`, `/users`, `/departments`, `/branches` and `/config/staff` all `200` with a real Administrator token, and `storagePath`/`passwordHash` appear in none of their bodies. **Slice boundary checked, not assumed:** `/customers`, `/attachments/{id}/content` and `/auth/register` are each `404`. Plan verification steps 4, 5 and 7 are **not runnable in this slice** — they need the endpoints and screens of later slices |
 | Story verification | ✅ **Stories 01, 02 and 03 passed** | Story 01: all 8 steps, 2026-08-25 (re-run 2026-08-26). Story 02: all 6 steps, 2026-08-26. Story 03: **5 of its 6 steps, 2026-08-27** — step 6 names the story-05 ticket list and could not be run as written (see its row). Details in the rows below |
-| Unit / integration tests | ✅ **155 passing, 1 skipped** | `dotnet test backend/SupportCrm.sln` 2026-08-28, after story 04 slice 4: **155 passed, 0 failed, 1 skipped** (140 after slice 3; 114 after slice 2; 90 after slice 1; 68 before story 04). The skip is `BranchIsNotABoundaryTests.Ticket_has_no_branch_member`, **skipped by design** until story 05 creates the `Ticket` type it asserts about. Story 03 adds the two organization endpoints' role matrix, the `managerUserId`-is-absent-not-null contract check, and the no-write-verb lock. Front end: `npx ng test --watch=false --browsers=ChromeHeadless` — **4 passed**, the repo's first specs, on the karma target story 01 already configured. Story 02 adds the AD-15 regression (a user deactivated after their token was issued is `401` on the very next request), the wrong-password / deactivated-account indistinguishability check, token-claim absence, `passwordHash` absence from every response path, and the audit actor-attribution rules of §2.14 |
+| Unit / integration tests | ✅ **198 passing, 1 skipped** | `dotnet test backend/SupportCrm.sln` 2026-08-28, after the cross-cutting I-10 fix: **198 passed, 0 failed, 1 skipped** (171 after the I-9 fix; 155 after slice 4; 140 after slice 3; 114 after slice 2; 90 after slice 1; 68 before story 04). The skip is `BranchIsNotABoundaryTests.Ticket_has_no_branch_member`, **skipped by design** until story 05 creates the `Ticket` type it asserts about. Story 03 adds the two organization endpoints' role matrix, the `managerUserId`-is-absent-not-null contract check, and the no-write-verb lock. Front end: `npx ng test --watch=false --browsers=ChromeHeadless` — **4 passed**, the repo's first specs, on the karma target story 01 already configured. Story 02 adds the AD-15 regression (a user deactivated after their token was issued is `401` on the very next request), the wrong-password / deactivated-account indistinguishability check, token-claim absence, `passwordHash` absence from every response path, and the audit actor-attribution rules of §2.14 |
 | Backend build | ✅ Clean | `dotnet build backend/SupportCrm.sln` 2026-08-25: **0 warnings, 0 errors** — and `TreatWarningsAsErrors` is on, so 0 warnings is enforced, not observed |
 | Frontend build | ✅ Clean | `npm ci && npm run build` 2026-08-25. `npm run lint:styles` clean; the physical-property ban was **proved to fire** by a throwaway probe file (3 errors), then removed — the rule is enforced, not vacuous |
 | API verification | ✅ Passed | 2026-08-25 against containerized SQL Server: `GET /api/v1/health` → `200 {"status":"ok","database":"reachable","utcNow":"…Z"}`. `openapi/v1.json` lists **exactly two paths** — `/api/v1/health` and `/api/v1/config/bootstrap` — and nothing else. Scalar UI at `/scalar/v1` → `200` |
@@ -558,7 +571,141 @@ below record a reproducible outcome, not a one-off.
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-28 (latest) — story 04 slice 4: the customer endpoints
+### 2026-08-28 (latest) — cross-cutting: AP-2 for model-state errors, finding I-10 closed
+
+**Not a story task, and not the start of slice 5.** The fix the investigation below proposed,
+approved and implemented. **No endpoint added, no status code moved, no request or response model
+changed, and the front end deliberately untouched.**
+
+- **Two registrations, one new file — `Errors/ModelStateProblemDetails.cs`**, the twin of
+  `ProblemDetailsExceptionHandler`. The handler covers everything raised as an `AppException`; it
+  never sees a model-state failure, because `[ApiController]` answers those itself before the action
+  runs. This file is that other half.
+- **`JsonOptions.AllowInputFormatterExceptionMessages = false`** — the framework's own purpose-built
+  leak control. Its documentation: *"this setting controls whether clients can receive detailed
+  error messages about submitted JSON data."* It substitutes a generic message and **keeps the
+  key**, which is the half the contract needs: ui-design §9 renders a `400` *"inline on the offending
+  field"*, so the field must survive, never the prose.
+- **`InvalidModelStateResponseFactory`** — emits the §6.12 envelope through the framework's own
+  `ProblemDetailsFactory`, so the response keeps whatever the pipeline adds (`traceId` today) and is
+  indistinguishable in shape from a `ValidationException` `400`. `type` is `validation-failed`,
+  `title` is `Invalid request`, `instance` is `METHOD /path` — the same three the handler already
+  produced.
+- **Keys are normalized and de-noised.** `$.email` → `email`, `DisplayName` → `displayName`,
+  segment by segment so a nested path stays a path. The `request` entry — the *action's* C#
+  parameter name, added when a body fails to parse — is dropped whenever a real error stands beside
+  it, and otherwise re-keyed to the general `""`, so a C# identifier never reaches a client either
+  way.
+- **Nothing was invented.** `validation-failed` is the slug the Application layer has used since
+  Story 02, `error.interceptor.spec.ts` already pinned `{ type: 'validation-failed', errors: {
+  email: [...] } }`, and both dictionaries already shipped the string. **The front end passing
+  unchanged is the proof** the server conformed rather than the client being bent to fit.
+- **Verified live across all seven producers** against real SQL Server, and the leak scan runs over
+  the **raw response text** rather than a parsed field, so a leak anywhere in the envelope fails it.
+- **The guard is load-bearing:** removing the single registration turns **36 of the 43** tests in the
+  two error suites red.
+- **Other slugs untouched**, verified live: `customer-email-in-use`, `not-found`,
+  `invalid-credentials`, and the `403` role denial.
+- **One deliberate non-change: `traceId`.** `AddProblemDetails()` adds it to every error — `404` and
+  `409` included — so it is a uniform RFC 9457 extension member, not an I-10 deviation. Left alone.
+- **A gap recorded, not folded in:** ui-design §9 wants a `400` rendered *inline on the offending
+  field*, but **no component reads `problem.errors` yet**. The server now supplies the dictionary;
+  wiring it to form controls is a front-end story's work.
+- **Tests:** `ModelStateProblemDetailsTests` (27, new), `UnmappedRequestMemberTests` (1 assertion
+  updated from `$.{member}` to `{member}`). Suite: **198 passing, 1 skipped** (was 171).
+
+### 2026-08-28 — investigation: I-10, the model-state `400` contract
+
+**Investigation only. No code changed**, no endpoint contract touched, no fix implemented — the
+user asked for the analysis before deciding. I-9 is approved and closed; this is the finding it
+surfaced.
+
+- **The API has two `400` shapes for the same error class.** `ValidationException` →
+  `ProblemDetailsExceptionHandler` produces the §6.12 envelope (`validation-failed`, `detail`,
+  `instance`). `[ApiController]`'s automatic model-state response produces the framework default:
+  RFC-URL `type`, no `detail`, no `instance`. Both were captured live against the running stack
+  across **six** producers — DataAnnotations, unmapped member, type mismatch, malformed JSON, query
+  binding, and the two `ValidationException` paths.
+- **Three concrete defects in the model-state shape**: the `type` is a URL, not a stable slug, so
+  AP-2's localization contract cannot work; `errors` messages name .NET internals
+  (`SupportCrm.Application.Modules.Identity.PatchUserRequest`, ``System.Nullable`1[System.Guid]``,
+  byte offsets); and the `errors` **keys are inconsistent** — camelCase field names from
+  DataAnnotations and query binding, JSON paths (`$.email`) plus a spurious `"request"` entry from
+  the JSON reader.
+- **The expected shape did not have to be decided — it is already pinned twice.**
+  `error.interceptor.spec.ts` asserts a validation `400` as
+  `{ type: 'validation-failed', errors: { email: ['Email is required.'] } }`, and **both** i18n
+  dictionaries already ship an `errors.validation-failed` string. The server is the only component
+  that does not conform.
+- **It is user-visible.** Transloco's `DefaultMissingHandler` returns the key when a translation is
+  missing (verified in the installed package), and `ErrorStateComponent` / the user and login forms
+  render `errors.${type}` directly — so a failed `POST /users` shows the literal text
+  `errors.https://tools.ietf.org/html/rfc9110#section-15.5.1`. The interceptor's generic fallback
+  does not help: it runs only for `5xx` and network failures, never for `400`.
+- **A separate gap, recorded not folded in:** ui-design §9 presents a `400` *"inline on the offending
+  field"*, but **no component reads `problem.errors`** yet — the per-field rendering is unbuilt on
+  the front end. That is a front-end story's work, not part of I-10.
+- **`traceId` is on every error, not just this one.** `AddProblemDetails()` adds it to both paths
+  and to `404`/`409` alike, so it is a uniform extension member rather than an I-10 deviation.
+  Noted, not proposed for change.
+- **Blast radius is small and measured, not estimated.** Server: 13 of 17 paths can emit a
+  model-state `400`. Tests: **one** assertion reads a `400` body at all
+  (`UnmappedRequestMemberTests.AssertUnmappedMemberRefusedAsync`); the other seven check status
+  only. Front end: no change needed — conforming the server *fixes* it.
+- **Recommendation: fix it now, before slice 5**, and the reasoning is in §6.8's I-10 row.
+  ✅ **Approved and implemented the same day** — see the entry above.
+
+### 2026-08-28 — cross-cutting: AP-10 enforced, finding I-9 closed
+
+**Not a story task, and not the start of slice 5.** A cross-cutting fix requested between story 04
+slices 4 and 5, resolving the one open contract gap in slice 4's review. **No endpoint was added,
+no request or response model changed shape, and the notes `201 Location` decision is untouched.**
+
+- **The change is one setting, in one place.** `Program.cs`'s `AddJsonOptions` block now sets
+  `options.JsonSerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow`.
+  That is the whole fix. It sits on the options every controller body is bound with, because AP-10
+  is a property of the contract rather than of any one endpoint — the alternative, an attribute or
+  a filter per request model, is the endpoint-specific workaround the approved design avoids.
+- **The mechanism.** Omitting a property from a request model makes a field *unreachable*, which is
+  the safety half of AP-10 and was always true. `System.Text.Json`'s default is to *skip* a member
+  that maps to nothing, so the request was still *accepted* — the exact thing AP-10's row names as
+  its rejected alternative. `Disallow` turns the skip into a `JsonException`, the MVC input
+  formatter records it as a model-state error, and `[ApiController]` returns the `400`
+  [api-design.md](api-design.md) §7 promises.
+- **The blast radius is six endpoints, not 23.** The earlier estimate counted every route; only six
+  bind a JSON body — `POST /auth/login`, `POST /customers`, `PATCH /customers/{id}`,
+  `POST /customers/{id}/notes`, `POST /users` and `PATCH /users/{id}`. The other seventeen are
+  `GET`s, the bodyless `POST /users/{id}/deactivate`, or the multipart upload, and none of them
+  deserializes JSON at all.
+- **Three things deliberately did not move**, and each has a test pinning it: query-string binding
+  (model-bound, not deserialized — so AP-15's filter and sort whitelists still raise their own
+  `400`s from the Application layer, and an unknown query *key* is still ignored); case-insensitive
+  property matching (`JsonSerializerDefaults.Web`, unchanged — a `PascalCase` body still binds); and
+  response serialization (`Disallow` is a read-side setting, so no response shape changed).
+- **An empty `PATCH` body is still a `200`.** `Disallow` refuses *extra* members, never missing
+  ones, which is what [api-design.md](api-design.md) §2's "PATCH with only the fields being changed"
+  requires.
+- **The front end needed no change.** `CreateUserRequest` and `PatchUserRequest` in
+  `identity.client.ts` already mirror the server models field for field, and the two call sites
+  build their bodies from explicit literals rather than spreading a form value. Build clean, 16/16
+  specs pass.
+- **Verified live against real SQL Server, before and after.** On the pre-fix image both named
+  cases returned `200`; after `docker compose up -d --build api` both return `400` naming the
+  refused member at its JSON path. The regression sweep — login, both patches, an empty patch, a
+  note, two creates, a `PascalCase` create, a multipart upload, and both AP-15 query cases — is
+  green, and `openapi/v1.json` still lists 17 paths with the six request schemas publishing exactly
+  their mapped fields. The seeded rows the sweep touched were patched back and confirmed restored.
+- **The tests fail without the setting, which is the point.** Reverting the one line turns 12 of the
+  16 new tests red; the 4 that stay green are the "nothing legitimate broke" guards, which must pass
+  either way.
+- **Two findings came out of the fix, neither introduced by it** — **I-10** (a model-state `400`
+  carries the framework's default `type`, not a stable AP-2 slug — pre-existing on every validation
+  failure since Story 02) and **I-11** (`Customers` rows cannot be deleted on SQL Server, `Msg 8624`,
+  because the referencing index is filtered). Both are in §6.8. **I-10 requires a decision.**
+- **Tests:** `UnmappedRequestMemberTests` (16, new), `CustomerAccessTests` (15, one rewritten from
+  pinning the old `200` to asserting the `400`). Suite: **171 passing, 1 skipped** (was 155).
+
+### 2026-08-28 — story 04 slice 4: the customer endpoints
 
 - **Plan tasks 8 and 10.** `CustomersController` (the nine customer-scoped routes of api-design
   §5.5, `RequireAgent` declared once on the class) and `AttachmentsController` (the AP-19 download,
@@ -580,11 +727,12 @@ Newest first. Every meaningful project change gets an entry.
   calling agent as actor and the linked user as target, and stored no address. The seeded value was
   patched back afterwards.
 - **One finding, and it is pre-existing (I-9).** AP-10 says a request carrying a server-derived field
-  is a `400`; in fact unknown JSON members are silently ignored, because nothing configures
-  `UnmappedMemberHandling.Disallow`. `PATCH /users/{id}` has behaved this way since Story 02. The
-  field is still unreachable — `externalReference` cannot be set — but the request is *accepted*
-  rather than *refused*. **Not fixed here:** the one-line fix changes the contract of all 23
-  endpoints, so it needs a decision.
+  is a `400`; in fact unknown JSON members were silently ignored, because nothing configured
+  `UnmappedMemberHandling.Disallow`. `PATCH /users/{id}` had behaved this way since Story 02. The
+  field was still unreachable — `externalReference` cannot be set — but the request was *accepted*
+  rather than *refused*. **Not fixed in this slice**, because it is a cross-cutting contract change
+  rather than a controller one. ✅ **Closed 2026-08-28 on the user's instruction**, in the
+  cross-cutting entry above.
 - **Tests:** `CustomerAccessTests` (15). Suite: **155 passing, 1 skipped** (was 140).
 
 ### 2026-08-28 — cross-cutting: front-end HTTP error handling
@@ -618,7 +766,7 @@ scoped to the front end's HTTP layer. **No API contract changed and no product f
   `network-unavailable` and `internal-error`, at full en/ar parity. An unmapped `5xx` slug falls back
   to `errors.internal-error` rather than surfacing a code.
 
-### 2026-08-28 (latest) — story 04 slice 3: notes, timeline, attachments and demo data
+### 2026-08-28 — story 04 slice 3: notes, timeline, attachments and demo data
 
 - **Plan tasks 4, 5, 6 and 9.** `CustomerNoteService`, `CustomerTimelineService`,
   `AttachmentService` and `CustomerSeeder`. **No endpoint is published yet** — the controllers are
@@ -1291,19 +1439,27 @@ scoped to the front end's HTTP layer. **No API contract changed and no product f
    | **2 — `CustomerService`, carrying A-19** | 3 | ✅ **Done and verified 2026-08-27** |
    | **3 — notes, timeline, attachments, seed** | 4, 5, 6, 9 | ✅ **Done and verified 2026-08-28** |
    | **4 — controllers** | 8, 10 | ✅ **Done and verified 2026-08-28** |
+   | **— cross-cutting: AP-10 / finding I-9** | none — a contract fix, not a plan task | ✅ **Done and verified 2026-08-28** |
+   | **— cross-cutting: AP-2 / finding I-10** | none — a contract fix, not a plan task | ✅ **Done and verified 2026-08-28** |
    | 5 — registration | 7 — `RegisterAsync`, the route, the three A-15 outcomes | ⬜ Next, blocked on approval |
    | 6 — front end | 11, 12, 13, 14 | ⬜ Not started |
 
-   **Nine findings have come out of these four slices and none is resolved by invention** — all are
-   in §6.8. **Three are the user's call:** the plan requires a "configured root" for attachment
-   storage that no approved document supplies (**I-1**); data-model §6 declares no index for
-   `CustomerNote` where it declares one for the analogous `TicketInternalNote` (**I-2**); and
-   **AP-10 is not enforced anywhere in the API — unknown request members are silently ignored rather
-   than refused with a `400`, on every endpoint, since Story 02** (**I-9**). **One is left open for
-   slice 5 rather than decided here:** whether A-15's "configured default branch" also sets
-   `User.branchId` on a registering customer, or only `Customer.branchId` (**I-5**). The rest are
-   implementation consequences with no product content (**I-3, I-4, I-6, I-7**) plus one real
-   deployment defect found by running the stack and fixed (**I-8**).
+   **Eleven findings have come out of these four slices and the two contract fixes, and none is
+   resolved by invention** — all are in §6.8. **Both cross-cutting contract gaps are now closed, in
+   order:** AP-10 is enforced globally by `UnmappedMemberHandling.Disallow`, so an unmapped request
+   member is a `400` on all six body-binding endpoints rather than being silently ignored
+   (**I-9**); and that `400` — along with every other model-state `400` since Story 02 — now
+   carries the `validation-failed` slug and the §6.12 envelope AP-2 requires, with no .NET internals
+   in the payload (**I-10**). 43 tests hold the two in place. **Two remain the user's call:** the
+   plan requires a "configured root" for attachment storage that no approved document supplies
+   (**I-1**), and data-model §6 declares no index for `CustomerNote` where it declares one for the
+   analogous `TicketInternalNote` (**I-2**). **One is informational:** no row can be deleted from
+   `Customers` on real SQL Server because the referencing index is filtered (**I-11**) — nothing the
+   contract publishes is affected, and its only visible consequence is two leftover dev rows. **One
+   is left open for slice 5 rather than decided here:** whether A-15's "configured default branch"
+   also sets `User.branchId` on a registering customer, or only `Customer.branchId` (**I-5**). The
+   rest are implementation consequences with no product content (**I-3, I-4, I-6, I-7**) plus one
+   real deployment defect found by running the stack and fixed (**I-8**).
 
 1. **Stories 01, 02 and 03 are done; phase 1 is closed.** The phase-1 interleave of S9-12 played out
    exactly as designed:

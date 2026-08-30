@@ -57,6 +57,11 @@ public sealed record LoginRequest
 /// ignored (AP-10): there is no <c>isActive</c>, no <c>customerId</c> and no <c>createdAt</c>, so a
 /// request carrying one is a <c>400</c> and the client is never misled into thinking it worked.
 /// </para>
+/// <para>
+/// <b>The <c>400</c> is real, not aspirational.</b> Omission alone only makes a field unreachable;
+/// the refusal comes from <c>UnmappedMemberHandling.Disallow</c>, set once on the MVC JSON options
+/// in <c>Program.cs</c> (finding I-9). <c>UnmappedRequestMemberTests</c> covers it.
+/// </para>
 /// </summary>
 public sealed record CreateUserRequest
 {
@@ -80,6 +85,12 @@ public sealed record CreateUserRequest
 /// <para>
 /// Email and password are not patchable here. <c>role</c> and <c>departmentId</c> are
 /// Administrator-set and never self-set (docs/api-design.md §7).
+/// </para>
+/// <para>
+/// A body carrying <c>email</c> is a <c>400</c>, not an accepted no-op:
+/// <c>UnmappedMemberHandling.Disallow</c> on the MVC JSON options in <c>Program.cs</c> turns the
+/// unmapped member into a refusal (AP-10, finding I-9). A-19's propagation reaches
+/// <c>User.Email</c> through <c>User.ChangeEmail</c> from the customer patch instead (finding I-3).
 /// </para>
 /// Every property is nullable because absent means "leave unchanged" — a PATCH carries only the
 /// fields being changed (docs/api-design.md §2).

@@ -159,10 +159,42 @@ builder.Services.AddControllers(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         options.JsonSerializerOptions.Converters.Add(new UtcDateTimeConverter());
         options.JsonSerializerOptions.Converters.Add(new UtcDateTimeOffsetConverter());
+
+        // AP-10, enforced here and nowhere else. docs/api-design.md §7 states that a server-derived
+        // field is "never accepted in a request body" and that "a request containing one is 400, so
+        // a client is never misled into thinking it worked" — with "accepting and ignoring them"
+        // named as the REJECTED alternative in AP-10's own row.
+        //
+        // Omitting the property from the request model is only half of that rule: it makes the
+        // field UNREACHABLE, but System.Text.Json's default is to skip a JSON member that maps to
+        // nothing, so the request is still ACCEPTED. Disallow turns the skip into a JsonException,
+        // which the MVC input formatter records as a model-state error, which [ApiController] turns
+        // into the 400 the contract promises. Every request model therefore enforces AP-10 by the
+        // shape it already has — no attribute, no filter and no per-endpoint check (finding I-9).
+        //
+        // It is set once, on the options every controller body is bound with, because AP-10 is a
+        // property of the contract rather than of any one endpoint. A type that must accept unknown
+        // members would opt out with [JsonUnmappedMemberHandling]; none does, and none should.
+        //
+        // Reads only. Serialization is untouched, so no response shape changes. Query strings are
+        // model-bound rather than deserialized, so the AP-15 filter and sort whitelists are
+        // unaffected and keep raising their own 400s; multipart uploads are unaffected likewise.
+        options.JsonSerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
+
+        // The refusal this produces is SHAPED by AddModelStateProblemDetails below, which also
+        // switches off AllowInputFormatterExceptionMessages on these same options — that flag is
+        // what stops System.Text.Json's message naming .NET internals to a client (finding I-10).
     });
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ProblemDetailsExceptionHandler>();
+
+// The other half of the error contract. AddExceptionHandler above covers everything raised as an
+// AppException; it never sees a MODEL-STATE failure, because [ApiController] answers those itself
+// before the action runs — with the framework's shape, not §6.12's. This makes the two agree on one
+// envelope and one `validation-failed` slug, and stops System.Text.Json's messages naming .NET
+// internals to a client (finding I-10). See ModelStateProblemDetails for the whole reasoning.
+builder.Services.AddModelStateProblemDetails();
 
 builder.Services.AddOpenApi();
 

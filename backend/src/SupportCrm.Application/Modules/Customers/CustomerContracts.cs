@@ -49,6 +49,11 @@ public sealed record CustomerListItemDto(
 /// no <c>externalReference</c> (DM-6, §8.3), no <c>id</c> and no <c>createdAt</c>, so a request
 /// carrying one is a <c>400</c> and the client is never misled into thinking it worked.
 /// </para>
+/// <para>
+/// <b>The <c>400</c> is real, not aspirational.</b> Omission alone only makes a field unreachable;
+/// the refusal comes from <c>UnmappedMemberHandling.Disallow</c>, set once on the MVC JSON options
+/// in <c>Program.cs</c> (finding I-9). <c>UnmappedRequestMemberTests</c> covers it.
+/// </para>
 /// </summary>
 public sealed record CreateCustomerRequest
 {
@@ -88,6 +93,9 @@ public sealed record CreateCustomerRequest
 /// </para>
 /// <para>
 /// <c>externalReference</c> is <b>not</b> here: DM-6 and §8.3 make it settable through no endpoint.
+/// A request carrying it is a <c>400</c> rather than a silent no-op, because
+/// <c>UnmappedMemberHandling.Disallow</c> is set on the MVC JSON options in <c>Program.cs</c>
+/// (AP-10, finding I-9).
 /// </para>
 /// </summary>
 public sealed record PatchCustomerRequest
