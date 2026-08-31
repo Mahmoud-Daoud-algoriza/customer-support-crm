@@ -86,7 +86,8 @@
         "admin": "الإدارة",
         "users": "المستخدمون",
         "customers": "العملاء",
-        "tickets": "التذاكر"
+        "tickets": "التذاكر",
+        "queue": "قائمتي"
     },
     "admin": {
         "users": {
@@ -238,6 +239,14 @@
         "channel": {
             "WebForm": "نموذج الويب",
             "Portal": "البوابة"
+        },
+        "slaRemaining": "متبقٍ",
+        "slaOverdue": "متأخر",
+        "slaUnknown": "لا يوجد هدف للحل",
+        "slaUnit": {
+            "day": "ي",
+            "hour": "س",
+            "minute": "د"
         }
     },
     "portal": {
@@ -250,5 +259,12 @@
         "submit": "إرسال الطلب",
         "requestTitle": "طلبك",
         "reopened": "أعاد ردّك فتح هذا الطلب. سيتابعه أحد الموظفين من جديد."
+    },
+    "queue": {
+        "title": "قائمتي",
+        "age": "أُنشئت",
+        "emptyTitle": "لا توجد تذاكر مُسندة إليك",
+        "emptyMessage": "ستظهر هنا التذاكر المُسندة إليك، الأكثر إلحاحًا أولًا.",
+        "viewAllTickets": "عرض كل التذاكر"
     }
 }

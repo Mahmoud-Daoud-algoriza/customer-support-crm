@@ -15,6 +15,22 @@ which is the **global** execution sequence across all feature folders
 Tracker integration is `none`; story ids are the folder names under
 [`.squad/stories/agent-workspace/`](../../stories/agent-workspace/).
 
+## Implementation progress
+
+Story 08 is being delivered **in slices**, unlike stories 05–07, because two days remain and My
+queue is the part the agent demo cannot do without.
+
+| Slice | Plan tasks | Status |
+|---|---|---|
+| **08-1 — My queue** | **2** (queue ordering + `assigneeId=me` coverage; **no production backend change was needed** — Story 05 already implements both), **3** (`SlaIndicator`), **4** (`/workspace/queue`), **8** (staff landing and navigation) | ✅ **Done and verified 2026-08-31** |
+| **08-2 — customer panel** | **6** — the side region / phone drawer, and the draft-survival rule (UI-4) | ⏳ Not started |
+| **08-3 — quick replies** | **1** (`quickReplies` in `StaffConfig`), **7** (the composer control) | ⏳ Not started |
+
+Task **5** is partly discharged: the queue reuses Story 05's existing `.app-table-view` /
+`.app-card-view` pair rather than introducing a `shared/components/paged-table/`, so no shared table
+component exists yet. The filter sheet at phone width, and the ticket-detail half of task 5, remain
+with slice 08-2.
+
 ## Dependency notes
 
 **Phases 4 and 7.** The two halves of the agent surface, deliberately far apart: 08 is the T1

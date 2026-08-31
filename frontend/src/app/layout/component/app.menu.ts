@@ -45,8 +45,11 @@ export class AppMenu {
         if (this.store.isAtLeast('Agent')) {
             const workspace: MenuItem[] = [];
 
-            // TODO Story 08: My queue. Story 12: Knowledge.
+            // TODO Story 12: Knowledge.
             // Each is added by the story that builds the screen, so no entry is ever a dead link.
+
+            // **First, because it is the landing screen** (docs/ui-design.md §4.1, §5.1, UI-2).
+            workspace.push({ label: t('nav.queue'), icon: 'pi pi-fw pi-inbox', routerLink: ['/workspace/queue'] });
             workspace.push({ label: t('nav.tickets'), icon: 'pi pi-fw pi-ticket', routerLink: ['/workspace/tickets'] });
             workspace.push({ label: t('nav.customers'), icon: 'pi pi-fw pi-users', routerLink: ['/workspace/customers'] });
 

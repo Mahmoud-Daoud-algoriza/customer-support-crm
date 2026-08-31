@@ -86,7 +86,8 @@
         "admin": "Administration",
         "users": "Users",
         "customers": "Customers",
-        "tickets": "Tickets"
+        "tickets": "Tickets",
+        "queue": "My queue"
     },
     "admin": {
         "users": {
@@ -238,6 +239,14 @@
         "channel": {
             "WebForm": "Web form",
             "Portal": "Portal"
+        },
+        "slaRemaining": "left",
+        "slaOverdue": "overdue",
+        "slaUnknown": "No resolution target",
+        "slaUnit": {
+            "day": "d",
+            "hour": "h",
+            "minute": "m"
         }
     },
     "portal": {
@@ -250,5 +259,12 @@
         "submit": "Submit request",
         "requestTitle": "Your request",
         "reopened": "Your reply reopened this request. Someone will pick it up again."
+    },
+    "queue": {
+        "title": "My queue",
+        "age": "Created",
+        "emptyTitle": "No tickets assigned to you",
+        "emptyMessage": "Tickets assigned to you will appear here, most urgent first.",
+        "viewAllTickets": "View all tickets"
     }
 }

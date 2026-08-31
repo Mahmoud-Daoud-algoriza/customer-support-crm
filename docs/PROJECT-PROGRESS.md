@@ -25,7 +25,7 @@
 | **Last updated** | 2026-08-31 |
 | **Current focus** | **Story 07 is complete — implemented and verified 2026-08-31**, delivered **whole rather than in slices**, like stories 05 and 06. **Phase 4 has begun.** The assessment now has its **one real communication channel** and the message model every future channel adapter plugs into: a customer submits through the web form, customer and agent exchange replies over ordinary request/response, and **the one status side effect in this API** fires — an `Inbound` message on a `Pending` ticket reopens it **in the same transaction**, writing both a `MessagePosted` and a `StatusChanged` row, the latter carrying `actorKind: User` and the **replying customer** as actor (R-13, R-14), **proven live against real SQL Server**. `direction` and `channel` are server-derived and a body carrying either is a `400` (PF-7, AP-10). **No inbound HTTP endpoint exists** (AP-11), so **PF-2 stays untouched and open for story 18**. **Suite 327 passing, 1 skipped by design** (was 309/0); front end **32 specs**, unchanged. **Three findings — I-25, I-26, I-27 — and one of them, I-25, needs a user decision**: no approved document states the priority a customer-submitted ticket is created with. **I-1, I-2, I-12 and I-16 remain the user’s call** from earlier stories. **Awaiting explicit approval before story 08.** Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
 | **Story 06 (previous focus)** | **Story 06 is complete — implemented and verified 2026-08-31**, delivered **whole rather than in slices**, like story 05. **Phase 3 and the assessment's core loop are closed**: a ticket can now be created, scoped, assigned, transitioned through A-5's graph, escalated, and read back with a full append-only history, and the customer timeline story 04 left against an empty set is populated. **The two rules are enforced separately and fail differently** — `403 transition-not-permitted` for A-16 authority, `409 illegal-transition` for A-5 legality, the latter carrying `allowedTransitions`, proven live. **A-21 is applied, not re-implemented**: escalation resolves recipients through `IEscalationRecipientPolicy`, verified live on **both** rungs — with the seeded manager, and with the manager unseated, where the `Warning` fired and the escalation still succeeded. **Suite 309 passing, 0 skipped** (was 251 after story 05); front end **32 specs** (was 23). **Three findings, all about the plan rather than the product — I-22, I-23, I-24 — and none needs a product decision.** **I-1, I-2, I-12 and I-16 remain the user's call** from earlier stories. **Awaiting explicit approval before story 07.** Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
-| **Next immediate step** | See §10, item 1 |
+| **Next immediate step** | Story 08 slice **08-2** (customer panel) or **08-3** (quick replies) — see §10, item 0 |
 
 ### 1.1 How the 35% is calculated
 
@@ -571,6 +571,31 @@ approved documents pulling in different directions that this story could not and
 `PortalTicketService.SubmittedPriority`, **I-26** in `TicketSeeder.SeedThreads`' remarks on why the
 unit is seconds, and **I-27** on `MessageChannel.WebForm` itself.
 
+**Story 08 slice 08-1 (My queue) added two. Neither needs a product decision and neither blocks
+the slice** — both record a deliberate deviation from the plan's wording so its absence reads as a
+choice rather than an oversight.
+
+| # | Finding | Resolution |
+|---|---|---|
+| **I-28** | **The queue's *age* column is rendered as a creation timestamp, not a computed age.**
+[ui-design.md](ui-design.md) §5.1 lists the row's fields as *"subject, customer, status chip,
+priority chip, SLA indicator, **age**, category"*. `TicketListItem` carries `createdAt`
+([api-design.md](api-design.md) §6.4) and no age, so an age would be a second client-side duration
+calculation alongside `SlaIndicator`'s | **Rendered as `createdAt`, under a *Created* heading rather
+than an *Age* one**, so the column does not claim to be something it is not. The SLA indicator
+already carries the *"how urgent is this"* signal the queue is scanned for, which is what age would
+have duplicated less precisely. **One line to change** if the design's literal wording is wanted:
+the same `splitDistance` helper `SlaIndicator` uses would produce it |
+| **I-29** | **No `shared/components/paged-table/` exists, though plan task 5 names one.** The task
+asks that *"`shared/components/paged-table/` gains a card mode below the table breakpoint"* — but
+**no such component was ever built**: Story 05 implemented the table/card pair inline in the ticket
+list against the shared `.app-table-view` / `.app-card-view` classes | **The queue reuses Story 05's
+existing classes and PrimeNG `p-table` directly**, so the two screens share their CSS contract
+without a shared wrapper component. Extracting one now would mean **rewriting the ticket list**,
+which is outside a small slice and would put a verified Story 05 screen back at risk two days from
+the deadline. The duplication is **two templates over one stylesheet**, not two responsive rules. If
+a third list needs it, extract it then — and the ticket-detail half of task 5 stays with slice 08-2 |
+
 ### 6.4 Decision → document → story traceability
 
 Which documents and which story intakes each resolved decision actually changed. "—" means nothing
@@ -765,6 +790,37 @@ keeps the narrative history behind it.
 ---
 
 ## 10. Current Next Steps
+
+0. **Story 08 slice 08-1 (My queue) is complete — implemented and verified 2026-08-31. Awaiting
+   explicit approval before the next slice.** **Execution model changed here: story 08 is delivered
+   in small full-stack slices**, not whole like stories 05–07, because two days remain and My queue
+   is the one part of the agent demo that cannot be cut. The slice map is in
+   [.squad/plans/agent-workspace/00-overview.md](../.squad/plans/agent-workspace/00-overview.md).
+
+   **What landed.** `/workspace/queue` is the staff landing screen (UI-2) and the first sidebar
+   entry: `GET /tickets?assigneeId=me` with **no `sort`**, so the server's SLA-urgency default is
+   the ordering and the screen never re-sorts (ui-design §5.1). The new shared `SlaIndicator`
+   renders resolution time with breached visually distinct, and **a null due date as "—", never
+   "breached" and never "0"** (PF-5's display rule, which stays open for story 09). The three quick
+   filters live in the URL (UI-9); `assigneeId` deliberately does **not**, because *my* queue is
+   whose queue it is.
+
+   **No production backend change was needed and none was made.** Story 05 already implements both
+   `assigneeId=me` and the `resolutionBreached DESC, resolutionDueAt ASC` default; **neither was
+   covered by a test**, so `QueueOrderingTests` adds the three that pin the queue's whole promise.
+   Suite **330 passing, 1 skipped by design** (was 327/1); front end **41 specs** (was 32).
+
+   **Verified against real SQL Server**, which is the only place the ordering could be proved: a
+   manually breach-flagged ticket due **2026-09-01** sorted **above** an unbreached one due
+   **2026-08-31**, and the Technical agent's queue contained no Billing ticket. The flag was
+   reverted afterwards, so seeded demo state is unchanged.
+
+   **Findings raised: I-28, I-29** — see §6. Neither blocks the slice.
+
+   **Remaining story 08 work:** slice 08-2 (customer panel, plan task 6) and slice 08-3 (quick
+   replies, plan tasks 1 and 7). **S9-1 still blocks the dashboard task region** and no cross-ticket
+   task endpoint was invented.
+
 
 0. **Story 07 is complete — implemented and verified 2026-08-31. Phase 4 has begun. Awaiting
    explicit approval before story 08.** Delivered **whole, not in slices**, like stories 05 and 06;

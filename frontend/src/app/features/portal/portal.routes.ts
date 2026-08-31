@@ -16,6 +16,18 @@ import { Routes } from '@angular/router';
  */
 export const portalRoutes: Routes = [
     {
+        // The area landing route, for the same reason the workspace one exists: `/portal` had no
+        // empty-path child, so the root redirect of §2 sent customers here and the navigation fell
+        // through to the root `**` — every customer sign-in landed on `/404`.
+        //
+        // It points at *submit a request* because that is the only customer screen that exists:
+        // `requests` (the list) is Story 13's and is deliberately still unrouted. **Story 13
+        // repoints this at `requests`**, which is the §7.1 landing the design actually specifies.
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'requests/new'
+    },
+    {
         path: 'requests/new',
         loadComponent: () =>
             import('./portal-submit-request.component').then((m) => m.PortalSubmitRequestComponent)

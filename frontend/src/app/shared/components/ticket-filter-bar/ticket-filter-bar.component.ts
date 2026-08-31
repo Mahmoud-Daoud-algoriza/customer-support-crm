@@ -31,12 +31,15 @@ import { DepartmentFilterComponent } from '../department-filter/department-filte
     imports: [ButtonModule, DepartmentFilterComponent, FormsModule, InputTextModule, SelectModule, TranslocoModule],
     template: `
         <div class="app-filters">
-            <input pInputText [placeholder]="'tickets.search' | transloco" [(ngModel)]="q" (keyup.enter)="emit()" />
+            @if (!quickOnly()) {
+                <input pInputText [placeholder]="'tickets.search' | transloco" [(ngModel)]="q" (keyup.enter)="emit()" />
+            }
 
             <p-select [options]="statusOptions" [(ngModel)]="status" [showClear]="true" [placeholder]="'tickets.anyStatus' | transloco" [ariaLabel]="'tickets.statusLabel' | transloco" (onChange)="emit()" />
 
             <p-select [options]="priorityOptions" [(ngModel)]="priority" [showClear]="true" [placeholder]="'tickets.anyPriority' | transloco" [ariaLabel]="'tickets.priorityLabel' | transloco" (onChange)="emit()" />
 
+            @if (!quickOnly()) {
             <p-select
                 [options]="categories()"
                 [(ngModel)]="categoryCode"
@@ -61,6 +64,7 @@ import { DepartmentFilterComponent } from '../department-filter/department-filte
                 [ariaLabel]="'tickets.assigneeLabel' | transloco"
                 (onChange)="emit()"
             />
+            }
 
             <p-select [options]="breachedOptions" [(ngModel)]="breached" optionLabel="label" optionValue="value" [showClear]="true" [placeholder]="'tickets.anyBreach' | transloco" [ariaLabel]="'tickets.breachLabel' | transloco" (onChange)="emit()" />
 
@@ -73,6 +77,19 @@ export class TicketFilterBarComponent {
 
     /** The current filter, read from the URL by the screen. */
     readonly value = input.required<TicketListFilter>();
+
+    /**
+     * **My queue's three quick filters only** — `status`, `priority`, `breached`
+     * (docs/ui-design.md §5.1). Off by default, so the ticket list (§5.2) keeps all seven.
+     *
+     * It hides `q`, `categoryCode`, `assigneeId` and the department control. The last two matter
+     * most: on My queue the assignee is already `me` and the department is already fixed by
+     * `TicketScope`, so offering either would be offering a choice that does not exist. Hiding the
+     * department control also keeps `app-department-filter` from mounting and firing its own
+     * pin-to-own-department emit on a screen that has no department parameter to pin (see the
+     * finding **I-19** note below).
+     */
+    readonly quickOnly = input(false);
 
     readonly filterChange = output<TicketListFilter>();
 

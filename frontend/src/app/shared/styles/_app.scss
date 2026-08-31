@@ -375,6 +375,20 @@
     }
 }
 
+// Story 08 — SlaIndicator (ui-design §8). The breached appearance is `.app-breach` below, applied
+// by the component, so "breached" looks the same here as it does in the ticket list.
+.app-sla {
+    display: inline-flex;
+    gap: 0.25rem;
+    align-items: baseline;
+    white-space: nowrap;
+
+    &--unknown {
+        // A null due date reads as "—", never as breached and never as zero (PF-5, ui-design §11).
+        color: var(--p-text-muted-color);
+    }
+}
+
 // Breached is visually distinct, not merely a different word (ui-design §8, SlaIndicator).
 .app-breach {
     color: var(--p-red-500, #ef4444);

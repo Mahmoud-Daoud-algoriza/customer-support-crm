@@ -8,11 +8,23 @@ import { Routes } from '@angular/router';
  * `403` to a caller whose role is insufficient (docs/architecture.md §4.2) — a Customer cannot
  * browse the customer directory because `GET /customers` refuses them, not because this file does.
  *
- * Story 04 adds `customers` and `customers/:id`; Story 05 adds `tickets` and `tickets/:id`. The
- * rest arrive with Stories 06–09, 12, 14, 15, each added by the story that builds the screen so no
- * route is ever a dead link.
+ * Story 04 adds `customers` and `customers/:id`; Story 05 adds `tickets` and `tickets/:id`;
+ * Story 08 adds `queue` and makes it the area landing. The rest arrive with Stories 09, 12, 14, 15,
+ * each added by the story that builds the screen so no route is ever a dead link.
  */
 export const workspaceRoutes: Routes = [
+    {
+        // **The staff landing route** (UI-2, docs/ui-design.md §5.1). It pointed at `tickets` as a
+        // corrective measure while My queue did not exist; now that it does, this is the
+        // destination the design always specified.
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'queue'
+    },
+    {
+        path: 'queue',
+        loadComponent: () => import('./tickets/agent-queue.component').then((m) => m.AgentQueueComponent)
+    },
     {
         path: 'tickets',
         loadComponent: () => import('./tickets/ticket-list.component').then((m) => m.TicketListComponent)
