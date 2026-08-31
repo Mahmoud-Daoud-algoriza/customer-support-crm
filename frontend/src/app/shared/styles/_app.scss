@@ -439,3 +439,57 @@
     flex-wrap: wrap;
     align-items: center;
 }
+
+// Story 06 — the lifecycle controls and the activity region (docs/ui-design.md §5.3).
+// Logical properties only: `npm run lint:styles` fails on physical ones, because the staff shell
+// mirrors in Arabic (ui-design §10.2).
+.app-ticket-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.app-activity {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 0;
+    padding-inline-start: 0;
+    list-style: none;
+
+    &__item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+        padding-inline-start: 0.75rem;
+
+        // The rail sits at the reading start, so it mirrors with the text.
+        border-inline-start: 2px solid var(--p-content-border-color);
+    }
+
+    &__meta {
+        display: flex;
+        gap: 0.375rem;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 0;
+        font-size: 0.8125rem;
+        color: var(--p-text-muted-color);
+    }
+
+    &__actor {
+        font-weight: 600;
+        color: var(--p-text-color);
+    }
+
+    &__body {
+        margin: 0;
+        font-size: 0.9375rem;
+    }
+
+    &__change {
+        margin-inline-start: 0.375rem;
+        color: var(--p-text-muted-color);
+    }
+}

@@ -8,7 +8,8 @@ using SupportCrm.Application.Modules.Tickets;
 namespace SupportCrm.Api.Controllers;
 
 /// <summary>
-/// The seven staff ticket endpoints Story 05 publishes, from docs/api-design.md §5.6 (task 8).
+/// The staff ticket endpoints of docs/api-design.md §5.6 — <b>Story 05's seven, plus Story 06's
+/// three</b>: <c>POST /transition</c>, <c>POST /escalate</c> and <c>GET /activity</c>.
 ///
 /// <para>
 /// <b>The policy is declared once, on the class: every action here is <c>RequireAgent</c>.</b> A
@@ -25,15 +26,16 @@ namespace SupportCrm.Api.Controllers;
 /// </para>
 ///
 /// <para>
-/// <b>The remaining ten <c>/tickets/{id}</c> endpoints are added to this same controller or a
-/// sibling in this folder</b> by Stories 06, 07, 11, 12 and 14 — transitions, escalation, messages,
-/// internal notes, activity, tasks and the AI assists. <b>Do not create a second route prefix.</b>
+/// <b>The remaining seven <c>/tickets/{id}</c> endpoints are added to this same controller or a
+/// sibling in this folder</b> by Stories 07, 11, 12 and 14 — messages, internal notes, tasks and the
+/// AI assists. <b>Do not create a second route prefix.</b>
 /// </para>
 ///
 /// <para>
-/// <b>There is no status action here, and no delete action anywhere.</b> A status change is Story
-/// 06's dedicated transition endpoint, behind A-5 legality and A-16 authority (AP-1); a ticket is
-/// cancelled, never deleted.
+/// <b><c>status</c> is not a field on <c>PATCH /tickets/{id}</c>, and no delete action exists
+/// anywhere.</b> A status change goes through the dedicated <c>/transition</c> endpoint, behind A-5
+/// legality and A-16 authority (AP-1, AP-6) — modelling it as a patchable field would let a caller
+/// bypass the matrix by writing a property. A ticket is cancelled, never deleted.
 /// </para>
 ///
 /// Controllers are thin: bind, delegate to one Application service, return the result. Errors are
@@ -43,6 +45,8 @@ namespace SupportCrm.Api.Controllers;
 [Authorize(Policy = AuthorizationPolicies.RequireAgent)]
 public sealed class TicketsController(
     TicketService tickets,
+    TicketLifecycleService lifecycle,
+    TicketActivityQueryService activity,
     AttachmentService attachments) : ApiControllerBase
 {
     // ------------------------------------------------------------------ Tickets
@@ -154,6 +158,69 @@ public sealed class TicketsController(
     public async Task<ActionResult<TicketDto>> Assign(
         Guid id, AssignTicketRequest request, CancellationToken ct) =>
         Ok(await tickets.AssignAsync(id, request, ct));
+
+    // ---------------------------------------------------------------- Lifecycle
+
+    /// <summary>
+    /// <c>POST /tickets/{id}/transition</c> — <b>one endpoint for the whole A-5 × A-16 matrix</b>
+    /// (AP-6). A verb per transition would scatter the matrix across seven endpoints and let the
+    /// <c>409</c> shape drift verb by verb.
+    ///
+    /// <para>
+    /// <b>The four refusals are distinguishable on purpose</b> (docs/api-design.md §5.6):
+    /// <c>403</c> from the role gate, <c>404</c> for a ticket outside the caller's scope (AP-4),
+    /// <c>403 transition-not-permitted</c> for A-16 authority, and <c>409 illegal-transition</c> for
+    /// A-5 legality — the last carrying <c>allowedTransitions</c> in the problem detail, which is
+    /// the only place the contract publishes that set today (finding <b>F-1</b>).
+    /// </para>
+    /// </summary>
+    [HttpPost("{id:guid}/transition")]
+    [ProducesResponseType<TicketDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<TicketDto>> Transition(
+        Guid id, TransitionTicketRequest request, CancellationToken ct) =>
+        Ok(await lifecycle.TransitionAsync(id, TicketStatusParser.Parse(request.TargetStatus), ct));
+
+    /// <summary>
+    /// <c>POST /tickets/{id}/escalate</c> — <b>its own endpoint, never part of
+    /// <c>/transition</c></b> (AP-7), because A-5 is explicit that escalation is an action and not a
+    /// status change.
+    ///
+    /// <para>
+    /// <b>No body.</b> There is nothing to supply: the effect is fixed — priority up exactly one
+    /// level, <c>Urgent</c> stays <c>Urgent</c>, status unchanged. Accepting a target priority would
+    /// invent escalation tiers that A-5 does not have.
+    /// </para>
+    ///
+    /// <para>
+    /// Returns <c>200</c> with the ticket <b>in every case</b>, including when the department has no
+    /// manager: under <b>A-21</b> the notification climbs to the next authority level, and an empty
+    /// recipient set never blocks the escalation.
+    /// </para>
+    /// </summary>
+    [HttpPost("{id:guid}/escalate")]
+    [ProducesResponseType<TicketDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TicketDto>> Escalate(Guid id, CancellationToken ct) =>
+        Ok(await lifecycle.EscalateAsync(id, ct));
+
+    /// <summary>
+    /// <c>GET /tickets/{id}/activity</c> — the append-only history, chronological and paged.
+    /// <b>Internal entries are included</b>: §5.6 words it as *"Full history, internal entries
+    /// included"*, and this route is staff-only by the class policy with no portal path reaching it
+    /// (AP-5). The customer-facing filter lives in the timeline projection, not here.
+    /// </summary>
+    [HttpGet("{id:guid}/activity")]
+    [ProducesResponseType<PagedResult<TicketActivityDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResult<TicketActivityDto>>> Activity(
+        Guid id, [FromQuery] PageQuery paging, CancellationToken ct) =>
+        Ok(await activity.ListAsync(id, paging, ct));
 
     // -------------------------------------------------------------- Attachments
 

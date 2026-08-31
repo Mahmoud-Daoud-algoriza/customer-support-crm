@@ -409,7 +409,10 @@ removing the empty-state-only path.
 6. **Regression:** Story 05's scoping tests still pass; `GET /customers/{id}/timeline` now returns
    entries and still excludes internal ones.
 7. **Frontend:** the transition menu offers only permitted targets per role; escalate confirms with
-   wording that makes **no** notification claim; terminal tickets disable the controls with a reason.
+   wording that **states the notification** — *"a manager will be notified"*, true on every rung of
+   A-21's cascade; terminal tickets disable the controls with a reason. *(This step said "makes **no**
+   notification claim" before **A-21** closed OQ-3 and ui-design §11 lifted the constraint — finding
+   **I-24**.)*
 
 ---
 
@@ -424,7 +427,10 @@ removing the empty-state-only path.
 - [ ] The **A-16 authority matrix** is enforced server-side, with `403` for authority and `409` for
       legality — two distinct failures.
 - [ ] Escalation raises priority exactly one level (**`Urgent` stays `Urgent`**), leaves status
-      unchanged, writes a history entry, and notifies the department manager **when one is set**.
+      unchanged, writes a history entry, and notifies **the recipients A-21 resolves** — the
+      department's manager, else every active `Manager`, else every active `Administrator`, else
+      nobody. *(This criterion said "when one is set" before **A-21** closed OQ-3 on 2026-08-31;
+      that wording described the interim behaviour the decision replaced — finding **I-24**.)*
 - [ ] Ticket history shows every status, assignment, priority and category change with actor,
       timestamp and before/after values.
 - [ ] History is **append-only**: no UI or API path edits or deletes an entry, proven by test.

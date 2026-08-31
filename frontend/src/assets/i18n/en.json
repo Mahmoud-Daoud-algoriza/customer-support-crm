@@ -50,7 +50,9 @@
         "http-403": "You don't have access to this.",
         "customer-email-in-use": "That email is already in use by another customer.",
         "attachment-too-large": "That file is larger than the allowed size.",
-        "assignee-out-of-department": "That agent is not in this ticket’s department."
+        "assignee-out-of-department": "That agent is not in this ticket’s department.",
+        "transition-not-permitted": "Your role can't make that change to this ticket.",
+        "illegal-transition": "That change isn't allowed from the ticket's current status."
     },
     "primeng": {
         "accept": "Yes",
@@ -187,6 +189,30 @@
         "recentActivity": "Recent activity",
         "emptyTitle": "No tickets match",
         "emptyMessage": "Adjust the filters to see more.",
+        "transition": "Transition",
+        "escalate": "Escalate",
+        "escalateConfirm": "The priority rises one level and the status is unchanged. A manager will be notified.",
+        "terminalReason": "This ticket is {{status}}. No further transitions are accepted.",
+        "terminalNoActions": "This ticket is closed. Assignment and lifecycle actions are unavailable.",
+        "activity": "History",
+        "activityEmptyTitle": "No history yet",
+        "activityEmptyMessage": "Changes to this ticket will appear here.",
+        "systemActor": "System",
+        "internalOnly": "Not visible to the customer",
+        "activityType": {
+            "Created": "Ticket created",
+            "StatusChanged": "Status changed",
+            "Assigned": "Assignee changed",
+            "PriorityChanged": "Priority changed",
+            "CategoryChanged": "Category changed",
+            "Escalated": "Escalated",
+            "SlaBreached": "SLA breached",
+            "MessagePosted": "Message posted",
+            "InternalNotePosted": "Internal note added",
+            "AiSuggestionOffered": "AI suggestion offered",
+            "AiSuggestionResolved": "AI suggestion resolved",
+            "FeedbackSubmitted": "Feedback submitted"
+        },
         "status": {
             "New": "New",
             "Open": "Open",

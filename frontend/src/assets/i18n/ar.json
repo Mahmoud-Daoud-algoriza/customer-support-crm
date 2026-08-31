@@ -50,7 +50,9 @@
         "http-403": "ليست لديك صلاحية الوصول إلى هذا.",
         "customer-email-in-use": "هذا البريد الإلكتروني مستخدم بالفعل لعميل آخر.",
         "attachment-too-large": "حجم هذا الملف أكبر من الحد المسموح به.",
-        "assignee-out-of-department": "هذا الوكيل ليس ضمن قسم هذه التذكرة."
+        "assignee-out-of-department": "هذا الوكيل ليس ضمن قسم هذه التذكرة.",
+        "transition-not-permitted": "لا يسمح دورك بإجراء هذا التغيير على هذه التذكرة.",
+        "illegal-transition": "هذا التغيير غير مسموح من الحالة الحالية للتذكرة."
     },
     "primeng": {
         "accept": "نعم",
@@ -187,6 +189,30 @@
         "recentActivity": "النشاط الأخير",
         "emptyTitle": "لا تذاكر مطابقة",
         "emptyMessage": "عدّل عوامل التصفية لعرض المزيد.",
+        "transition": "تغيير الحالة",
+        "escalate": "تصعيد",
+        "escalateConfirm": "ترتفع الأولوية مستوى واحدًا وتبقى الحالة كما هي. سيتم إشعار أحد المديرين.",
+        "terminalReason": "هذه التذكرة {{status}}. لا يتم قبول أي تغييرات أخرى للحالة.",
+        "terminalNoActions": "هذه التذكرة مغلقة. الإسناد وإجراءات دورة الحياة غير متاحة.",
+        "activity": "السجل",
+        "activityEmptyTitle": "لا يوجد سجل بعد",
+        "activityEmptyMessage": "ستظهر التغييرات على هذه التذكرة هنا.",
+        "systemActor": "النظام",
+        "internalOnly": "غير مرئي للعميل",
+        "activityType": {
+            "Created": "تم إنشاء التذكرة",
+            "StatusChanged": "تم تغيير الحالة",
+            "Assigned": "تم تغيير المسؤول",
+            "PriorityChanged": "تم تغيير الأولوية",
+            "CategoryChanged": "تم تغيير الفئة",
+            "Escalated": "تم التصعيد",
+            "SlaBreached": "تم تجاوز اتفاقية مستوى الخدمة",
+            "MessagePosted": "تم إرسال رسالة",
+            "InternalNotePosted": "تمت إضافة ملاحظة داخلية",
+            "AiSuggestionOffered": "تم تقديم اقتراح من الذكاء الاصطناعي",
+            "AiSuggestionResolved": "تمت معالجة اقتراح الذكاء الاصطناعي",
+            "FeedbackSubmitted": "تم إرسال التقييم"
+        },
         "status": {
             "New": "جديدة",
             "Open": "مفتوحة",

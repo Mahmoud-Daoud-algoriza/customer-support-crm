@@ -152,6 +152,22 @@ public sealed record AssignTicketRequest
 }
 
 /// <summary>
+/// The body of <c>POST /tickets/{id}/transition</c> — docs/api-design.md §5.6,
+/// <c>{ "targetStatus": "Resolved" }</c>.
+///
+/// <para>
+/// <b>One property, and deliberately no others.</b> No actor, no timestamp, no <c>resolvedAt</c> or
+/// <c>closedAt</c>: those are lifecycle side effects the server sets (docs/api-design.md §7), and a
+/// body carrying one is a <c>400</c> because <c>UnmappedMemberHandling.Disallow</c> is on
+/// (AP-10, finding I-9). No comment or reason field either — no approved source defines one.
+/// </para>
+/// </summary>
+public sealed record TransitionTicketRequest
+{
+    [Required] public string TargetStatus { get; init; } = default!;
+}
+
+/// <summary>
 /// Filters for <c>GET /tickets</c> — docs/api-design.md §5.6, and exactly those seven.
 ///
 /// <para>
@@ -217,14 +233,28 @@ public static class TicketPriorityParser
 }
 
 /// <summary>
-/// Maps a status string onto <see cref="TicketStatus"/> for the <b>list filter only</b>.
+/// Maps a status string onto <see cref="TicketStatus"/>.
 /// <para>
-/// <b>This is not a transition path.</b> Nothing here sets a status; Story 06 owns that, behind
-/// A-5 legality and A-16 authority. Filtering by a status is a read concern.
+/// <b>Parsing is not authority and not legality.</b> This turns wire text into a value and nothing
+/// more — an unknown name is a <c>400</c> here, while a known name the caller may not use is a
+/// <c>403</c> and one the graph forbids is a <c>409</c>, both decided further in
+/// (<c>TransitionAuthority</c>, <c>TicketLifecycle</c>). Story 05 used it for the list filter;
+/// Story 06 adds <see cref="Parse"/> for the transition target.
 /// </para>
 /// </summary>
 public static class TicketStatusParser
 {
+    /// <summary>
+    /// The required form, for <c>POST /tickets/{id}/transition</c>. An unknown status is a
+    /// <c>400 validation-failed</c> naming what is allowed — never silently ignored, and never
+    /// mistaken for an illegal <em>transition</em>, which is a different failure with a different
+    /// status code.
+    /// </summary>
+    public static TicketStatus Parse(string value) =>
+        ParseOptional(value)
+        ?? throw new Abstractions.ValidationException(
+            $"A target status is required. Allowed values: {string.Join(", ", Enum.GetNames<TicketStatus>())}.");
+
     public static TicketStatus? ParseOptional(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))

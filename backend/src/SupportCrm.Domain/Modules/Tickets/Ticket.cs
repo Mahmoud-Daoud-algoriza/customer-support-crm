@@ -55,9 +55,9 @@ public sealed class Ticket
     public TicketPriority Priority { get; private set; }
 
     /// <summary>
-    /// <b>No mutator exists for this in Story 05.</b> Story 06 adds the guarded transition method,
-    /// so until it does, no caller can bypass the A-5 state machine — not even accidentally.
-    /// Created tickets start at <see cref="TicketStatus.New"/>.
+    /// <b>Written by exactly one method: <see cref="TransitionTo"/></b> (Story 06). There is no
+    /// setter and no second path, so no caller can bypass the A-5 state machine — not even
+    /// accidentally. Created tickets start at <see cref="TicketStatus.New"/>.
     /// </summary>
     public TicketStatus Status { get; private set; }
 
@@ -225,5 +225,52 @@ public sealed class Ticket
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(categoryCode);
         CategoryCode = categoryCode.Trim();
+    }
+
+    /// <summary>
+    /// <b>The only way a ticket's status ever changes</b> — the guarded mutator Story 05
+    /// deliberately withheld until A-5's graph existed (Story 06 task 1).
+    ///
+    /// <para>
+    /// <b>The guard is here, not in a service.</b> A-5 is a Domain rule, so an illegal edge is
+    /// refused however the ticket was reached — endpoint, seeder, or a caller written later. There
+    /// is no property setter and no second path: <see cref="Status"/> is <c>private set</c>, and
+    /// this method is the only writer of it in the codebase.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Legality only.</b> Whether the <em>caller</em> may invoke a legal edge is A-16, and this
+    /// entity cannot see the caller — <c>TransitionAuthority</c> in the Application layer owns that
+    /// and answers <c>403</c> before this method is reached, so the two failures stay
+    /// distinguishable (docs/api-design.md §5.6).
+    /// </para>
+    ///
+    /// <para>
+    /// <b><see cref="ResolvedAt"/> and <see cref="ClosedAt"/> are lifecycle side effects</b>, set
+    /// here and <b>never accepted from a client</b> (docs/api-design.md §7, AP-10). <c>Cancelled</c>
+    /// stamps <see cref="ClosedAt"/> too: docs/data-model.md §2.6 treats it as the closing time of a
+    /// ticket that reached a terminal status, and leaving it null would make a cancelled ticket
+    /// indistinguishable from an open one in any "when did this end" query.
+    /// </para>
+    /// </summary>
+    /// <exception cref="IllegalTransitionException">The edge is not in A-5's graph.</exception>
+    public void TransitionTo(TicketStatus target, DateTimeOffset now)
+    {
+        if (!TicketLifecycle.IsLegal(Status, target))
+        {
+            throw new IllegalTransitionException(Status, target, TicketLifecycle.LegalFrom(Status));
+        }
+
+        Status = target;
+
+        if (target is TicketStatus.Resolved)
+        {
+            ResolvedAt = now;
+        }
+
+        if (target is TicketStatus.Closed or TicketStatus.Cancelled)
+        {
+            ClosedAt = now;
+        }
     }
 }

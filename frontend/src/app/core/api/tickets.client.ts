@@ -55,6 +55,28 @@ export interface Ticket {
 }
 
 /**
+ * `Activity entry` — docs/api-design.md §6.4, the row shape of `GET /tickets/{id}/activity`.
+ *
+ * **`actor` is absent exactly when `actorKind` is `System`** — the SLA monitor, and nothing else.
+ * The automatic `Pending → Open` carries `actorKind: 'User'` and the **replying customer** as actor
+ * (**R-14**), so a row rendering "System" for it would be wrong.
+ *
+ * Nulls are **omitted** rather than sent, so every optional member here is `?`.
+ */
+export interface TicketActivityEntry {
+    id: string;
+    occurredAt: string;
+    activityType: string;
+    actorKind: 'User' | 'System';
+    actor?: UserSummary | null;
+    oldValue?: string | null;
+    newValue?: string | null;
+    visibility: 'CustomerVisible' | 'Internal';
+    messageId?: string | null;
+    internalNoteId?: string | null;
+}
+
+/**
  * `TicketListItem` — the row shape of `GET /tickets` (docs/api-design.md §6.4).
  *
  * **Everything the queue renders and nothing more** (docs/ui-design.md §5.1): no description, no
@@ -133,9 +155,8 @@ export interface TicketListFilter extends PageRequest {
  * The typed client for the staff ticket endpoints Story 05 publishes (docs/api-design.md §5.6).
  * Feature components never call `HttpClient` directly (docs/architecture.md §2.2).
  *
- * **There is no transition, escalate or delete method here, and none may be added by this story.**
- * Transitions and escalation are Story 06's, behind A-5 legality and A-16 authority; a ticket is
- * cancelled, never deleted.
+ * **There is no delete method here, and there never will be** — a ticket is cancelled, never
+ * deleted. Story 06 adds `transition`, `escalate` and `activity`.
  */
 @Injectable({ providedIn: 'root' })
 export class TicketsClient extends ApiClientBase {
@@ -163,6 +184,41 @@ export class TicketsClient extends ApiClientBase {
      */
     assign(id: string, assignedUserId: string): Observable<Ticket> {
         return this.post<Ticket>(`tickets/${id}/assignment`, { assignedUserId });
+    }
+
+    /**
+     * `POST /tickets/{id}/transition` — the one endpoint for the whole A-5 × A-16 matrix (AP-6).
+     *
+     * **Four distinguishable refusals**, each rendered differently by the caller: `404` for a ticket
+     * outside scope, `403 transition-not-permitted` for A-16 authority, `409 illegal-transition` for
+     * A-5 legality — carrying `allowedTransitions` — and `400` for a status name that is not one of
+     * the six.
+     */
+    transition(id: string, targetStatus: TicketStatus): Observable<Ticket> {
+        return this.post<Ticket>(`tickets/${id}/transition`, { targetStatus });
+    }
+
+    /**
+     * `POST /tickets/{id}/escalate` — **its own endpoint, never part of `transition`** (AP-7).
+     *
+     * **No body**: the effect is fixed — priority up exactly one level, `Urgent` stays `Urgent`,
+     * status unchanged. It returns `200` even when the department has no manager, because under
+     * **A-21** the notification climbs to the next authority level and an empty recipient set never
+     * blocks the escalation.
+     */
+    escalate(id: string): Observable<Ticket> {
+        return this.post<Ticket>(`tickets/${id}/escalate`, {});
+    }
+
+    /**
+     * `GET /tickets/{id}/activity` — the append-only history, chronological.
+     *
+     * **Internal entries are included** (docs/api-design.md §5.6): this is the staff read, and the
+     * route is staff-only. The customer-facing filter is the server's timeline projection, not this
+     * client's job.
+     */
+    activity(id: string, paging?: PageRequest): Observable<Paged<TicketActivityEntry>> {
+        return this.get<Paged<TicketActivityEntry>>(`tickets/${id}/activity`, paging as Record<string, QueryValue>);
     }
 
     attachments(id: string, paging?: PageRequest): Observable<Paged<AttachmentMetadata>> {

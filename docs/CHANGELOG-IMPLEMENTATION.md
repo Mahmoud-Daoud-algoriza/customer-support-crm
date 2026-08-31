@@ -16,7 +16,116 @@
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-31 (latest) — OQ-3 answered: A-21, escalation climbs to the next authority level
+### 2026-08-31 (latest) — story 06: ticket lifecycle, delivered whole
+
+**Phase 3 closes, and with it the core loop the assessment stands or falls on.** Delivered **whole
+rather than in slices** — the plan's eleven numbered tasks were the unit of work. A ticket can now be
+created, scoped, assigned, moved through A-5's graph, escalated, and read back with a full
+append-only history; and the customer interaction timeline story 04 built against an empty ticket set
+is populated.
+
+**What changed, and where.**
+
+- **Domain** — `Modules/Tickets/`: **`TicketLifecycle`** (A-5's graph, once, as data),
+  **`Escalation`** (`RaiseOneLevel`, `Urgent` stays `Urgent`), **`IllegalTransitionException`**
+  (carrying `AllowedTransitions`), and **`Ticket.TransitionTo`** — the guarded mutator story 05
+  deliberately withheld, and **the only writer of `Status` in the codebase**.
+  `Modules/Administration/AuditAction`: `TicketStatusChanged`, `TicketEscalated`, and
+  `AuditTargetType.Ticket`.
+- **Application** — **`TransitionAuthority`** (A-16, kept apart from legality on purpose),
+  **`TicketLifecycleService`** (`TransitionAsync`, `EscalateAsync`,
+  `ApplyAutomaticCustomerReplyTransitionAsync`), **`TicketActivityQueryService`** + its §6.4 DTO,
+  **`Modules/Sla/INotificationPublisher`** + `NotificationType`, two new recorder methods
+  (`RecordBySystemAsync`, `RecordForActorAsync`), and the completed
+  **`CustomerTimelineService`** projection.
+- **Infrastructure** — **`Notifications/LoggingNotificationPublisher`**, and three DI registrations.
+  **No migration, and none was needed**: the lifecycle writes columns `Tickets` and
+  `TicketActivities` already carry.
+- **Api** — three endpoints on `TicketsController`: `POST /transition`, `POST /escalate`,
+  `GET /activity`. `openapi/v1.json` goes from **22 paths to 25**.
+- **Front end** — `TransitionMenu` and `EscalateButton` in `shared/components/`,
+  **`shared/lifecycle/transition-matrix.ts`** (F-1's one file) with **9 specs**, the
+  `TicketActivityRegion`, the wired ticket-detail screen, a localized customer timeline, and both
+  i18n dictionaries extended with the twelve activity types and two new error slugs.
+
+**Why, with the ids cited.**
+
+- **Legality and authority are separate types on purpose** (docs/api-design.md §5.6). `TicketLifecycle`
+  answers *"is the edge in A-5's graph"*; `TransitionAuthority` answers *"may this caller invoke
+  it"*. That separation is what makes the API's two refusals distinguishable —
+  **`403 transition-not-permitted`** and **`409 illegal-transition`** — instead of one vague failure.
+  A customer trying to close their own ticket is a `403`; an agent trying `New → Resolved` is a
+  `409`.
+- **Scope beats authority, in that order** (AP-4). A customer acting on another customer's ticket is
+  told `404`, never `403`, because a `403` would confirm the ticket exists.
+- **One endpoint for the whole matrix** (AP-6); **escalation is its own endpoint** (AP-7) because
+  A-5 is explicit that it is an action, not a status change. **`status` is not, and never becomes, a
+  field on `PATCH /tickets/{id}`** (AP-1).
+- **A-21 is applied, not re-implemented.** Escalation resolves recipients through
+  `IEscalationRecipientPolicy`; the cascade and its `Warning` appear nowhere in this story's code,
+  because story 09's breach sweep resolves through the same policy.
+- **A-20 holds on its third call site** — escalation raises priority and the due timestamps do not
+  move.
+- **R-13 / R-14** — `ApplyAutomaticCustomerReplyTransitionAsync` fires **only** from `Pending`,
+  attributes the change to the **replying customer** with `actorKind = User`, and raises **no**
+  notification (A-13 has no status-change type). **It has no caller**: its trigger is story 07's
+  portal message endpoint.
+- **AD-10** — ticket history and the audit log stay independently queryable, neither derived from the
+  other, and neither type references the other.
+
+**A contract gap was found and fixed while verifying.** The `409 illegal-transition` initially
+carried **no `detail`**, because `IllegalTransitionException` is a *Domain* exception (AD-4 leaves
+Domain unable to name `AppException`) and the handler filled `detail` only for `AppException` — but
+§6.12 lists `detail` in the envelope and marks only `errors` optional. The handler now admits it, and
+a test pins the field and scans it for `SupportCrm.` internals.
+
+**Findings recorded — three, I-22…I-24, all about the plan rather than the product**
+(PROJECT-PROGRESS §6.8). **None needs a product decision.**
+
+- **I-22** — a **system**-initiated escalation has no auditable actor, and data-model §2.14 admits a
+  null `actorUserId` for exactly one other reason. The audit entry is written on the **user** path
+  only; the system path is left explicitly unaudited, with the reason in the code, for **story 09**
+  to settle. The **activity** row is written either way (§2.7 models `actorKind = System`), so ticket
+  history is complete. Unreachable today — story 06 has no system caller.
+- **I-23** — the plan's tests 5–8, 10 and 13 are a *customer* calling a transition endpoint, and **no
+  such endpoint exists in this story**: the staff controller is `RequireAgent` by task 7's own
+  instruction, and `POST /portal/tickets/{id}/transition` is **story 13's**. A-16's customer column
+  is asserted against `TransitionAuthority` — the exact predicate the portal route will call — over
+  the **full 6×6 matrix**, which is stronger than the six listed examples, plus the `403` a customer
+  actually receives on all three routes.
+- **I-24** — two plan lines predated A-21 and contradicted it. Both corrected in place, each stating
+  what it said before and why it changed.
+
+**Verified 2026-08-31**, every command run in this task.
+
+- `dotnet build backend/SupportCrm.sln` → **0 warnings, 0 errors** with `TreatWarningsAsErrors`.
+- `dotnet test backend/SupportCrm.sln` → **309 passed, 0 failed, 0 skipped** (was **259/0/0** —
+  **+50**). Plan step 2: the full 6×6 matrix green (18). Plan step 3: authority and history (32).
+- `npm run build` clean; `npm run lint:styles` clean; `npx ng test` → **32 specs** (was 23, **+9**).
+- **Against real SQL Server** (`docker compose up -d --build api`): **step 4** — `New` → `Closed` is
+  `409` with `allowedTransitions: ["Open","Cancelled"]`; **step 5** — escalating a `Medium` ticket is
+  `200`, priority `High`, **status unchanged**, one `Escalated` row `Medium -> High`, one publisher log
+  line, both due timestamps unmoved; **A-21's fallback rung** exercised by clearing the department's
+  manager — the `Warning` fired naming `AllManagers` and the escalation still succeeded, then the
+  manager was restored; **step 6** — the customer timeline returns **6 entries**, newest-first, and
+  **excludes** the `Internal` row, while the staff activity read **includes** it.
+- **The guard is load-bearing:** removing the A-5 legality check from `Ticket.TransitionTo` turned
+  **6 of 309** red. Restored, rebuilt 0/0, suite re-run **309/0/0**.
+- **Regression:** all nine pre-existing routes `200`, `POST /departments` still `405` (T2-I), the
+  `web` container serves `200`. **Demo data restored** and re-read: `total tickets: 6`,
+  `internal rows left: 0`, seeded priorities unchanged. **No leftover verification row.**
+
+**Deliberately not touched.** **No story 09 work** — no SLA sweep, no background service, no
+`Notification` entity, no migration; `INotificationPublisher` ships with the **logging**
+implementation the plan specifies, and story 09 swaps one DI line. **No story 13 work** — no portal
+transition route (I-23). **No story 07 work** — the automatic reply transition exists and is tested
+but has no caller. **F-1 stays open**: `allowedTransitions` was **not** added to the ticket payload,
+because that is a Stage 7 decision to be taken explicitly, and the client duplication stays confined
+to one labelled file. **OQ-1 and product-scope §9 question 5 remain open.**
+
+---
+
+### 2026-08-31 — OQ-3 answered: A-21, escalation climbs to the next authority level
 
 **A decision, its documentation, and the one shared seam the decision needed to be coherent. Story
 06 has NOT been started** — its plan tasks are untouched, and the policy below has no caller.

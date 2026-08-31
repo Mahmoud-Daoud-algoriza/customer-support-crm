@@ -9,9 +9,10 @@ namespace SupportCrm.Domain.Modules.Tickets;
 /// wire value and the stored value survive reordering this enum.
 /// </para>
 /// <para>
-/// <b>Story 05 defines the set; it does not define the transitions between them.</b> Legality is
-/// <c>TicketLifecycle</c> and authority is <c>TransitionAuthority</c>, both Story 06's — which is
-/// why <see cref="Ticket"/> exposes no status mutator in this story.
+/// <b>This enum is the set; it says nothing about the transitions between its members.</b> Legality
+/// is <see cref="TicketLifecycle"/> and authority is <c>TransitionAuthority</c> (Application), and
+/// the only writer of a ticket's status is <see cref="Ticket.TransitionTo"/> — all three added by
+/// Story 06, which is why Story 05 could define this set without any way to move between it.
 /// </para>
 /// </summary>
 public enum TicketStatus

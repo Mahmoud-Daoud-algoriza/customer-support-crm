@@ -122,14 +122,19 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
                     @if (timeline(); as entries) {
                         @if (entries.length === 0) {
                             <!-- Not an error: a customer with no tickets simply has no activity
-                                 (docs/ui-design.md §9). The region fills as Stories 05 and 06 land. -->
+                                 (docs/ui-design.md §9). **Story 06 made this region real** — the
+                                 server now projects TicketActivity — so an empty state here is a
+                                 fact about the data rather than about the schema. -->
                             <app-empty-state [title]="'customers.timeline.emptyTitle' | transloco" icon="pi-clock" />
                         } @else {
                             <ol class="app-timeline">
                                 @for (entry of entries; track $index) {
                                     <li class="app-timeline__entry">
                                         <span class="app-timeline__when app-ltr-numeric">{{ entry.occurredAt | date: 'short' }}</span>
-                                        <span class="app-timeline__what">{{ entry.ticketSubject }} · {{ entry.activityType }}</span>
+                                        <!-- The activity type is a stable CODE (api-design §2);
+                                             the label comes from the dictionary Story 06 added, the
+                                             same one the ticket history region reads (T2-J). -->
+                                        <span class="app-timeline__what">{{ entry.ticketSubject }} · {{ 'tickets.activityType.' + entry.activityType | transloco }}</span>
                                         <!-- Absent exactly when the actor is the SLA monitor. -->
                                         @if (entry.actor) {
                                             <span class="app-timeline__who">{{ entry.actor.displayName }}</span>

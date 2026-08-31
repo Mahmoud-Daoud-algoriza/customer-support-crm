@@ -25,7 +25,7 @@ of work, so this feature has no slice map of the kind
 | Story | Plan tasks | Status |
 |---|---|---|
 | **05 — ticket core** | **1–13** — the entities, `SlaClock`, the migration and seeder, `TicketScope`, `TicketService`, the activity recorder, ticket attachments, the controller, the tests, and the list / detail / assign screens | ✅ **Done and verified 2026-08-31** |
-| 06 — ticket lifecycle | 1–n | Not started |
+| **06 — ticket lifecycle** | **1–11** — the A-5 state machine and the guarded `TransitionTo`, the A-16 authority matrix, escalation as an action, the notification seam, the activity read, the completed customer timeline, the three endpoints, the tests, and the transition / escalate / activity front end | ✅ **Done and verified 2026-08-31** |
 | 07 — ticket intake and messaging | 1–n | Not started |
 
 ## Dependency notes

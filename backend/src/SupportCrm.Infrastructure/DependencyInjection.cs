@@ -11,6 +11,7 @@ using SupportCrm.Application.Modules.Sla;
 using SupportCrm.Application.Modules.Tickets;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Infrastructure.Persistence;
+using SupportCrm.Infrastructure.Notifications;
 using SupportCrm.Infrastructure.Persistence.Seeders;
 using SupportCrm.Infrastructure.Security;
 using SupportCrm.Infrastructure.Storage;
@@ -90,11 +91,19 @@ public static class DependencyInjection
         // lets TicketService.CreateAsync depend on the seam rather than on its absence.
         services.AddScoped<IAutoAssignmentPolicy, NoAutoAssignmentPolicy>();
 
+        // Story 06 Application services — the lifecycle half of the ticket module.
+        services.AddScoped<TicketLifecycleService>();
+        services.AddScoped<TicketActivityQueryService>();
+
+        // The notification seam (A-13). Story 06 registers the LOGGING implementation because the
+        // Notification entity is Story 09's; Story 09 replaces this ONE line with the persistent
+        // publisher that writes rows. The interface, the call sites and the type set do not change.
+        services.AddScoped<INotificationPublisher, LoggingNotificationPublisher>();
+
         // The escalation-recipient seam — A-21, closing OQ-3 (docs/product-scope.md §7).
-        // Registered ahead of either caller for the same reason as the services above: Story 06's
-        // manual escalate and Story 09's automatic breach sweep must resolve recipients through
-        // ONE policy, and having it composed here is what makes that shared, rather than a rule
-        // each story re-expresses. Neither caller exists yet.
+        // Story 06's manual escalate and Story 09's automatic breach sweep resolve recipients
+        // through ONE policy, which is what makes the cascade shared rather than a rule each story
+        // re-expresses. Story 06's TicketLifecycleService.EscalateAsync is now its first caller.
         services.AddScoped<IEscalationRecipientPolicy, EscalationRecipientPolicy>();
 
         return services;

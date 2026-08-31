@@ -38,8 +38,10 @@ public sealed class TicketActivityRecorder(
     /// <para>
     /// The actor is resolved from <see cref="ICurrentUser"/> and is <b>not a parameter</b>: an
     /// activity actor is a server-derived field (docs/api-design.md §7), so accepting one would be
-    /// the very thing AP-10 forbids. The SLA monitor's <c>System</c> entries are Story 09's, and
-    /// they go through <see cref="TicketActivity.BySystem"/> on a path that has no caller at all.
+    /// the very thing AP-10 forbids. Two siblings exist for the cases where the caller is not the
+    /// actor: <see cref="RecordBySystemAsync"/> for the SLA monitor's entries, and
+    /// <see cref="RecordForActorAsync"/> for R-14's replying customer. <b>Neither accepts an actor
+    /// from a request</b> — every caller passes an id the server itself resolved.
     /// </para>
     ///
     /// <para>
@@ -69,6 +71,77 @@ public sealed class TicketActivityRecorder(
 
         // Deliberately not awaited on a commit: see the class remarks. Returning a completed task
         // keeps the call sites uniform with the async ones they sit beside.
+        _ = ct;
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Records one entry attributed to <b>the system</b> — <see cref="TicketActivity.BySystem"/>,
+    /// so <c>ActorUserId</c> is null and <c>ActorKind</c> is <c>System</c>, the two halves of
+    /// §2.7's invariant.
+    ///
+    /// <para>
+    /// <b>Added by Story 06 because <c>EscalateAsync</c>'s signature requires it</b>, not because
+    /// Story 06 has a system caller — it has none. The <c>ticket-lifecycle</c> plan fixes the
+    /// escalation signature as usable by a system caller precisely so <b>Story 09's breach sweep
+    /// reuses the escalation path rather than duplicating it</b>, and a parameter with no way to
+    /// honour it would be decorative. This is the shared half; the SLA monitor that calls it is
+    /// Story 09's and is not here.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The automatic <c>Pending → Open</c> does NOT come through here</b> (R-14). A customer
+    /// reply is caused by the customer, and attributing it to the system would make ticket history
+    /// less truthful — it uses <see cref="RecordForActorAsync"/> with the replying customer.
+    /// </para>
+    /// </summary>
+    public Task RecordBySystemAsync(
+        Guid ticketId,
+        TicketActivityType activityType,
+        string? oldValue = null,
+        string? newValue = null,
+        TicketActivityVisibility visibility = TicketActivityVisibility.CustomerVisible,
+        CancellationToken ct = default)
+    {
+        db.TicketActivities.Add(TicketActivity.BySystem(
+            Guid.NewGuid(), ticketId, activityType, clock.GetUtcNow(), oldValue, newValue, visibility));
+
+        _ = ct;
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Records one entry attributed to <b>a named user who is not necessarily the authenticated
+    /// caller</b>.
+    ///
+    /// <para>
+    /// <b>This exists for exactly one rule: R-14.</b> The automatic <c>Pending → Open</c> is
+    /// attributed to the <b>replying customer</b>, and Story 07's portal message endpoint runs as
+    /// that customer — so in practice the actor equals <c>ICurrentUser</c> today. It is a parameter
+    /// anyway because the rule is *"the replying customer"*, not *"whoever is authenticated"*, and
+    /// writing the rule as the latter would be correct by coincidence.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>It does not weaken AP-10.</b> No endpoint accepts an actor; every caller of this method
+    /// passes an id the server itself resolved.
+    /// </para>
+    /// </summary>
+    public Task RecordForActorAsync(
+        Guid ticketId,
+        Guid actorUserId,
+        TicketActivityType activityType,
+        string? oldValue = null,
+        string? newValue = null,
+        TicketActivityVisibility visibility = TicketActivityVisibility.CustomerVisible,
+        CancellationToken ct = default)
+    {
+        db.TicketActivities.Add(TicketActivity.ByUser(
+            Guid.NewGuid(), ticketId, activityType, actorUserId, clock.GetUtcNow(),
+            oldValue, newValue, visibility));
+
         _ = ct;
 
         return Task.CompletedTask;

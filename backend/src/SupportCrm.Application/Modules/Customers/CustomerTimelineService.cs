@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SupportCrm.Application.Abstractions;
+using SupportCrm.Application.Modules.Identity;
+using SupportCrm.Domain.Modules.Tickets;
 
 namespace SupportCrm.Application.Modules.Customers;
 
@@ -35,12 +37,12 @@ namespace SupportCrm.Application.Modules.Customers;
 /// </para>
 ///
 /// <para>
-/// <b>Story 06 completes this service.</b> <c>Ticket</c> and <c>TicketActivity</c> do not exist yet,
-/// so it is written <em>against the empty set</em> exactly as the <c>customer-records</c> intake
-/// authorizes — <em>"build it against an empty ticket set and enrich when tickets land"</em>. It
-/// returns a well-formed empty page today, which is what the intake's acceptance criterion
-/// requires: <em>"the timeline for a customer with no tickets renders an empty state rather than an
-/// error"</em>. That criterion is <b>met now and stays met</b> once tickets exist.
+/// <b>Story 06 completed this service</b> (task 6). Story 04 wrote it against the empty set — as
+/// the <c>customer-records</c> intake authorized, <em>"build it against an empty ticket set and
+/// enrich when tickets land"</em> — and it now projects real <c>TicketActivity</c> rows. <b>Story
+/// 04's acceptance criterion still holds unchanged</b>: a customer with no tickets gets a
+/// well-formed empty page rather than an error, and that is now a fact about the data rather than
+/// about the schema.
 /// </para>
 /// </summary>
 public sealed class CustomerTimelineService(IApplicationDbContext db)
@@ -62,38 +64,38 @@ public sealed class CustomerTimelineService(IApplicationDbContext db)
 
         var (pageNumber, pageSize) = page.Normalize();
 
-        // Story 06: join TicketActivity here.
+        // Exclusion 1 — no Internal entry, ever (docs/data-model.md §5 constraint 18). It is a
+        // WHERE on the projection, not a filter a screen applies.
         //
-        // The query task 9 of 06-story-ticket-lifecycle.md replaces this with:
+        // Exclusion 2 — TicketInternalNote is NOT JOINED. Its absence from this query is the whole
+        // guarantee: there is no filter to forget and no "enrichment" that could leak a note body,
+        // because the table never enters the read (§2.9). Do not add it.
         //
-        //     from t in db.Tickets.AsNoTracking().Where(t => t.CustomerId == customerId)
-        //     join a in db.TicketActivities.AsNoTracking() on t.Id equals a.TicketId
-        //     where a.Visibility != ActivityVisibility.Internal      // exclusion 1
-        //     orderby a.OccurredAt descending
-        //     select new TimelineEntryDto(...)
+        // No Branch predicate either: a customer's tickets are theirs regardless of branch (A-2).
         //
-        // TicketInternalNote is absent from that sketch ON PURPOSE — exclusion 2. Do not add it,
-        // and do not "enrich" the projection with note bodies: the table is not joined, which is
-        // what makes the rule impossible to break by accident (docs/data-model.md §2.9).
-        //
-        // Ticket(customerId, createdAt) and TicketActivity(ticketId, occurredAt) are already
-        // declared for this read in docs/data-model.md §6, so no new index is needed.
-        //
-        // Until then the honest answer is that there is no activity: no ticket exists, and none can,
-        // because the Tickets module has not been built. Returning an empty page is a fact about the
-        // data, not a stub.
-        //
-        // The envelope is built directly rather than through ToPagedResultAsync, which composes EF's
-        // async operators over a real IQueryable. Story 06 replaces this whole block with the query
-        // above and calls ToPagedResultAsync on it, like every other list in the codebase.
-        return new PagedResult<TimelineEntryDto>(
-            Items: [],
-            Page: pageNumber,
-            PageSize: pageSize,
-            TotalItems: 0,
+        // Ticket(customerId, createdAt) and TicketActivity(ticketId, occurredAt) are both already
+        // declared for this read in docs/data-model.md §6, so no new index was needed.
+        var query =
+            from ticket in db.Tickets.AsNoTracking().Where(t => t.CustomerId == customerId)
+            join entry in db.TicketActivities.AsNoTracking() on ticket.Id equals entry.TicketId
+            where entry.Visibility != TicketActivityVisibility.Internal
+            orderby entry.OccurredAt descending, entry.Id descending
+            select new TimelineEntryDto(
+                entry.OccurredAt,
+                ticket.Id,
+                ticket.Subject,
+                entry.ActivityType.ToString(),
+                entry.ActorKind.ToString(),
 
-            // Zero, not one: an empty collection has no pages. PagedQueryExtensions makes the same
-            // choice for a genuinely empty query, so the two agree when Story 06 swaps them over.
-            TotalPages: 0);
+                // Null exactly when the entry is a System one — §2.7's invariant, derived from the
+                // stored actor rather than restated as a rule this projection could get wrong.
+                entry.ActorUserId == null
+                    ? null
+                    : db.Users.Where(u => u.Id == entry.ActorUserId)
+                        .Select(u => new UserSummaryDto(u.Id, u.DisplayName)).FirstOrDefault(),
+                entry.OldValue,
+                entry.NewValue);
+
+        return await query.ToPagedResultAsync(pageNumber, pageSize, ct);
     }
 }
