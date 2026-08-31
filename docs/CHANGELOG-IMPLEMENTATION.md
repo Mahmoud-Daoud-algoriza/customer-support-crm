@@ -16,7 +16,131 @@
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-31 (latest) — story 06: ticket lifecycle, delivered whole
+### 2026-08-31 (latest) — story 07: web form intake and in-portal messaging, delivered whole
+
+**Phase 4 opens with the one real communication channel, and the message model every other channel
+would plug into.** Delivered **whole rather than in slices** — the plan's ten numbered tasks were
+the unit of work. An authenticated customer can now submit through the web form, customer and agent
+exchange replies over ordinary request/response, and **the one status side effect in this API**
+fires: an `Inbound` message on a `Pending` ticket returns it to `Open` in the same transaction.
+
+**What changed, and where.**
+
+- **Domain** — `Modules/Tickets/`: **`TicketMessage`** (the five fields of data-model §2.8, private
+  setters throughout and **no mutator** — immutability is structural, §5 constraint 16),
+  **`MessageChannel`** and **`MessageDirection`**; **`TicketActivity.MessagePosted`**, a factory
+  that takes a message id and **no activity type**, which turns §2.7's *"set if and only if"* into a
+  signature rather than a checked rule; and **`Ticket.MarkFirstResponded`**, which holds the "set
+  once" half **on the entity** so a second outbound message is a no-op rather than a caller
+  remembering to check. `SupportCrm.Domain` still carries **0 project and 0 package references**
+  (AD-4).
+- **Application** — **`TicketMessageService`** (`PostAsync`, `ListAsync`, `ListForPortalAsync`),
+  **`PortalTicketService`** (`SubmitAsync`), **`TicketMessageContracts`** and
+  **`PortalTicketContracts`**, `TicketActivityRecorder.RecordMessagePostedAsync`, and
+  **`TicketService.CreateCoreAsync`** — extracted from `CreateAsync`, not duplicated.
+- **Infrastructure** — `TicketMessageConfiguration`, the **`TicketMessages`** migration, the
+  `TicketMessages` `DbSet` on the context and its interface, the completed
+  `TicketActivity.MessageId` **foreign key**, the two DI registrations, and `TicketSeeder` extended
+  with a thread and two lifecycles.
+- **Api** — two actions on `TicketsController` and the new **`PortalTicketsController`**
+  (`RequireCustomer`, `api/v1/portal/tickets`).
+- **Frontend** — `core/api/portal.client.ts` (new) and messaging on `tickets.client.ts`;
+  `shared/components/message-thread/` and `shared/components/reply-composer/`;
+  `features/workspace/tickets/ticket-thread-region.component.ts` filling the slot story 05 left;
+  `features/portal/` stubs for `requests/new` and `requests/:id` with their routes; the story's
+  styles in `_app.scss`; and both i18n dictionaries.
+
+**Why, with the ids.**
+
+- **The seam is the enum, and nothing branches on it** (architecture §5.2). `PostAsync` takes
+  `MessageChannel` as a **parameter it stores**, so the staff endpoint, the portal endpoint and —
+  later, in-process — story 18's adapter are **one code path**. `grep -rn "MessageChannel"` returns
+  nine hits and **no channel-specific branching**; a follow-up scan for `Channel ==`,
+  `case MessageChannel` and `Channel is` returns one hit, a doc comment.
+- **`direction` and `channel` are server-derived** (**PF-7**, api-design §7): direction from the
+  author's role, channel from the endpoint. Neither appears in any request model, so a body carrying
+  one is a `400` rather than accepted-and-ignored (**AP-10**).
+- **The portal is a separate path space** (**AP-5**) with its **own DTOs** — `PortalMessageDto`
+  omits `channel` and `authorRole` per §6.4, and the narrowing is written **once**, in
+  `PortalMessageDto.From`, so adding a member to the staff shape cannot leak it.
+- **R-13 / R-14 were not re-implemented.** `PostAsync` calls story 06's
+  `ApplyAutomaticCustomerReplyTransitionAsync`, which owns the *"only from `Pending`"* guard — the
+  condition is deliberately **not** restated here, because the second home is the one that drifts.
+- **The creation rules have one home.** `CreateCoreAsync` carries the A-14 department derivation,
+  the A-3 clock frozen by **A-20**, the `Created` row and the T2-D auto-assignment seam, and **both**
+  creating endpoints go through it. A second portal creation path would have been four chances for
+  two behaviours to diverge silently.
+- **No inbound HTTP endpoint** (**AP-11**), so **PF-2** stays untouched and open for story 18.
+- **`ticket-terminal` is a new slug**, and deliberately not `illegal-transition` (AP-2, §6.12):
+  nothing was transitioned, and reusing that slug would render a lifecycle message for a refused
+  reply. Translated in both dictionaries.
+- **One insertion point in the composer** (**UI-7**, A-8) — story 08's quick replies and story 11's
+  AI draft land in the same draft, which is what will keep *"never auto-sent"* true by construction.
+- **Nothing polls** (**T3-B**). A source sweep of `backend/src`, `frontend/src` and `README.md` for
+  *real-time*, *websocket*, *polling*, *setInterval* and *chat* returns three hits, **all of them
+  negations**.
+
+**Findings recorded — three, one of which needs the user's decision.**
+
+- **I-25 (needs a decision)** — **no approved document states the priority a customer-submitted
+  ticket is created with.** `Ticket.priority` is required (data-model §2.6) and both SLA timestamps
+  are computed from it at creation (A-3), while **A-6** says priority is *"set by the agent or by
+  the AI suggestion"*, **A-17** forbids `isUrgent` from setting it, and api-design §5.7 refuses it
+  in the body. Implemented as **`Medium`** — a named constant carrying the finding — because it is
+  the neutral middle of A-6's scale and the value that claims least before an agent or the AI has
+  decided. **A-17 holds either way and is asserted.** If the user reads it differently, the change
+  is one line plus its assertion.
+- **I-26 (fixed)** — the seeded demo thread was written `now + minutes`, so a demo reply posted
+  seconds after startup sorted **above** the seeded question it answered and the conversation read
+  backwards. Changed to seconds and re-verified from an empty database. **Found only by running the
+  stack**, and invisible to the suite by construction: the SQLite host removes every seeder. Same
+  class as **I-8** and **I-17**.
+- **I-27 (informational)** — **`MessageChannel.WebForm` is written by no path in this story.**
+  api-design §7 maps it to *"portal creation"*, but data-model §2.6 is explicit that a submission's
+  text becomes `Ticket.description` and *"replies are `TicketMessage` rows, not copies of this"*.
+  The authority order settles it — §2.6 wins, no first message is written — and the member stands as
+  **declared seam surface**, which is what the intake asks for. Story 18's adapter is its first
+  writer, and needs no schema change to become one.
+
+**What was verified.**
+
+- `dotnet build backend/SupportCrm.sln` → **0 Warning(s), 0 Error(s)** with `TreatWarningsAsErrors`.
+- `dotnet test backend/SupportCrm.sln` → **327 passed, 0 failed, 1 skipped, 328 total** (was
+  **309/0/0** — **+18**). The one skip is `InternalNotesAreUnreachableTests`, the story-14 stub the
+  plan asks for; its body `Assert.Fail`s so it must be **implemented rather than deleted**.
+  `--filter FullyQualifiedName~Messaging` → **18 passed**.
+- `npm run build` clean; `npm run lint:styles` clean — which is what proves the thread's sides use
+  **logical properties only** and therefore mirror under RTL;
+  `npx ng test --watch=false --browsers=ChromeHeadless` → **TOTAL: 32 SUCCESS** (unchanged).
+- **The guard is load-bearing** (§4.1 technique): replacing the PF-7 direction derivation with a
+  hard-coded `Outbound` turned **4 of 328 red**, each naming a different consequence — the rule
+  itself, **R-13 never firing**, **A-13 never firing**, and a customer reply falsely stamping
+  `firstRespondedAt`. Restored, rebuilt clean, suite re-run **327/0/1**.
+- **Against real SQL Server** (`docker compose down -v`, then `docker compose up -d --build api`, so
+  the migration applied to an empty database): the **`TicketMessages` migration applied**; the
+  schema reads `Direction`/`Channel` **`nvarchar(64)`**, `Body` **`nvarchar(max)`**, `PostedAt`
+  **`datetimeoffset`**, the **`(TicketId, PostedAt)`** index, and
+  **`FK_TicketActivities_TicketMessages_MessageId`** completing story 05's bare column;
+  `has-pending-model-changes` reports **no model change**. **R-13/R-14 by hand:** the reply returned
+  `"statusChanged": true, "ticketStatus": "Open"`, and the trail carried the `MessagePosted` and the
+  `StatusChanged Pending→Open` rows **at the same timestamp**, the latter `actorKind: User` with the
+  **replying customer** as actor. **A-14 and A-17 read off the database:** a `technical` submission
+  landed in the Technical department with `Priority = Medium` and `IsUrgent = 1`. **The refusals:**
+  anonymous submit `401`, `priority` in the body `400`, a reply on a `Cancelled` ticket `409
+  ticket-terminal`, another customer's ticket `404`, a customer on the staff thread route `403`.
+  **28 published paths**, up exactly three, with **no inbound route**.
+
+**What was deliberately not touched.** No story 13 work — `GET /portal/tickets`,
+`GET /portal/tickets/{id}`, `/transition`, `/attachments` and `/feedback` are unpublished, and the
+two front-end portal routes are **stubs whose class comments name story 13 as their replacement**.
+No story 14 work — no `TicketInternalNote`, no `/internal-notes` route, and `PortalClient` has **no
+method** that could reach one. No story 18 work — no adapter, no inbound route, `MessageChannel`
+unchanged at two members. No story 09 work — `INotificationPublisher` still resolves to the
+**logging** implementation. **No design document was edited**, and **OQ-1 was not answered**:
+`hasFeedback` is a constant `false` with a story-13 marker, because `CustomerFeedback` does not
+exist and its scale is still open.
+
+### 2026-08-31 — story 06: ticket lifecycle, delivered whole
 
 **Phase 3 closes, and with it the core loop the assessment stands or falls on.** Delivered **whole
 rather than in slices** — the plan's eleven numbered tasks were the unit of work. A ticket can now be

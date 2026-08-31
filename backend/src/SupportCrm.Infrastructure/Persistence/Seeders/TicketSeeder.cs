@@ -28,9 +28,20 @@ namespace SupportCrm.Infrastructure.Persistence.Seeders;
 /// </para>
 ///
 /// <para>
-/// <b>Every ticket is <c>New</c> and unresolved.</b> Story 05 has no transition path — Story 06
-/// adds it — so seeding a `Resolved` row would require reaching past the state machine that does
-/// not exist yet. The statuses become varied when Story 06 can move them legally.
+/// <b>Story 07 gave two of the six a history.</b> Story 05 left every ticket <c>New</c> because it
+/// had no transition path; Story 06 added the guarded <c>TransitionTo</c>, and Story 07 added the
+/// messages a thread is made of. Two tickets now move through legal A-5 edges and carry a thread:
+/// </para>
+/// <list type="bullet">
+///   <item><description><b>A two-way thread</b> on the payments ticket — agent, customer, agent — so the staff thread, the portal thread and the AI assists of Story 11 all have real correspondence to render.</description></item>
+///   <item><description><b>One ticket left in <c>Pending</c></b>, with a portal login that owns it. That pairing is the point: <b>the R-13 automatic reopen is demonstrable in one click</b> — sign in as that customer, post a reply, and the ticket returns to <c>Open</c> with a <c>StatusChanged</c> row attributed to them (R-14).</description></item>
+/// </list>
+///
+/// <para>
+/// <b>Every status here was reached through <see cref="Ticket.TransitionTo"/></b>, never by writing
+/// the column: A-5's graph refuses an illegal edge however the ticket was reached, <em>including
+/// from a seeder</em>. The remaining four stay <c>New</c>, which is the honest state for a ticket
+/// nobody has picked up.
 /// </para>
 ///
 /// <para>
@@ -107,6 +118,12 @@ public sealed class TicketSeeder(
 
         var seeded = 0;
 
+        // The tickets this run actually created. A re-run against an existing volume creates none,
+        // and therefore seeds no thread either — the thread belongs to the ticket, and appending a
+        // second copy of it on every startup would be the one way this seeder stops being
+        // idempotent.
+        var created = new Dictionary<Guid, Ticket>();
+
         foreach (var row in toSeed)
         {
             // Matched on id, so re-running against an existing volume changes nothing.
@@ -169,15 +186,146 @@ public sealed class TicketSeeder(
                     newValue: assigneeName));
             }
 
+            created[ticket.Id] = ticket;
             seeded++;
         }
+
+        var messages = SeedThreads(created, now);
 
         if (seeded > 0)
         {
             await db.SaveChangesAsync(ct);
         }
 
-        logger.LogInformation("TicketSeeder: {Tickets} ticket(s) seeded.", seeded);
+        logger.LogInformation(
+            "TicketSeeder: {Tickets} ticket(s) and {Messages} message(s) seeded.", seeded, messages);
+    }
+
+    /// <summary>
+    /// Gives two of the seeded tickets a lifecycle and a thread — Story 07 task 5.
+    ///
+    /// <para>
+    /// <b>Nothing here writes a status column.</b> Every move goes through
+    /// <see cref="Ticket.TransitionTo"/>, so the seeder is held to A-5's graph exactly as an endpoint
+    /// is, and a future edit that seeds an illegal edge fails at startup rather than producing a
+    /// ticket no transition could have reached.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Activity rows are written directly rather than through <c>TicketActivityRecorder</c></b>,
+    /// for the reason the creation loop already records: the recorder resolves its actor from
+    /// <c>ICurrentUser</c>, and a seeder runs at startup with no request and no caller. The
+    /// <c>MessagePosted</c> rows use <see cref="TicketActivity.MessagePosted"/>, which is the same
+    /// factory the recorder uses — so §5 constraint 17's <em>"exactly one activity row per
+    /// message"</em> holds for seeded rows too.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Timestamps are a few SECONDS apart, and the unit matters.</b> They must be far enough
+    /// apart to give the thread a deterministic order — and so <c>firstRespondedAt</c> is provably
+    /// the <em>first</em> outbound message rather than whichever row happened to be inserted first —
+    /// but they must also all be in the <b>past</b> by the time anyone can call the API.
+    /// <para>
+    /// Minutes were tried first and were wrong. Seeding runs at startup, the API becomes reachable
+    /// seconds later, and a demo reply posted then carries the real clock — so a thread seeded at
+    /// <c>now + 10 minutes</c> renders the live reply <em>above</em> the seeded question it answers,
+    /// and the conversation reads backwards. Found by posting the R-13 reply against the running
+    /// stack, which is the only place it is visible: the test host seeds nothing.
+    /// </para>
+    /// </para>
+    /// </summary>
+    private int SeedThreads(IReadOnlyDictionary<Guid, Ticket> created, DateTimeOffset now)
+    {
+        var messages = 0;
+
+        // ---- The two-way thread. Agent, customer, agent — the shape Story 11's summariser and
+        //      Story 13's portal detail both need something real to render.
+        if (created.TryGetValue(Tickets.PaymentsCardDeclined, out var payments))
+        {
+            Transition(payments, TicketStatus.Open, IdentitySeeder.Users.BillingAgent, now.AddSeconds(5));
+
+            messages += Post(
+                payments, IdentitySeeder.Users.BillingAgent, MessageDirection.Outbound,
+                "Thanks for reporting this. Which two cards did you try, and did either give a code?",
+                now.AddSeconds(10));
+
+            messages += Post(
+                payments, CustomerSeeder.PortalUsers.ChenWei, MessageDirection.Inbound,
+                "A Visa ending 4321 and a Mastercard ending 8890. Neither showed a code, just \"declined\".",
+                now.AddSeconds(40));
+
+            messages += Post(
+                payments, IdentitySeeder.Users.BillingAgent, MessageDirection.Outbound,
+                "Understood — I am raising this with the payments team and will come back to you today.",
+                now.AddSeconds(55));
+        }
+
+        // ---- The Pending ticket. Its customer HAS a portal login (CustomerSeeder seeds Amina's),
+        //      which is what makes the R-13 reopen a one-click demonstration rather than a story.
+        if (created.TryGetValue(Tickets.BillingOverdueInvoice, out var invoice))
+        {
+            Transition(invoice, TicketStatus.Open, IdentitySeeder.Users.BillingAgent, now.AddSeconds(5));
+
+            messages += Post(
+                invoice, IdentitySeeder.Users.BillingAgent, MessageDirection.Outbound,
+                "Could you send the transfer reference for the payment on the 3rd? I will match it against the invoice.",
+                now.AddSeconds(15));
+
+            // Waiting on the customer — and LEFT here. A reply from Amina's portal login reopens it
+            // automatically (R-13), writing a StatusChanged row attributed to her (R-14).
+            Transition(invoice, TicketStatus.Pending, IdentitySeeder.Users.BillingAgent, now.AddSeconds(20));
+        }
+
+        return messages;
+    }
+
+    /// <summary>
+    /// One legal A-5 edge, with the <c>StatusChanged</c> row that every transition writes
+    /// (docs/data-model.md §2.7).
+    /// </summary>
+    private void Transition(Ticket ticket, TicketStatus target, Guid actorUserId, DateTimeOffset at)
+    {
+        var previous = ticket.Status;
+
+        ticket.TransitionTo(target, at);
+
+        db.TicketActivities.Add(TicketActivity.ByUser(
+            Guid.NewGuid(), ticket.Id, TicketActivityType.StatusChanged, actorUserId, at,
+            previous.ToString(), target.ToString()));
+    }
+
+    /// <summary>
+    /// One message, its single <c>MessagePosted</c> row, and — on the first outbound one — the
+    /// <c>firstRespondedAt</c> stamp. The same three effects <c>TicketMessageService</c> produces,
+    /// through the same entity methods, so seeded data and endpoint data are indistinguishable.
+    /// <para>
+    /// <b><c>channel</c> is <c>Portal</c> for both directions</b>, which is what the two endpoints
+    /// write (docs/api-design.md §7). Story 18's adapter is what introduces a third value — and it
+    /// needs no schema change to do it, which is the seam's whole claim.
+    /// </para>
+    /// </summary>
+    private int Post(
+        Ticket ticket,
+        Guid authorUserId,
+        MessageDirection direction,
+        string body,
+        DateTimeOffset at)
+    {
+        var message = TicketMessage.Post(
+            Guid.NewGuid(), ticket.Id, authorUserId, direction, MessageChannel.Portal, body, at);
+
+        db.TicketMessages.Add(message);
+
+        db.TicketActivities.Add(TicketActivity.MessagePosted(
+            Guid.NewGuid(), ticket.Id, message.Id, authorUserId, at));
+
+        if (direction is MessageDirection.Outbound)
+        {
+            // Idempotent on the entity, so the second outbound message leaves the stamp alone.
+            ticket.MarkFirstResponded(at);
+        }
+
+        return 1;
     }
 
     /// <summary>

@@ -233,12 +233,72 @@ public sealed class TicketService(
     /// </summary>
     public async Task<TicketDto> CreateAsync(CreateTicketRequest request, CancellationToken ct)
     {
-        // 1. Validate categoryCode against the configured list — unknown is 400 (§5 constraint 11).
-        var category = FindCategory(request.CategoryCode);
+        var ticket = await CreateCoreAsync(
+            request.CustomerId!.Value,
 
-        // 2. Resolve departmentId: a supplied value wins for staff, otherwise the A-14 map.
-        //    A-14: "the mapping is the default, not a cage".
-        var departmentId = request.DepartmentId ?? category.DepartmentId;
+            // A supplied value wins for staff — A-14: "the mapping is the default, not a cage".
+            request.DepartmentId,
+            request.Subject,
+            request.Description,
+            request.CategoryCode,
+            TicketPriorityParser.Parse(request.Priority),
+
+            // A-17: the staff create never accepts isUrgent, so it is false rather than absent.
+            isUrgent: false,
+            ct);
+
+        await db.SaveChangesAsync(ct);
+
+        return await GetAsync(ticket.Id, ct);
+    }
+
+    /// <summary>
+    /// <b>The one creation path.</b> Everything a ticket needs in order to exist happens here, in
+    /// the order A-14 fixes, and <b>both</b> creating endpoints go through it:
+    /// <see cref="CreateAsync"/> for <c>POST /tickets</c> and <c>PortalTicketService.SubmitAsync</c>
+    /// for <c>POST /portal/tickets</c> (Story 07).
+    ///
+    /// <para>
+    /// <b>It exists so the portal submission cannot drift from the staff one.</b> The SLA arithmetic
+    /// (A-3, frozen by A-20), the <c>Created</c> activity row, the A-14 department derivation and
+    /// the T2-D auto-assignment seam are each a rule with exactly one home; a second creation path
+    /// would be four opportunities for two behaviours to diverge silently.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The order must not be rearranged:</b> validate the category, resolve the department,
+    /// validate the customer, compute the SLA clock, persist as <c>New</c>, write the
+    /// <c>Created</c> activity row, then offer the auto-assignment seam. A-14 requires the
+    /// department to be settled <em>at creation, before assignment</em>, because round-robin runs
+    /// within it.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>It does not commit</b> — the same contract <c>TicketActivityRecorder</c> has, and for the
+    /// same reason: the caller's single <c>SaveChangesAsync</c> commits the ticket, its history and
+    /// whatever else the caller added, together (docs/architecture.md §3).
+    /// </para>
+    ///
+    /// <para>
+    /// <paramref name="departmentIdOverride"/> is <see langword="null"/> for the portal, where a
+    /// department is <b>never accepted from the client</b> (docs/api-design.md §7, A-14).
+    /// </para>
+    /// </summary>
+    public async Task<Ticket> CreateCoreAsync(
+        Guid customerId,
+        Guid? departmentIdOverride,
+        string subject,
+        string description,
+        string categoryCode,
+        TicketPriority priority,
+        bool isUrgent,
+        CancellationToken ct)
+    {
+        // 1. Validate categoryCode against the configured list — unknown is 400 (§5 constraint 11).
+        var category = FindCategory(categoryCode);
+
+        // 2. Resolve departmentId from the A-14 map, unless a staff caller overrode it.
+        var departmentId = departmentIdOverride ?? category.DepartmentId;
 
         // A department id in a request body is data to validate, never an identity to trust
         // (docs/architecture.md §4.3 point 1).
@@ -248,13 +308,10 @@ public sealed class TicketService(
         }
 
         // 3. Validate customerId exists.
-        var customerId = request.CustomerId!.Value;
         if (!await db.Customers.AnyAsync(c => c.Id == customerId, ct))
         {
             throw new ValidationException($"Unknown customer '{customerId}'.");
         }
-
-        var priority = TicketPriorityParser.Parse(request.Priority);
 
         // 4. Compute both due timestamps — required and non-null (§2.6), so they are computed here
         //    rather than by Story 09. A-20 freezes them from this moment on.
@@ -262,28 +319,29 @@ public sealed class TicketService(
         var (firstResponseDueAt, resolutionDueAt) =
             SlaClock.ComputeAtCreation(createdAt, priority, TargetsFor(priority));
 
-        // 5. Persist with status = New and isUrgent = false (A-17: staff create never accepts it).
+        // 5. Persist with status = New (A-5: never a parameter).
         var ticket = Ticket.Create(
             Guid.NewGuid(),
             customerId,
             departmentId,
-            request.Subject,
-            request.Description,
+            subject,
+            description,
             category.Code,
             priority,
             currentUser.Id,
             createdAt,
             firstResponseDueAt,
-            resolutionDueAt);
+            resolutionDueAt,
+            isUrgent);
 
         db.Tickets.Add(ticket);
 
         // 6. The Created activity row, on the same path and in the same unit of work.
         await activity.RecordAsync(ticket.Id, TicketActivityType.Created, ct: ct);
 
-        // 7. The auto-assignment seam. It is a no-op in this story — Story 09 replaces the policy
-        //    with round-robin. It runs AFTER creation and BEFORE the response, which is where T2-D
-        //    needs it, and it must not change status (A-18).
+        // 7. The auto-assignment seam. It is a no-op today — Story 09 replaces the policy with
+        //    round-robin. It runs AFTER creation and BEFORE the response, which is where T2-D needs
+        //    it, and it must not change status (A-18).
         if (await autoAssignment.ChooseAssigneeAsync(ticket, ct) is { } assigneeId)
         {
             ticket.Assign(assigneeId);
@@ -291,9 +349,7 @@ public sealed class TicketService(
                 ticket.Id, TicketActivityType.Assigned, newValue: assigneeId.ToString(), ct: ct);
         }
 
-        await db.SaveChangesAsync(ct);
-
-        return await GetAsync(ticket.Id, ct);
+        return ticket;
     }
 
     /// <summary>

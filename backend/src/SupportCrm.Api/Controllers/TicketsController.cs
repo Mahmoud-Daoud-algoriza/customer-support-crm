@@ -4,6 +4,7 @@ using SupportCrm.Api.Auth;
 using SupportCrm.Application.Abstractions;
 using SupportCrm.Application.Modules.Customers;
 using SupportCrm.Application.Modules.Tickets;
+using SupportCrm.Domain.Modules.Tickets;
 
 namespace SupportCrm.Api.Controllers;
 
@@ -47,6 +48,7 @@ public sealed class TicketsController(
     TicketService tickets,
     TicketLifecycleService lifecycle,
     TicketActivityQueryService activity,
+    TicketMessageService messages,
     AttachmentService attachments) : ApiControllerBase
 {
     // ------------------------------------------------------------------ Tickets
@@ -221,6 +223,64 @@ public sealed class TicketsController(
     public async Task<ActionResult<PagedResult<TicketActivityDto>>> Activity(
         Guid id, [FromQuery] PageQuery paging, CancellationToken ct) =>
         Ok(await activity.ListAsync(id, paging, ct));
+
+    // ----------------------------------------------------------------- Thread
+
+    /// <summary>
+    /// <c>GET /tickets/{id}/messages</c> — <b>the customer-visible thread</b>
+    /// (docs/api-design.md §5.6), oldest first, because a conversation is read forwards.
+    ///
+    /// <para>
+    /// <b>This is not the internal notes endpoint.</b> Internal notes are a different entity read
+    /// through <c>/tickets/{id}/internal-notes</c> (Story 14, T2-C, AP-5), and this action does not
+    /// filter a merged list — it reads a different table, so a rendering bug cannot leak one
+    /// (docs/data-model.md §2.9).
+    /// </para>
+    /// </summary>
+    [HttpGet("{id:guid}/messages")]
+    [ProducesResponseType<PagedResult<MessageDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResult<MessageDto>>> Messages(
+        Guid id, [FromQuery] PageQuery paging, CancellationToken ct) =>
+        Ok(await messages.ListAsync(id, paging, ct));
+
+    /// <summary>
+    /// <c>POST /tickets/{id}/messages</c> — <b>an outbound reply</b> (docs/api-design.md §5.6).
+    ///
+    /// <para>
+    /// <b><c>direction</c> and <c>channel</c> are not accepted, and their absence is the
+    /// enforcement</b> (docs/api-design.md §7, <b>PF-7</b>): direction is derived from the caller's
+    /// role and channel from the endpoint, so a body carrying either is a <c>400</c> rather than
+    /// accepted-and-ignored (<b>AP-10</b>).
+    /// </para>
+    ///
+    /// <para>
+    /// <b>An agent reply never transitions the ticket</b>, which is why this returns the message
+    /// alone rather than the portal's <c>{ message, ticketStatus, statusChanged }</c> envelope —
+    /// there would be nothing to report. R-13's automatic reopen fires on a <em>customer</em> reply
+    /// only (§5.7).
+    /// </para>
+    ///
+    /// <para>
+    /// A reply on a <c>Closed</c> or <c>Cancelled</c> ticket is <c>409 ticket-terminal</c> (A-5).
+    /// </para>
+    /// </summary>
+    [HttpPost("{id:guid}/messages")]
+    [ProducesResponseType<MessageDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<MessageDto>> PostMessage(
+        Guid id, PostMessageRequest request, CancellationToken ct)
+    {
+        // The channel is the ENDPOINT's fact, never the client's (docs/api-design.md §7). A staff
+        // reply reaches the customer through the portal thread, so it is MessageChannel.Portal.
+        var posted = await messages.PostAsync(id, request.Body, MessageChannel.Portal, ct);
+
+        return CreatedAtAction(nameof(Messages), new { id }, posted.Message);
+    }
 
     // -------------------------------------------------------------- Attachments
 

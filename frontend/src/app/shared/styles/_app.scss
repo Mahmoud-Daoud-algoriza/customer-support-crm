@@ -493,3 +493,103 @@
         color: var(--p-text-muted-color);
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// Story 07 — the message thread, the reply composer and the portal form (ui-design §5.3, §7.2,
+// §7.3, §8). Logical properties ONLY: `npm run lint:styles` fails on a physical one, because both
+// shells mirror in Arabic (ui-design §10.2).
+// ---------------------------------------------------------------------------------------------
+
+.app-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 0;
+    padding-inline-start: 0;
+    list-style: none;
+
+    &__item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.625rem 0.75rem;
+        border-radius: var(--p-content-border-radius);
+        max-inline-size: 85%;
+    }
+
+    // Inbound and outbound sit on OPPOSITE SIDES, set with margin-inline-* so the two swap under
+    // RTL without a second rule. The tinted rail is border-inline-*, and mirrors with them.
+    &__item--inbound {
+        margin-inline-end: auto;
+        background: var(--p-content-background);
+        border-inline-start: 3px solid var(--p-primary-color);
+    }
+
+    &__item--outbound {
+        margin-inline-start: auto;
+        background: var(--p-highlight-background, var(--p-content-hover-background));
+        border-inline-end: 3px solid var(--p-content-border-color);
+    }
+
+    &__meta {
+        display: flex;
+        gap: 0.375rem;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 0;
+        font-size: 0.8125rem;
+        color: var(--p-text-muted-color);
+    }
+
+    &__author {
+        font-weight: 600;
+        color: var(--p-text-color);
+    }
+
+    &__role {
+        font-size: 0.75rem;
+    }
+
+    &__body {
+        margin: 0;
+        font-size: 0.9375rem;
+        white-space: pre-wrap;
+    }
+}
+
+.app-composer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-block-start: 0.75rem;
+
+    &__label {
+        font-size: 0.875rem;
+        color: var(--p-text-muted-color);
+    }
+
+    &__input {
+        inline-size: 100%;
+    }
+
+    &__actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+}
+
+.app-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+
+    // The urgency checkbox and its label read as one line, and the pair mirrors under RTL because
+    // flex-direction: row follows the writing direction.
+    &--inline {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem;
+    }
+}

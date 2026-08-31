@@ -58,6 +58,19 @@ public sealed class SupportCrmApiFactory : WebApplicationFactory<Program>
     /// </summary>
     public Dictionary<string, string?> ConfigurationOverrides { get; init; } = [];
 
+    /// <summary>
+    /// Extra service registrations applied <b>last</b>, so a replacement wins over the composition
+    /// root's. Story 07 uses it to swap the logging <c>INotificationPublisher</c> for one that
+    /// records, because A-13's notifications have no table until Story 09 and a log line is not
+    /// assertable.
+    /// <para>
+    /// Set it with an object initializer before touching <see cref="WebApplicationFactory{T}.Services"/>,
+    /// for the same reason <see cref="ConfigurationOverrides"/> says: the host is built lazily and a
+    /// later change would not be seen. Null for every other test.
+    /// </para>
+    /// </summary>
+    public Action<IServiceCollection>? ServiceOverrides { get; init; }
+
     static SupportCrmApiFactory()
     {
         // WebApplicationBuilder reads the environment while the host is being constructed — before
@@ -185,6 +198,50 @@ public sealed class SupportCrmApiFactory : WebApplicationFactory<Program>
         });
     }
 
+    /// <summary>
+    /// A portal login for a <b>customer profile that already exists</b> — the DM-1 pairing Story 07's
+    /// portal tests need, and the one thing <see cref="AddCustomerRoleUserAsync"/> cannot give them:
+    /// that helper creates its own fresh profile, so it can never link a login to the fixture's
+    /// customer, and every ownership assertion needs exactly that link.
+    ///
+    /// <para>
+    /// It goes through the real <see cref="User.CreateCustomerUser"/> factory — Story 04 task 7
+    /// landed it, so nothing about this shape needs faking any more.
+    /// </para>
+    ///
+    /// <para>
+    /// This helper establishes a precondition. <b>It must never be used to assert behaviour an
+    /// endpoint should be proving.</b>
+    /// </para>
+    /// </summary>
+    public Task<Guid> AddPortalUserAsync(Guid customerId, string email, string password = "TestPassw0rd!") =>
+        WithDbAsync(async db =>
+        {
+            var existing = await db.Users.FirstOrDefaultAsync(u => u.CustomerId == customerId);
+
+            if (existing is not null)
+            {
+                return existing.Id;
+            }
+
+            var hasher = Services.GetRequiredService<IPasswordHasher<User>>();
+
+            var user = User.CreateCustomerUser(
+                id: Guid.NewGuid(),
+                email: email,
+                passwordHash: Unhashed,
+                displayName: email,
+                customerId: customerId,
+                createdAt: DateTimeOffset.UtcNow);
+
+            user.SetPasswordHash(hasher.HashPassword(user, password));
+
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
+
+            return user.Id;
+        });
+
     /// <summary>The role code as it is persisted — a stable string, never an integer (api-design §2).</summary>
     private const string CustomerRoleCode = nameof(UserRole.Customer);
 
@@ -269,6 +326,9 @@ public sealed class SupportCrmApiFactory : WebApplicationFactory<Program>
             _connection.Open();
 
             services.AddDbContext<SupportCrmDbContext>(options => options.UseSqlite(_connection));
+
+            // Last, so a test's replacement wins over the composition root's registration.
+            ServiceOverrides?.Invoke(services);
         });
     }
 

@@ -100,6 +100,12 @@ public static class DependencyInjection
         // publisher that writes rows. The interface, the call sites and the type set do not change.
         services.AddScoped<INotificationPublisher, LoggingNotificationPublisher>();
 
+        // Story 07 Application services — the channel seam's one ingestion service and the
+        // portal's own submission path. TicketMessageService is what Story 18's log adapter calls
+        // IN-PROCESS; it gets no HTTP route of its own (AP-11), which is how PF-2 stays untouched.
+        services.AddScoped<TicketMessageService>();
+        services.AddScoped<PortalTicketService>();
+
         // The escalation-recipient seam — A-21, closing OQ-3 (docs/product-scope.md §7).
         // Story 06's manual escalate and Story 09's automatic breach sweep resolve recipients
         // through ONE policy, which is what makes the cascade shared rather than a rule each story

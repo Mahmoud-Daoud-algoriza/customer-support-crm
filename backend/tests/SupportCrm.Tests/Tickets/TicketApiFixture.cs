@@ -4,6 +4,8 @@ using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Organization;
 using SupportCrm.Domain.Modules.Sla;
 using SupportCrm.Domain.Modules.Tickets;
+using Microsoft.Extensions.DependencyInjection;
+using SupportCrm.Application.Modules.Sla;
 using SupportCrm.Tests.Api;
 
 namespace SupportCrm.Tests.Tickets;
@@ -32,7 +34,21 @@ public sealed class TicketApiFixture : IAsyncLifetime
 
     public static readonly Guid TechnicalDepartmentId = new("11111111-1111-1111-1111-111111111102");
 
-    public SupportCrmApiFactory Factory { get; } = new();
+    /// <summary>
+    /// A-13's notifications have no table until Story 09, so the shipped publisher only logs. This
+    /// one records, which is what lets Story 07 assert <b>exactly one</b> <c>CustomerReplied</c> —
+    /// and, just as importantly, that the automatic <c>Pending → Open</c> raises <b>none</b>.
+    /// </summary>
+    public RecordingNotificationPublisher Notifications { get; } = new();
+
+    public SupportCrmApiFactory Factory { get; }
+
+    public TicketApiFixture() =>
+        Factory = new SupportCrmApiFactory
+        {
+            ServiceOverrides = services =>
+                services.AddScoped<INotificationPublisher>(_ => Notifications),
+        };
 
     public Guid HeadOfficeBranchId { get; private set; }
 
@@ -50,6 +66,20 @@ public sealed class TicketApiFixture : IAsyncLifetime
 
     /// <summary>North Branch — the cross-branch customer.</summary>
     public Guid NorthCustomerId { get; private set; }
+
+    /// <summary>
+    /// The portal login for <see cref="HeadOfficeCustomerId"/> — the DM-1 pairing every
+    /// <c>/portal</c> assertion needs, because <c>TicketScope</c> narrows a Customer caller through
+    /// <c>User.CustomerId</c>.
+    /// </summary>
+    public Guid HeadOfficePortalUserId { get; private set; }
+
+    /// <summary>
+    /// A <b>second</b> portal login, on a different profile. It exists for one assertion that cannot
+    /// be made with one customer: replying to <em>another customer's</em> ticket is a <c>404</c>
+    /// (AP-4).
+    /// </summary>
+    public Guid NorthPortalUserId { get; private set; }
 
     public async Task InitializeAsync()
     {
@@ -72,6 +102,11 @@ public sealed class TicketApiFixture : IAsyncLifetime
 
         HeadOfficeCustomerId = await AddCustomerAsync("head.office@tickets.local", HeadOfficeBranchId);
         NorthCustomerId = await AddCustomerAsync("north@tickets.local", NorthBranchId);
+
+        HeadOfficePortalUserId = await Factory.AddPortalUserAsync(
+            HeadOfficeCustomerId, "head.office@tickets.local");
+
+        NorthPortalUserId = await Factory.AddPortalUserAsync(NorthCustomerId, "north@tickets.local");
     }
 
     public Task DisposeAsync()
@@ -150,4 +185,53 @@ public sealed class TicketApiFixture : IAsyncLifetime
 
             return await db.SaveChangesAsync();
         });
+}
+
+/// <summary>
+/// An <see cref="INotificationPublisher"/> that records instead of logging.
+///
+/// <para>
+/// <b>It is a recorder, not a stub with behaviour.</b> The seam's contract is "you are told an id
+/// and you publish to it" — who the recipients are is A-21's policy, and whether a notification is
+/// raised at all is the calling service's rule. This double asserts the second, and changes
+/// neither.
+/// </para>
+///
+/// <para>
+/// <b>It does not commit either</b>, matching the real contract: Story 09's persistent publisher
+/// adds rows and lets the caller's single <c>SaveChangesAsync</c> commit them
+/// (docs/architecture.md §3).
+/// </para>
+/// </summary>
+public sealed class RecordingNotificationPublisher : INotificationPublisher
+{
+    private readonly List<(Guid RecipientUserId, NotificationType Type, Guid TicketId)> _published = [];
+
+    public IReadOnlyList<(Guid RecipientUserId, NotificationType Type, Guid TicketId)> Published
+    {
+        get
+        {
+            lock (_published)
+            {
+                return [.. _published];
+            }
+        }
+    }
+
+    /// <summary>Everything raised for one ticket — the scope every Story 07 assertion needs.</summary>
+    public IReadOnlyList<(Guid RecipientUserId, NotificationType Type, Guid TicketId)> For(Guid ticketId) =>
+        [.. Published.Where(p => p.TicketId == ticketId)];
+
+    public Task PublishAsync(
+        Guid recipientUserId, NotificationType type, Guid ticketId, CancellationToken ct)
+    {
+        lock (_published)
+        {
+            _published.Add((recipientUserId, type, ticketId));
+        }
+
+        _ = ct;
+
+        return Task.CompletedTask;
+    }
 }

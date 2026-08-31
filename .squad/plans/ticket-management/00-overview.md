@@ -26,7 +26,7 @@ of work, so this feature has no slice map of the kind
 |---|---|---|
 | **05 — ticket core** | **1–13** — the entities, `SlaClock`, the migration and seeder, `TicketScope`, `TicketService`, the activity recorder, ticket attachments, the controller, the tests, and the list / detail / assign screens | ✅ **Done and verified 2026-08-31** |
 | **06 — ticket lifecycle** | **1–11** — the A-5 state machine and the guarded `TransitionTo`, the A-16 authority matrix, escalation as an action, the notification seam, the activity read, the completed customer timeline, the three endpoints, the tests, and the transition / escalate / activity front end | ✅ **Done and verified 2026-08-31** |
-| 07 — ticket intake and messaging | 1–n | Not started |
+| **07 — ticket intake and messaging** | **1–10** — the `TicketMessage` model with its channel and direction enums, the EF configuration and the `TicketMessages` migration, the one ingestion service and the portal submission, the staff and portal endpoints, the seeded thread and `Pending` ticket, the tests, the typed clients, the shared thread and composer, the staff thread region, and the portal route stubs | ✅ **Done and verified 2026-08-31** |
 
 ## Dependency notes
 

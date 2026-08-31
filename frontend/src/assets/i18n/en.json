@@ -52,7 +52,8 @@
         "attachment-too-large": "That file is larger than the allowed size.",
         "assignee-out-of-department": "That agent is not in this ticket’s department.",
         "transition-not-permitted": "Your role can't make that change to this ticket.",
-        "illegal-transition": "That change isn't allowed from the ticket's current status."
+        "illegal-transition": "That change isn't allowed from the ticket's current status.",
+        "ticket-terminal": "This ticket is closed, so no further replies are accepted."
     },
     "primeng": {
         "accept": "Yes",
@@ -226,6 +227,28 @@
             "Medium": "Medium",
             "High": "High",
             "Urgent": "Urgent"
+        },
+        "thread": "Conversation",
+        "threadEmptyTitle": "No replies yet",
+        "threadEmptyMessage": "Replies between you and the customer will appear here.",
+        "reply": "Send reply",
+        "replyLabel": "Your reply",
+        "replyPlaceholder": "Write a reply to the customer…",
+        "terminalNoReply": "This ticket is closed. No further replies are accepted.",
+        "channel": {
+            "WebForm": "Web form",
+            "Portal": "Portal"
         }
+    },
+    "portal": {
+        "submitTitle": "Submit a request",
+        "subject": "Subject",
+        "description": "Description",
+        "category": "Category",
+        "categoryPlaceholder": "Choose a category",
+        "urgentLabel": "This is urgent",
+        "submit": "Submit request",
+        "requestTitle": "Your request",
+        "reopened": "Your reply reopened this request. Someone will pick it up again."
     }
 }

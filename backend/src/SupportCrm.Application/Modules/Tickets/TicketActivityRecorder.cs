@@ -77,6 +77,36 @@ public sealed class TicketActivityRecorder(
     }
 
     /// <summary>
+    /// Records the <c>MessagePosted</c> entry for one message — <b>the only method that sets
+    /// <c>TicketActivity.MessageId</c></b> (Story 07, DM-4).
+    ///
+    /// <para>
+    /// <b>The activity type is not a parameter, and neither is the visibility.</b> Both are fixed by
+    /// <see cref="TicketActivity.MessagePosted"/>, which is what makes docs/data-model.md §2.7's
+    /// <em>"set if and only if <c>activityType = MessagePosted</c>"</em> unbreakable rather than
+    /// merely observed: no other factory accepts a message id, and this one accepts no type.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The body is not copied onto the row</b> (DM-4). Content lives once, on the message.
+    /// </para>
+    ///
+    /// <para>
+    /// The actor is the authenticated caller — the message's author, by construction, because
+    /// <c>TicketMessageService</c> stamps <c>AuthorUserId</c> from the same source.
+    /// </para>
+    /// </summary>
+    public Task RecordMessagePostedAsync(Guid ticketId, Guid messageId, CancellationToken ct = default)
+    {
+        db.TicketActivities.Add(TicketActivity.MessagePosted(
+            Guid.NewGuid(), ticketId, messageId, currentUser.Id, clock.GetUtcNow()));
+
+        _ = ct;
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Records one entry attributed to <b>the system</b> — <see cref="TicketActivity.BySystem"/>,
     /// so <c>ActorUserId</c> is null and <c>ActorKind</c> is <c>System</c>, the two halves of
     /// §2.7's invariant.

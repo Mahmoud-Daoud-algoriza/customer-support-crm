@@ -76,6 +76,15 @@ public sealed class SupportCrmDbContext(DbContextOptions<SupportCrmDbContext> op
     /// </summary>
     public DbSet<TicketActivity> TicketActivities => Set<TicketActivity>();
 
+    /// <summary>
+    /// Story 07 — customer-visible correspondence (docs/data-model.md §2.8). <b>Immutable once
+    /// posted</b>: <see cref="TicketMessage"/> exposes no mutator, so there is no update or delete
+    /// path to expose later by accident (§5 constraint 16). <c>TicketInternalNote</c> is a
+    /// <em>different</em> entity (§2.9) and is Story 14's — a customer-visible read assembles from
+    /// this set and never touches that one.
+    /// </summary>
+    public DbSet<TicketMessage> TicketMessages => Set<TicketMessage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SupportCrmDbContext).Assembly);

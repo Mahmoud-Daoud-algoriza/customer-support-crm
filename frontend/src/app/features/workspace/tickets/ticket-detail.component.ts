@@ -16,14 +16,16 @@ import { isTerminal } from '../../../shared/lifecycle/transition-matrix';
 import { TicketActivityRegionComponent } from './ticket-activity-region.component';
 import { TicketAssignComponent } from './ticket-assign.component';
 import { TicketCustomerPanelComponent } from './ticket-customer-panel.component';
+import { TicketThreadRegionComponent } from './ticket-thread-region.component';
 
 /**
  * Ticket detail — `/workspace/tickets/:id` (docs/ui-design.md §5.3). Agent+.
  *
- * <h3>Story 05 built the header and the customer panel; Story 06 adds the lifecycle</h3>
- * The `Transition ▾` menu, the `Escalate` control and the **activity region** are Story 06's. The
- * thread, internal notes, tasks, suggested articles and the AI panel are still to come, from Stories
- * 07, 11, 12 and 14. Regions load **independently**, so a slow call never blanks the screen.
+ * <h3>Story 05 built the header, Story 06 the lifecycle, Story 07 the thread</h3>
+ * The `Transition ▾` menu, the `Escalate` control and the **activity region** are Story 06's; the
+ * **thread and reply composer** are Story 07's. Internal notes, tasks, suggested articles and the AI
+ * panel are still to come, from Stories 11, 12 and 14. Regions load **independently**, so a slow
+ * call never blanks the screen — and the thread is not chat: nothing on this screen polls (T3-B).
  *
  * <h3>Assignment does not change status (A-18)</h3>
  * **After assigning an unassigned `New` ticket the status chip must still read `New`.** The header
@@ -52,7 +54,7 @@ import { TicketCustomerPanelComponent } from './ticket-customer-panel.component'
     selector: 'app-ticket-detail',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [DatePipe, ErrorStateComponent, EscalateButtonComponent, LoadingStateComponent, MessageModule, PriorityChipComponent, RouterLink, StatusChipComponent, TicketActivityRegionComponent, TicketAssignComponent, TicketCustomerPanelComponent, TransitionMenuComponent, TranslocoModule],
+    imports: [DatePipe, ErrorStateComponent, EscalateButtonComponent, LoadingStateComponent, MessageModule, PriorityChipComponent, RouterLink, StatusChipComponent, TicketActivityRegionComponent, TicketAssignComponent, TicketCustomerPanelComponent, TicketThreadRegionComponent, TransitionMenuComponent, TranslocoModule],
     template: `
         <section class="app-page">
             <a routerLink="/workspace/tickets">{{ 'actions.back' | transloco }}</a>
@@ -120,13 +122,18 @@ import { TicketCustomerPanelComponent } from './ticket-customer-panel.component'
                                 <p class="app-ticket-description">{{ row.description }}</p>
                             </section>
 
+                            <!-- The THREAD, above the history: §5.3 puts the conversation in the
+                                 middle of the screen and the change log below it. A reply bumps the
+                                 activity token, because a MessagePosted row has just been written
+                                 and the first outbound one also stamped firstRespondedAt. -->
+                            <app-ticket-thread-region [ticketId]="row.id" [status]="row.status" [reloadToken]="activityToken()" (replied)="onReplied()" />
+
                             <!-- The activity region. It reloads when a lifecycle action lands,
                                  which is what makes the new history entry visible immediately. -->
                             <app-ticket-activity-region [ticketId]="row.id" [reloadToken]="activityToken()" />
 
-                            <!-- Story 07: the THREAD and the reply composer. Story 11: the AI panel.
-                                 Story 12: suggested articles. Story 14: internal notes and tasks.
-                                 Each lands in this column. -->
+                            <!-- Story 11: the AI panel. Story 12: suggested articles. Story 14:
+                                 internal notes and tasks. Each lands in this column. -->
                         </div>
 
                         <app-ticket-customer-panel [customerId]="row.customer.id" />
@@ -231,6 +238,20 @@ export class TicketDetailComponent {
                 this.api.getTicket(this.ticketId).subscribe({ next: (row) => this.ticket.set(row) });
             }
         });
+    }
+
+    /**
+     * A reply landed. The header is re-read because the **first** outbound message sets
+     * `firstRespondedAt` (§2.8), and the activity token is bumped because the same request wrote a
+     * `MessagePosted` row.
+     *
+     * <p>The thread itself already has the new message from its own response — it does not need
+     * this token, and bumping it does no harm because the region simply re-reads what it has.</p>
+     */
+    protected onReplied(): void {
+        this.activityToken.update((token) => token + 1);
+
+        this.api.getTicket(this.ticketId).subscribe({ next: (row) => this.ticket.set(row) });
     }
 
     protected assign(assignedUserId: string): void {

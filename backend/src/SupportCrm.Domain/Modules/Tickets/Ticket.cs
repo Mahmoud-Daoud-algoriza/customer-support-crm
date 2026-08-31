@@ -228,6 +228,43 @@ public sealed class Ticket
     }
 
     /// <summary>
+    /// Stamps <see cref="FirstRespondedAt"/> with the first outbound message's timestamp — Story 07,
+    /// the invariant docs/data-model.md §2.8 states as <em>"the first <c>Outbound</c> message sets
+    /// <c>Ticket.firstRespondedAt</c> if it is still null"</em>.
+    ///
+    /// <para>
+    /// <b>Set once and never again, and the guard is here rather than at the call site.</b> A second
+    /// outbound message calls this too — <c>TicketMessageService</c> does not branch on the null
+    /// check — so "once" is a property of the entity rather than of one caller remembering. It is
+    /// idempotent by construction: a later call is a no-op, not an overwrite.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Never accepted from a client</b> (docs/api-design.md §7, AP-10): it is a lifecycle side
+    /// effect, and no request model carries it. There is no un-set path — a first response, once
+    /// made, is a fact about the ticket's history.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>It has nothing to do with the SLA breach flag.</b> Whether the response beat
+    /// <see cref="FirstResponseDueAt"/> is Story 09's sweep to decide; this only records when it
+    /// happened, and <b>may legitimately stay null on a resolved ticket</b> (finding PF-5).
+    /// </para>
+    /// </summary>
+    /// <returns><see langword="true"/> when this call is the one that set it.</returns>
+    public bool MarkFirstResponded(DateTimeOffset respondedAt)
+    {
+        if (FirstRespondedAt is not null)
+        {
+            return false;
+        }
+
+        FirstRespondedAt = respondedAt;
+
+        return true;
+    }
+
+    /// <summary>
     /// <b>The only way a ticket's status ever changes</b> — the guarded mutator Story 05
     /// deliberately withheld until A-5's graph existed (Story 06 task 1).
     ///

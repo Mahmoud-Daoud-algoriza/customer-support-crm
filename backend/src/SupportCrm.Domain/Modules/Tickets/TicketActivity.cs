@@ -118,6 +118,69 @@ public sealed class TicketActivity
     }
 
     /// <summary>
+    /// The <see cref="TicketActivityType.MessagePosted"/> entry for one message — <b>the only way
+    /// <see cref="MessageId"/> is ever set</b> (Story 07).
+    ///
+    /// <para>
+    /// <b>§2.7's "if and only if" is a signature here, not a checked rule.</b> The activity type is
+    /// not a parameter: this factory always writes <c>MessagePosted</c>, and no other factory
+    /// accepts a <c>messageId</c> — so an entry with a message id and the wrong type, or a
+    /// <c>MessagePosted</c> entry with no message id, cannot be constructed at all.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The body is not copied here</b> (DM-4). Content lives once, on the message; this row is
+    /// the ordering spine that points at it. <c>OldValue</c> and <c>NewValue</c> stay null because
+    /// posting a message is not a change to a field.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Always <c>CustomerVisible</c>.</b> A <c>TicketMessage</c> is customer-facing
+    /// correspondence by definition (§2.8); the <c>Internal</c> counterpart is
+    /// <c>InternalNotePosted</c>, which is Story 14's and is a different entity on purpose.
+    /// </para>
+    /// </summary>
+    public static TicketActivity MessagePosted(
+        Guid id,
+        Guid ticketId,
+        Guid messageId,
+        Guid authorUserId,
+        DateTimeOffset occurredAt)
+    {
+        if (ticketId == Guid.Empty)
+        {
+            throw new ArgumentException("An activity entry requires a ticket.", nameof(ticketId));
+        }
+
+        if (messageId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A MessagePosted entry requires the message it points at (§2.7).", nameof(messageId));
+        }
+
+        if (authorUserId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A MessagePosted entry requires its author as actor.", nameof(authorUserId));
+        }
+
+        return new TicketActivity
+        {
+            Id = id,
+            TicketId = ticketId,
+            OccurredAt = occurredAt,
+            ActivityType = TicketActivityType.MessagePosted,
+            ActorUserId = authorUserId,
+            ActorKind = TicketActorKind.User,
+            OldValue = null,
+            NewValue = null,
+            Visibility = TicketActivityVisibility.CustomerVisible,
+            MessageId = messageId,
+            InternalNoteId = null,
+        };
+    }
+
+    /// <summary>
     /// An entry caused by the system — <b>the SLA monitor and nothing else</b> (§2.7, Story 09).
     /// <see cref="ActorUserId"/> is null, which is the other half of the same invariant.
     /// </summary>

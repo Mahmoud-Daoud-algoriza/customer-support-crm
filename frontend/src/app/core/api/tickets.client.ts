@@ -77,6 +77,37 @@ export interface TicketActivityEntry {
 }
 
 /**
+ * `Message` — docs/api-design.md §6.4, the **staff** shape of `GET /tickets/{id}/messages`.
+ *
+ * **`direction` and `channel` are server-derived** (§7, **PF-7**): direction from the author's
+ * role, channel from the endpoint used. Neither is ever sent — see `postMessage` below.
+ *
+ * **The portal has its own type** (`PortalMessage` in `portal.client.ts`), which omits `channel`
+ * and `authorRole`. They are deliberately not the same type: AP-5 splits the path spaces, and one
+ * shared interface would make the portal's narrowing an optional field rather than a fact.
+ */
+export interface TicketMessage {
+    id: string;
+    ticketId: string;
+    author: UserSummary;
+    authorRole: string;
+    direction: MessageDirection;
+    channel: MessageChannel;
+    body: string;
+    postedAt: string;
+}
+
+/** Customer → `Inbound`, staff → `Outbound`. Decided by the server, never by this client. */
+export type MessageDirection = 'Inbound' | 'Outbound';
+
+/**
+ * The channel a message arrived on — the seam of docs/architecture.md §5.2. Two values are real
+ * today; **a new one arrives with the adapter that implements it** (Story 18), and this union is
+ * the only place the front end would learn about it.
+ */
+export type MessageChannel = 'WebForm' | 'Portal';
+
+/**
  * `TicketListItem` — the row shape of `GET /tickets` (docs/api-design.md §6.4).
  *
  * **Everything the queue renders and nothing more** (docs/ui-design.md §5.1): no description, no
@@ -219,6 +250,33 @@ export class TicketsClient extends ApiClientBase {
      */
     activity(id: string, paging?: PageRequest): Observable<Paged<TicketActivityEntry>> {
         return this.get<Paged<TicketActivityEntry>>(`tickets/${id}/activity`, paging as Record<string, QueryValue>);
+    }
+
+    /**
+     * `GET /tickets/{id}/messages` — the customer-visible thread, **oldest first**, because a
+     * conversation is read forwards.
+     *
+     * **This is not the internal-notes endpoint.** Internal notes are a different entity on a
+     * different route (Story 14, T2-C), so no merged list is filtered here and a rendering bug
+     * cannot leak one.
+     */
+    messages(id: string, paging?: PageRequest): Observable<Paged<TicketMessage>> {
+        return this.get<Paged<TicketMessage>>(`tickets/${id}/messages`, paging as Record<string, QueryValue>);
+    }
+
+    /**
+     * `POST /tickets/{id}/messages` — an outbound reply.
+     *
+     * **The body carries `body` and nothing else.** `direction`, `channel`, the author and the
+     * timestamp are all server-derived, and sending any of them is a `400` (AP-10, §7) — so this
+     * signature takes a string, not an object a caller could add a field to.
+     *
+     * **An agent reply never transitions the ticket**, which is why this returns a bare message
+     * rather than the portal's `{ message, ticketStatus, statusChanged }` envelope. A reply on a
+     * `Closed` or `Cancelled` ticket comes back as `409 ticket-terminal`.
+     */
+    postMessage(id: string, body: string): Observable<TicketMessage> {
+        return this.post<TicketMessage>(`tickets/${id}/messages`, { body });
     }
 
     attachments(id: string, paging?: PageRequest): Observable<Paged<AttachmentMetadata>> {

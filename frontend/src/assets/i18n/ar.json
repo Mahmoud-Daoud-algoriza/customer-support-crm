@@ -52,7 +52,8 @@
         "attachment-too-large": "حجم هذا الملف أكبر من الحد المسموح به.",
         "assignee-out-of-department": "هذا الوكيل ليس ضمن قسم هذه التذكرة.",
         "transition-not-permitted": "لا يسمح دورك بإجراء هذا التغيير على هذه التذكرة.",
-        "illegal-transition": "هذا التغيير غير مسموح من الحالة الحالية للتذكرة."
+        "illegal-transition": "هذا التغيير غير مسموح من الحالة الحالية للتذكرة.",
+        "ticket-terminal": "هذه التذكرة مغلقة، لذلك لا تُقبل ردود إضافية."
     },
     "primeng": {
         "accept": "نعم",
@@ -226,6 +227,28 @@
             "Medium": "متوسطة",
             "High": "عالية",
             "Urgent": "عاجلة"
+        },
+        "thread": "المحادثة",
+        "threadEmptyTitle": "لا توجد ردود بعد",
+        "threadEmptyMessage": "ستظهر هنا الردود المتبادلة بينك وبين العميل.",
+        "reply": "إرسال الرد",
+        "replyLabel": "ردّك",
+        "replyPlaceholder": "اكتب ردًا للعميل…",
+        "terminalNoReply": "هذه التذكرة مغلقة. لا تُقبل ردود إضافية.",
+        "channel": {
+            "WebForm": "نموذج الويب",
+            "Portal": "البوابة"
         }
+    },
+    "portal": {
+        "submitTitle": "إرسال طلب",
+        "subject": "الموضوع",
+        "description": "الوصف",
+        "category": "الفئة",
+        "categoryPlaceholder": "اختر فئة",
+        "urgentLabel": "هذا الطلب عاجل",
+        "submit": "إرسال الطلب",
+        "requestTitle": "طلبك",
+        "reopened": "أعاد ردّك فتح هذا الطلب. سيتابعه أحد الموظفين من جديد."
     }
 }

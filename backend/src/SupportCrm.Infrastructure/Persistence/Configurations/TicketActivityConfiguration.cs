@@ -59,11 +59,22 @@ public sealed class TicketActivityConfiguration : IEntityTypeConfiguration<Ticke
             .HasForeignKey(a => a.ActorUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // MessageId and InternalNoteId are mapped as plain columns with no foreign key: neither
-        // TicketMessage (Story 07) nor TicketInternalNote (Story 14) exists yet. The columns are
-        // part of this entity's shape regardless of when the other sides land — the same placement
-        // Story 04 used for Attachment.TicketId, which this story now completes.
+        // MessageId is now a real foreign key — Story 07 landed the other side. It is set if and
+        // only if ActivityType is MessagePosted (§2.7 invariant), which TicketActivity.MessagePosted
+        // makes structural: no other factory accepts a message id, and that one accepts no type.
+        //
+        // Restrict, not Cascade: §5 constraint 17 says every message has exactly one activity row,
+        // so a message must not be removable while its row points at it. Nothing deletes a message
+        // in any case — §2.8 makes it immutable and no service exposes a delete.
         builder.Property(a => a.MessageId);
+        builder.HasOne<TicketMessage>()
+            .WithMany()
+            .HasForeignKey(a => a.MessageId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // InternalNoteId stays a plain column with no foreign key: TicketInternalNote is Story 14's
+        // and does not exist yet. The column is part of this entity's shape regardless of when the
+        // other side lands — the same placement Story 04 used for Attachment.TicketId.
         builder.Property(a => a.InternalNoteId);
 
         // ---------------------------------------------------------------- indexes (§6)

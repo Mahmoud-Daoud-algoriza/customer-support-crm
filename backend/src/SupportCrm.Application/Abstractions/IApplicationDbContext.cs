@@ -42,5 +42,11 @@ public interface IApplicationDbContext
     /// <summary>Story 05 — the append-only spine of docs/data-model.md §2.7.</summary>
     DbSet<TicketActivity> TicketActivities { get; }
 
+    /// <summary>
+    /// Story 07 — the one normalized message model of docs/data-model.md §2.8, carrying the channel
+    /// it arrived on (docs/architecture.md §5.2). Scoped through the ticket, never independently.
+    /// </summary>
+    DbSet<TicketMessage> TicketMessages { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
