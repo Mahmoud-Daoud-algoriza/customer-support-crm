@@ -52,6 +52,7 @@ export class AppMenu {
             workspace.push({ label: t('nav.queue'), icon: 'pi pi-fw pi-inbox', routerLink: ['/workspace/queue'] });
             workspace.push({ label: t('nav.tickets'), icon: 'pi pi-fw pi-ticket', routerLink: ['/workspace/tickets'] });
             workspace.push({ label: t('nav.customers'), icon: 'pi pi-fw pi-users', routerLink: ['/workspace/customers'] });
+            workspace.push({ label: t('nav.notifications'), icon: 'pi pi-fw pi-bell', routerLink: ['/workspace/notifications'] });
 
             if (this.store.isAtLeast('Manager')) {
                 // TODO Story 15: Reports — Manager+ only (docs/ui-design.md §4.1).

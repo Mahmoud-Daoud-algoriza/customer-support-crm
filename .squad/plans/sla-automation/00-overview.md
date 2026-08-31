@@ -14,6 +14,19 @@ which is the **global** execution sequence across all feature folders
 Tracker integration is `none`; story ids are the folder names under
 [`.squad/stories/sla-automation/`](../../stories/sla-automation/).
 
+## Implementation progress
+
+Story 09 was delivered **whole** — all thirteen plan tasks in one vertical slice, backend and front
+end together.
+
+| Story | Plan tasks | Status |
+|---|---|---|
+| **09 — SLA, routing, escalation, notifications** | **1–13** — the `Notification` entity and its migration, the persistent publisher replacing the logging one, `SlaEvaluationService`, the `SlaMonitorHostedService` timer, round-robin auto-assignment, the notification read service and controller, the seeded overdue tickets, the twenty tests, and the typed client, store, bell and `/workspace/notifications` screen | ✅ **Done and verified 2026-08-31** |
+
+**OQ-2 needed no answer here** — it was already closed by **A-20** (the due timestamps freeze), and
+`SlaClock.OnPriorityChanged` has been a deliberate no-op since Story 05. The plan's blocked-decision
+box predates that closure; nothing in this story was blocked.
+
 ## Dependency notes
 
 **Phase 5.**

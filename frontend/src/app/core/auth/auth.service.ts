@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { firstValueFrom } from 'rxjs';
 import { IdentityClient, RegisterRequest } from '../api/identity.client';
+import { NotificationStore } from '../notifications/notification.store';
 import { AuthStore } from './auth.store';
 import { AuthToken } from './identity.model';
 
@@ -10,6 +11,7 @@ import { AuthToken } from './identity.model';
 export class AuthService {
     private readonly api = inject(IdentityClient);
     private readonly store = inject(AuthStore);
+    private readonly notifications = inject(NotificationStore);
     private readonly router = inject(Router);
 
     login(email: string, password: string): Observable<AuthToken> {
@@ -61,6 +63,10 @@ export class AuthService {
      */
     logout(returnUrl?: string): void {
         this.store.clear();
+
+        // Story 09 — the unread badge is per-user state, so it goes with the identity. Without this
+        // the next user to sign in on the same tab would briefly see the previous one's count.
+        this.notifications.clear();
 
         void this.router.navigate(['/auth/login'], {
             queryParams: returnUrl ? { returnUrl } : undefined,

@@ -37,11 +37,24 @@ public sealed class TicketHistoryTests(TicketApiFixture fixture) : IClassFixture
             priority = "Low",
         });
 
-        var ticketId = (await created.Content.ReadFromJsonAsync<JsonElement>())
-            .GetProperty("id").GetGuid();
+        var createdBody = await created.Content.ReadFromJsonAsync<JsonElement>();
+
+        var ticketId = createdBody.GetProperty("id").GetGuid();
+
+        // **Story 09 assigns at creation, so the manual assignment must target someone else.**
+        // Round-robin picks whichever Billing-department staff member is least recently assigned, and
+        // `AssignAsync` deliberately writes no history row when the assignee is unchanged — so
+        // re-assigning to whoever the policy just picked would produce one `Assigned` row on some runs
+        // and two on others, depending on the order the suite happened to execute in. Reading the
+        // automatic assignee and moving the ticket to the other one makes this a change every time.
+        var automaticAssignee = createdBody.GetProperty("assignee").GetProperty("id").GetGuid();
+
+        var manualAssignee = automaticAssignee == fixture.BillingAgentId
+            ? fixture.ManagerId
+            : fixture.BillingAgentId;
 
         await client.PostAsJsonAsync($"{Tickets}/{ticketId}/assignment",
-            new { assignedUserId = fixture.BillingAgentId });
+            new { assignedUserId = manualAssignee });
         await client.PatchAsJsonAsync($"{Tickets}/{ticketId}", new { priority = "High" });
         await client.PatchAsJsonAsync($"{Tickets}/{ticketId}", new { categoryCode = "payments" });
         await client.PostAsJsonAsync($"{Tickets}/{ticketId}/transition", new { targetStatus = "Open" });
@@ -56,8 +69,14 @@ public sealed class TicketHistoryTests(TicketApiFixture fixture) : IClassFixture
         var types = entries
             .Select(e => e.GetProperty("activityType").GetString() ?? string.Empty).ToArray();
 
+        // **Two `Assigned` rows, and both are real.** Story 09's round-robin assigns at creation
+        // (T2-D), and the manual `POST /assignment` above then overrides it with a different agent —
+        // which is exactly the behaviour T2-D requires to be recorded ("a manual reassignment
+        // overrides the automatic one and is recorded in ticket history"). The trail is append-only,
+        // so the superseded automatic assignment stays visible rather than being rewritten.
         Assert.Equal(
-            ["Created", "Assigned", "PriorityChanged", "CategoryChanged", "StatusChanged"], types);
+            ["Created", "Assigned", "Assigned", "PriorityChanged", "CategoryChanged", "StatusChanged"],
+            types);
 
         // Every entry carries an actor and a timestamp; §6.4's shape, member for member.
         foreach (var entry in entries)

@@ -1,9 +1,13 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { TranslocoModule } from '@jsverse/transloco';
+import { ButtonModule } from 'primeng/button';
+import { DrawerModule } from 'primeng/drawer';
 import { MessageModule } from 'primeng/message';
+import { DirectionService } from '../../../core/i18n/direction.service';
+import { AiAssistPanelComponent } from '../../../shared/components/ai-assist-panel/ai-assist-panel.component';
 import { ApiProblem, problemTranslationKey } from '../../../core/api/api-problem';
 import { Ticket, TicketStatus, TicketsClient } from '../../../core/api/tickets.client';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
@@ -23,9 +27,16 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
  *
  * <h3>Story 05 built the header, Story 06 the lifecycle, Story 07 the thread</h3>
  * The `Transition ▾` menu, the `Escalate` control and the **activity region** are Story 06's; the
- * **thread and reply composer** are Story 07's. Internal notes, tasks, suggested articles and the AI
- * panel are still to come, from Stories 11, 12 and 14. Regions load **independently**, so a slow
- * call never blanks the screen — and the thread is not chat: nothing on this screen polls (T3-B).
+ * **thread and reply composer** are Story 07's, and the **AI assists panel** is Story 11's. Internal
+ * notes, tasks and suggested articles are still to come, from Stories 12 and 14. Regions load
+ * **independently**, so a slow call never blanks the screen — and the thread is not chat: nothing on
+ * this screen polls (T3-B).
+ *
+ * <h3>One composer, one insertion point (UI-7)</h3>
+ * The AI panel's *Insert into reply* is routed to the thread region's composer through
+ * `thread.insert(...)`. Story 08's quick replies land in the **same** draft, so there is exactly one
+ * place text can enter a reply and exactly one Send — which is what keeps A-8's "never auto-sent" true
+ * by construction rather than by discipline.
  *
  * <h3>Assignment does not change status (A-18)</h3>
  * **After assigning an unassigned `New` ticket the status chip must still read `New`.** The header
@@ -54,7 +65,7 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
     selector: 'app-ticket-detail',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [DatePipe, ErrorStateComponent, EscalateButtonComponent, LoadingStateComponent, MessageModule, PriorityChipComponent, RouterLink, StatusChipComponent, TicketActivityRegionComponent, TicketAssignComponent, TicketCustomerPanelComponent, TicketThreadRegionComponent, TransitionMenuComponent, TranslocoModule],
+    imports: [AiAssistPanelComponent, ButtonModule, DatePipe, DrawerModule, ErrorStateComponent, EscalateButtonComponent, LoadingStateComponent, MessageModule, PriorityChipComponent, RouterLink, StatusChipComponent, TicketActivityRegionComponent, TicketAssignComponent, TicketCustomerPanelComponent, TicketThreadRegionComponent, TransitionMenuComponent, TranslocoModule],
     template: `
         <section class="app-page">
             <a routerLink="/workspace/tickets">{{ 'actions.back' | transloco }}</a>
@@ -102,6 +113,16 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
                                 <app-transition-menu [status]="row.status" [busy]="working()" (transition)="transition($event)" />
 
                                 <app-escalate-button [status]="row.status" [busy]="working()" (escalate)="escalate()" />
+
+                                <!-- Phone width only: the panel is a side region above it. -->
+                                @if (phone()) {
+                                    <p-button
+                                        severity="secondary"
+                                        [outlined]="true"
+                                        icon="pi pi-user"
+                                        [label]="'tickets.customerPanel' | transloco"
+                                        (onClick)="panelOpen.set(true)" />
+                                }
                             </div>
 
                             <!-- A refused transition renders inline, from the problem TYPE (§9). -->
@@ -126,17 +147,43 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
                                  middle of the screen and the change log below it. A reply bumps the
                                  activity token, because a MessagePosted row has just been written
                                  and the first outbound one also stamped firstRespondedAt. -->
-                            <app-ticket-thread-region [ticketId]="row.id" [status]="row.status" [reloadToken]="activityToken()" (replied)="onReplied()" />
+                            <app-ticket-thread-region #thread [ticketId]="row.id" [status]="row.status" [reloadToken]="activityToken()" (replied)="onReplied()" />
 
                             <!-- The activity region. It reloads when a lifecycle action lands,
                                  which is what makes the new history entry visible immediately. -->
                             <app-ticket-activity-region [ticketId]="row.id" [reloadToken]="activityToken()" />
 
-                            <!-- Story 11: the AI panel. Story 12: suggested articles. Story 14:
-                                 internal notes and tasks. Each lands in this column. -->
+                            <!-- Story 12: suggested articles. Story 14: internal notes and tasks.
+                                 Each lands in this column. -->
                         </div>
 
-                        <app-ticket-customer-panel [customerId]="row.customer.id" />
+                        <!-- The customer panel: a side region on desktop, a drawer at phone width
+                             (ui-design §5.3, §10.3, UI-4). Rendered as one or the other, never
+                             both, so the phone never pays for a panel it cannot see.
+
+                             Neither path is a route, and that is the T1-C requirement: opening the
+                             customer's details must never cost an agent an unsent reply. The thread
+                             region is a sibling of this block, so toggling the drawer cannot
+                             remount the composer. -->
+                        <!-- Story 11 — the AI assists region (§5.3, UI-6). It sits in the side column
+                             on desktop, and stacks with it at narrower widths. Its draft is routed to
+                             the thread region's composer: **one composer, one insertion point**
+                             (UI-7), so there is no second way a message could leave. -->
+                        <div class="app-ticket-side">
+                            <app-ai-assist-panel [ticketId]="row.id" (insertDraft)="thread.insert($event)" />
+                        </div>
+
+                        @if (phone()) {
+                            <p-drawer
+                                [(visible)]="panelOpen"
+                                [position]="drawerPosition()"
+                                [header]="'tickets.customerPanel' | transloco"
+                            >
+                                <app-ticket-customer-panel [customerId]="row.customer.id" />
+                            </p-drawer>
+                        } @else {
+                            <app-ticket-customer-panel [customerId]="row.customer.id" />
+                        }
                     </div>
                 } @else {
                     <app-loading-state [rowCount]="5" />
@@ -165,6 +212,30 @@ export class TicketDetailComponent {
     /** Bumped after a lifecycle action so the activity region reloads. */
     protected readonly activityToken = signal(0);
 
+    /** Whether the customer panel's drawer is open. Phone width only; false on every other width. */
+    protected readonly panelOpen = signal(false);
+
+    /**
+     * True below the phone breakpoint of docs/ui-design.md §10.3 (576px), where the customer panel
+     * becomes a drawer.
+     *
+     * **A `matchMedia` listener rather than a resize handler**: the browser evaluates the query and
+     * tells us only when the answer changes, so this does no work while the user scrolls or types.
+     * The breakpoint value is the one `_breakpoints.scss` declares — the mixin cannot be read from
+     * TypeScript, so the number appears twice; recorded as finding **I-30**.
+     */
+    protected readonly phone = signal(false);
+
+    /**
+     * **The drawer slides in from the trailing edge, and that edge mirrors under RTL** (§10.2).
+     * PrimeNG's `position` takes physical values only, so the logical choice is made here from the
+     * active direction rather than being left as a hardcoded `right` that would fly in from the
+     * wrong side in Arabic.
+     */
+    protected readonly drawerPosition = computed<'left' | 'right'>(() =>
+        this.direction.isRtl() ? 'left' : 'right'
+    );
+
     protected readonly terminal = computed(() => {
         const row = this.ticket();
 
@@ -173,8 +244,29 @@ export class TicketDetailComponent {
 
     protected errorKey = problemTranslationKey;
 
+    private readonly direction = inject(DirectionService);
+
     constructor() {
         this.load();
+
+        // `_breakpoints.scss`'s $breakpoint-phone, as the same exclusive upper bound the mixin uses.
+        const query = window.matchMedia('(max-width: 575.98px)');
+
+        this.phone.set(query.matches);
+
+        const onChange = (event: MediaQueryListEvent) => {
+            this.phone.set(event.matches);
+
+            // Leaving phone width while the drawer is open would strand it over a layout that
+            // already shows the panel as a side region.
+            if (!event.matches) {
+                this.panelOpen.set(false);
+            }
+        };
+
+        query.addEventListener('change', onChange);
+
+        inject(DestroyRef).onDestroy(() => query.removeEventListener('change', onChange));
     }
 
     protected load(): void {

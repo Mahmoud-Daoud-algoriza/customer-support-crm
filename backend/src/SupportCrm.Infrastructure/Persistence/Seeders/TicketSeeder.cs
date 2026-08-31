@@ -68,6 +68,10 @@ public sealed class TicketSeeder(
         public static readonly Guid TechnicalLoginLoop = new("44444444-4444-4444-4444-444444444404");
         public static readonly Guid TechnicalExportFails = new("44444444-4444-4444-4444-444444444405");
         public static readonly Guid AccountSeatRequest = new("44444444-4444-4444-4444-444444444406");
+
+        // Story 09 — deliberately created in the PAST so their SLA deadlines have already passed.
+        public static readonly Guid BillingBreachedStatement = new("44444444-4444-4444-4444-444444444407");
+        public static readonly Guid TechnicalBreachedOutage = new("44444444-4444-4444-4444-444444444408");
     }
 
     public async Task SeedAsync(CancellationToken ct)
@@ -80,40 +84,67 @@ public sealed class TicketSeeder(
         // The `assignee` column is deliberately null on half of them — Story 05 delivers MANUAL
         // assignment only, and the registered auto-assignment policy assigns nobody (T2-D is
         // Story 09's), so an unassigned demo ticket is the honest state rather than an omission.
+        // `CreatedHoursAgo` backdates the SLA clock origin. It is 0 for every ticket except the two
+        // Story 09 adds, whose deadlines must already have passed — see the note on those rows.
         var toSeed = new (Guid Id, Guid CustomerId, string CategoryCode, TicketPriority Priority,
-            string Subject, string Description, Guid CreatedBy, Guid? AssignedTo, bool IsUrgent)[]
+            string Subject, string Description, Guid CreatedBy, Guid? AssignedTo, bool IsUrgent,
+            int CreatedHoursAgo)[]
         {
             (Tickets.BillingOverdueInvoice, CustomerSeeder.Customers.AminaHaddad, "billing",
                 TicketPriority.High, "Invoice 10432 is overdue but was paid",
                 "The customer says invoice 10432 was paid by transfer on the 3rd, but the account still shows it outstanding.",
-                IdentitySeeder.Users.BillingAgent, IdentitySeeder.Users.BillingAgent, false),
+                IdentitySeeder.Users.BillingAgent, IdentitySeeder.Users.BillingAgent, false, 0),
 
             (Tickets.BillingRefundRequest, CustomerSeeder.Customers.BrunoOkafor, "billing",
                 TicketPriority.Low, "Refund request for duplicate charge",
                 "Duplicate charge on the March statement. The customer would like the second one refunded.",
-                IdentitySeeder.Users.BillingAgent, null, false),
+                IdentitySeeder.Users.BillingAgent, null, false, 0),
 
             // Customer in North Branch, agent is not branch-scoped — the row Story 03's branch test
             // needs (A-2). Urgent, so the queue's SLA-urgency default sort has something to lead on.
             (Tickets.PaymentsCardDeclined, CustomerSeeder.Customers.ChenWei, "payments",
                 TicketPriority.Urgent, "Card declined at checkout every time",
                 "Every payment attempt is declined at the final step. The customer has tried two cards.",
-                IdentitySeeder.Users.BillingAgent, IdentitySeeder.Users.BillingAgent, true),
+                IdentitySeeder.Users.BillingAgent, IdentitySeeder.Users.BillingAgent, true, 0),
 
             (Tickets.TechnicalLoginLoop, CustomerSeeder.Customers.DianaRossi, "technical",
                 TicketPriority.Urgent, "Sign-in redirects in a loop",
                 "After entering credentials the page returns to the sign-in form with no error shown.",
-                IdentitySeeder.Users.TechnicalAgent, IdentitySeeder.Users.TechnicalAgent, true),
+                IdentitySeeder.Users.TechnicalAgent, IdentitySeeder.Users.TechnicalAgent, true, 0),
 
             (Tickets.TechnicalExportFails, CustomerSeeder.Customers.AminaHaddad, "technical",
                 TicketPriority.Medium, "CSV export fails for large date ranges",
                 "Exporting more than three months of data returns an error page. Smaller ranges work.",
-                IdentitySeeder.Users.TechnicalAgent, null, false),
+                IdentitySeeder.Users.TechnicalAgent, null, false, 0),
 
             (Tickets.AccountSeatRequest, CustomerSeeder.Customers.ChenWei, "account",
                 TicketPriority.Medium, "Request two additional user seats",
                 "The customer would like two more seats added to their account before the next billing cycle.",
-                IdentitySeeder.Users.TechnicalAgent, null, false),
+                IdentitySeeder.Users.TechnicalAgent, null, false, 0),
+
+            // ---------------------------------------------------------------- Story 09 (task 9)
+            // **These two are created in the past on purpose, and a seeded breach is not a bug.**
+            // The SLA sweep flags what is overdue; with every seeded ticket created "now", the first
+            // sweep after a fresh volume would find nothing and the queue's breached-first ordering,
+            // the notification badge and Story 15's SLA tile would all demo against zero rows.
+            //
+            // The deadlines are not fabricated: `SlaClock.ComputeAtCreation` runs on a backdated
+            // `createdAt`, so these rows carry exactly the deadlines A-3's arithmetic gives a ticket
+            // that genuinely was opened four and two days ago. One per department, so both halves of
+            // the reporting split have breach data.
+            //
+            // `High` resolves in 24h and `Urgent` in 8h, so both are comfortably past due.
+            (Tickets.BillingBreachedStatement, CustomerSeeder.Customers.BrunoOkafor, "billing",
+                TicketPriority.High, "Statement shows charges from a closed account",
+                "Three charges on the latest statement belong to an account the customer closed last year.",
+                IdentitySeeder.Users.BillingAgent, IdentitySeeder.Users.BillingAgent, false,
+                CreatedHoursAgo: 96),
+
+            (Tickets.TechnicalBreachedOutage, CustomerSeeder.Customers.DianaRossi, "technical",
+                TicketPriority.Urgent, "Reporting dashboard has been unavailable since Monday",
+                "The reporting dashboard returns a server error for every user in the customer's organisation.",
+                IdentitySeeder.Users.TechnicalAgent, null, true,
+                CreatedHoursAgo: 48),
         };
 
         var seeded = 0;
@@ -141,8 +172,12 @@ public sealed class TicketSeeder(
                            ?? throw new InvalidOperationException(
                                $"TicketSeeder references category '{row.CategoryCode}', which is not configured.");
 
+            // The SLA clock origin for this row. Backdated only for the Story 09 rows; `now` for
+            // every other, so nothing about the original six changed.
+            var createdAt = now.AddHours(-row.CreatedHoursAgo);
+
             var (firstResponseDueAt, resolutionDueAt) =
-                SlaClock.ComputeAtCreation(now, row.Priority, TargetsFor(row.Priority));
+                SlaClock.ComputeAtCreation(createdAt, row.Priority, TargetsFor(row.Priority));
 
             var ticket = Ticket.Create(
                 row.Id,
@@ -153,7 +188,7 @@ public sealed class TicketSeeder(
                 category.Code,
                 row.Priority,
                 row.CreatedBy,
-                now,
+                createdAt,
                 firstResponseDueAt,
                 resolutionDueAt,
                 row.IsUrgent);
@@ -172,7 +207,7 @@ public sealed class TicketSeeder(
             // Written directly rather than through TicketActivityRecorder: the recorder resolves its
             // actor from ICurrentUser, and a seeder runs at startup with no request and no caller.
             db.TicketActivities.Add(TicketActivity.ByUser(
-                Guid.NewGuid(), ticket.Id, TicketActivityType.Created, row.CreatedBy, now));
+                Guid.NewGuid(), ticket.Id, TicketActivityType.Created, row.CreatedBy, createdAt));
 
             if (row.AssignedTo is { } assignedTo)
             {
@@ -182,7 +217,7 @@ public sealed class TicketSeeder(
                     .FirstOrDefaultAsync(ct);
 
                 db.TicketActivities.Add(TicketActivity.ByUser(
-                    Guid.NewGuid(), ticket.Id, TicketActivityType.Assigned, row.CreatedBy, now,
+                    Guid.NewGuid(), ticket.Id, TicketActivityType.Assigned, row.CreatedBy, createdAt,
                     newValue: assigneeName));
             }
 

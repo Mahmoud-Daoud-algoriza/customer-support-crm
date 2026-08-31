@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using SupportCrm.Application.Abstractions;
+using SupportCrm.Application.Modules.Sla;
+using SupportCrm.Api.Auth;
 using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Organization;
@@ -97,6 +99,36 @@ public sealed class SupportCrmApiFactory : WebApplicationFactory<Program>
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", IssueTokenFor(userId));
 
         return client;
+    }
+
+    /// <summary>
+    /// Runs one SLA sweep, <b>exactly as <c>SlaMonitorHostedService</c> does</b> — a fresh scope, the
+    /// system identity installed on it, then <c>SlaEvaluationService</c>. Returns the number of
+    /// tickets flagged.
+    ///
+    /// <para>
+    /// <b>The timer itself is not under test and does not run here</b>: <c>ConfigureWebHost</c>
+    /// removes every <c>IHostedService</c>, so the sweep happens only when a test asks for it. That is
+    /// what makes "run it twice and nothing changes" an assertion rather than a race — a background
+    /// timer ticking mid-test would make every count in this suite depend on wall-clock luck.
+    /// </para>
+    ///
+    /// <para>
+    /// It reproduces the hosted service's scope setup rather than reaching past it, so a test proves
+    /// the path production uses. If the identity were omitted the reused escalation path would throw
+    /// <c>NoCurrentUserException</c> — which is the failure a test should catch, not one a helper
+    /// should hide.
+    /// </para>
+    /// </summary>
+    public async Task<int> RunSlaSweepAsync(CancellationToken ct = default)
+    {
+        using var scope = Services.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<CurrentUserAccessor>().SetSystem();
+
+        return await scope.ServiceProvider
+            .GetRequiredService<SlaEvaluationService>()
+            .EvaluateDueTicketsAsync(ct);
     }
 
     /// <summary>Runs work against a fresh scope's <see cref="SupportCrmDbContext"/>.</summary>

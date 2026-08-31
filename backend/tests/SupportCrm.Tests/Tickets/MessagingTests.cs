@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SupportCrm.Application.Modules.Sla;
+using SupportCrm.Domain.Modules.Sla;
 using SupportCrm.Domain.Modules.Tickets;
 
 namespace SupportCrm.Tests.Tickets;
@@ -532,6 +533,23 @@ public sealed class MessagingTests(TicketApiFixture fixture) : IClassFixture<Tic
     public async Task A_customer_reply_on_an_unassigned_ticket_raises_no_notification()
     {
         var ticketId = await OpenTicketAsync();
+
+        // **Story 09 made this precondition something the test has to establish.** Round-robin
+        // auto-assignment now assigns at creation (T2-D), so a ticket opened through the endpoint is
+        // no longer unassigned by default and the rule below would be untested.
+        //
+        // The unassigned state is still genuinely reachable in production — the policy returns null
+        // when a department has no active agent — but no endpoint clears an assignee (a ticket is
+        // reassigned, never un-assigned), so there is no API call that produces it. Reaching the
+        // column through EF is the honest way to set up a state the contract does not expose.
+        await fixture.Factory.WithDbAsync(async db =>
+        {
+            var ticket = await db.Tickets.FirstAsync(t => t.Id == ticketId);
+
+            db.Entry(ticket).Property(nameof(Ticket.AssignedUserId)).CurrentValue = null;
+
+            return await db.SaveChangesAsync();
+        });
 
         var before = fixture.Notifications.For(ticketId).Count;
 

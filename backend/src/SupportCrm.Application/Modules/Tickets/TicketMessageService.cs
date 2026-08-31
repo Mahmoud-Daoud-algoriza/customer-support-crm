@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SupportCrm.Application.Abstractions;
 using SupportCrm.Application.Modules.Identity;
 using SupportCrm.Application.Modules.Sla;
+using SupportCrm.Domain.Modules.Sla;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Tickets;
 

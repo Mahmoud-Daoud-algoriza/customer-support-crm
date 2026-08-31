@@ -15,4 +15,11 @@
     <PackageReference Include="Scalar.AspNetCore" Version="2.17.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The test host reproduces SlaMonitorHostedService's scope setup, which needs
+         CurrentUserAccessor.SetSystem (Story 09). Exposing internals to the test assembly is
+         narrower than making the system identity public: no production caller outside this assembly
+         can install it, which is the property that makes it safe. -->
+    <InternalsVisibleTo Include="SupportCrm.Tests" />
+  </ItemGroup>
 </Project>

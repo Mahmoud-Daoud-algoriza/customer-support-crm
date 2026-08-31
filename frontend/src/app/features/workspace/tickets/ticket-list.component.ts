@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
+import { ButtonModule } from 'primeng/button';
 import { PaginatorModule } from 'primeng/paginator';
 import { TableModule } from 'primeng/table';
 import { ApiProblem } from '../../../core/api/api-problem';
@@ -39,11 +40,18 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
     selector: 'app-ticket-list',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [DatePipe, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, PaginatorModule, PriorityChipComponent, RouterLink, StatusChipComponent, TableModule, TicketFilterBarComponent, TranslocoModule],
+    imports: [ButtonModule, DatePipe, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, PaginatorModule, PriorityChipComponent, RouterLink, StatusChipComponent, TableModule, TicketFilterBarComponent, TranslocoModule],
     template: `
         <section class="app-page">
             <header class="app-page__header">
                 <h1 class="app-page__title">{{ 'tickets.title' | transloco }}</h1>
+
+                <!-- Story 11 task 6 gives POST /tickets its first screen; this is the way in. -->
+                <p-button
+                    icon="pi pi-plus"
+                    [label]="'tickets.createTitle' | transloco"
+                    routerLink="/workspace/tickets/new"
+                />
             </header>
 
             <app-ticket-filter-bar [value]="filter()" (filterChange)="applyFilters($event)" />

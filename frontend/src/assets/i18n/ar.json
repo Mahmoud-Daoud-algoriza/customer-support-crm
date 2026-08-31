@@ -87,7 +87,8 @@
         "users": "المستخدمون",
         "customers": "العملاء",
         "tickets": "التذاكر",
-        "queue": "قائمتي"
+        "queue": "قائمتي",
+        "notifications": "التنبيهات"
     },
     "admin": {
         "users": {
@@ -247,7 +248,10 @@
             "day": "ي",
             "hour": "س",
             "minute": "د"
-        }
+        },
+        "quickReplies": "ردود سريعة",
+        "createTitle": "تذكرة جديدة",
+        "choosecustomer": "اختر عميلًا"
     },
     "portal": {
         "submitTitle": "إرسال طلب",
@@ -265,6 +269,33 @@
         "age": "أُنشئت",
         "emptyTitle": "لا توجد تذاكر مُسندة إليك",
         "emptyMessage": "ستظهر هنا التذاكر المُسندة إليك، الأكثر إلحاحًا أولًا.",
-        "viewAllTickets": "عرض كل التذاكر"
+        "viewAllTickets": "عرض كل التذاكر",
+        "filters": "المرشّحات"
+    },
+    "notifications": {
+        "title": "التنبيهات",
+        "viewAll": "عرض كل التنبيهات",
+        "showUnread": "غير المقروءة فقط",
+        "showAll": "عرض الكل",
+        "emptyTitle": "لا توجد تنبيهات",
+        "emptyMessage": "ستظهر هنا الإسنادات وتجاوزات مستوى الخدمة والتصعيدات وردود العملاء.",
+        "type": {
+            "TicketAssigned": "أُسندت إليك تذكرة",
+            "SlaBreached": "تم تجاوز هدف مستوى الخدمة",
+            "TicketEscalated": "تم تصعيد التذكرة",
+            "CustomerReplied": "ردّ العميل"
+        }
+    },
+    "ai": {
+        "title": "مساعدات الذكاء الاصطناعي",
+        "summarize": "تلخيص",
+        "suggestReply": "اقترح ردًا",
+        "generatedLabel": "من إنشاء الذكاء الاصطناعي",
+        "insertIntoReply": "إدراج في الرد",
+        "dismiss": "إخفاء",
+        "unavailable": "مساعدة الذكاء الاصطناعي غير متاحة. تبقى كل الإجراءات الأخرى في هذه الشاشة تعمل.",
+        "unavailableInline": "مساعدة الذكاء الاصطناعي غير متاحة — اختر التصنيف والأولوية بنفسك.",
+        "suggestedClassification": "المقترح:",
+        "overridden": "(قمت بتغييره)"
     }
 }

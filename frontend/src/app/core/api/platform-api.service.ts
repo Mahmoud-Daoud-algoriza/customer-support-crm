@@ -31,17 +31,38 @@ export interface CustomerConfig {
     feedback: { ratingScale: { min: number; max: number } };
 }
 
+/** One configured canned response — `GET /config/staff`, docs/api-design.md §6.9. */
+export interface QuickReply {
+    id: string;
+    title: string;
+    body: string;
+}
+
 /**
- * The two platform endpoints Story 01 delivers, plus `GET /config` — the customer-safe tier, which
- * Story 05's ticket list reads for its category filter options (docs/ui-design.md §5.2).
+ * `StaffConfig` — `GET /config/staff`, docs/api-design.md §6.9. **Agent and above**; a Customer
+ * calling it gets `403`, and that is correct rather than AP-4's `404` — it is a capability denial the
+ * caller can infer from their own role (§4.2, AP-17).
  *
- * `GET /config/staff` (priorities, quick replies, SLA targets, the category → department map) is
- * not read here: Story 05 needs none of it. Priorities are fixed by A-6 and typed in
- * `tickets.client.ts`; the routing map is server-side (A-14).
+ * **Which is why nothing under `features/portal/` may read it** (UI-11). Story 08 needs
+ * `quickReplies`; the other three groups are typed because the endpoint returns them, not because a
+ * screen reads them yet.
+ */
+export interface StaffConfig {
+    priorities: string[];
+    quickReplies: QuickReply[];
+    slaTargets: { priority: string; firstResponseHours: number; resolutionHours: number }[];
+    categoryDepartmentMap: { categoryCode: string; departmentId: string }[];
+}
+
+/**
+ * The two platform endpoints Story 01 delivers, plus both configuration tiers — `GET /config`, which
+ * Story 05's ticket list reads for its category filter options (docs/ui-design.md §5.2), and
+ * `GET /config/staff`, which Story 08's quick-reply control reads.
  */
 @Injectable({ providedIn: 'root' })
 export class PlatformApiService extends ApiClientBase {
     private customerConfig$?: Observable<CustomerConfig>;
+    private staffConfig$?: Observable<StaffConfig>;
 
     getHealth(): Observable<HealthStatus> {
         return this.get<HealthStatus>('health');
@@ -62,5 +83,18 @@ export class PlatformApiService extends ApiClientBase {
         );
 
         return this.customerConfig$;
+    }
+
+    /**
+     * **Cached for the session**, for the same reason as the customer tier: quick replies and SLA
+     * targets are configuration with no write endpoint (T2-I), so they change only by redeploy.
+     * Every ticket an agent opens would otherwise re-fetch the same three canned responses.
+     */
+    getStaffConfig(): Observable<StaffConfig> {
+        this.staffConfig$ ??= this.get<StaffConfig>('config/staff').pipe(
+            shareReplay({ bufferSize: 1, refCount: false })
+        );
+
+        return this.staffConfig$;
     }
 }

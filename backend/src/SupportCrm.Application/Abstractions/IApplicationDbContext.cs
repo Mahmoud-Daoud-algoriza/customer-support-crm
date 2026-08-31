@@ -3,6 +3,7 @@ using SupportCrm.Domain.Modules.Administration;
 using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Organization;
+using SupportCrm.Domain.Modules.Sla;
 using SupportCrm.Domain.Modules.Tickets;
 
 namespace SupportCrm.Application.Abstractions;
@@ -47,6 +48,12 @@ public interface IApplicationDbContext
     /// it arrived on (docs/architecture.md §5.2). Scoped through the ticket, never independently.
     /// </summary>
     DbSet<TicketMessage> TicketMessages { get; }
+
+    /// <summary>
+    /// Story 09 — the in-app notifications of docs/data-model.md §2.12. <b>Recipient-scoped in every
+    /// query</b>: a notification belongs to one user and another user's row is a <c>404</c>.
+    /// </summary>
+    DbSet<Notification> Notifications { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -355,9 +355,12 @@ public sealed class TicketCreationTests(TicketApiFixture fixture) : IClassFixtur
         var entries = await fixture.Factory.WithDbAsync(async db =>
             await db.TicketActivities.Where(a => a.TicketId == id).ToListAsync());
 
-        var entry = Assert.Single(entries);
+        // **Story 09 added a second row here, and that is the approved behaviour.** Round-robin
+        // auto-assignment now runs at the creation seam (T2-D), so creation writes `Created` and then
+        // `Assigned`. This test is about the `Created` row — the start of the history spine — so it
+        // asserts that row rather than the count, which is what it always meant.
+        var entry = Assert.Single(entries, a => a.ActivityType == TicketActivityType.Created);
 
-        Assert.Equal(TicketActivityType.Created, entry.ActivityType);
         Assert.Null(entry.OldValue);
         Assert.Null(entry.NewValue);
     }

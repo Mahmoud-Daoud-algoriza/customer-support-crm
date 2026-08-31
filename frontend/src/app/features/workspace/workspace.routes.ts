@@ -9,7 +9,8 @@ import { Routes } from '@angular/router';
  * browse the customer directory because `GET /customers` refuses them, not because this file does.
  *
  * Story 04 adds `customers` and `customers/:id`; Story 05 adds `tickets` and `tickets/:id`;
- * Story 08 adds `queue` and makes it the area landing. The rest arrive with Stories 09, 12, 14, 15,
+ * Story 08 adds `queue` and makes it the area landing;
+ * Story 09 adds `notifications`. The rest arrive with Stories 12, 14, 15,
  * each added by the story that builds the screen so no route is ever a dead link.
  */
 export const workspaceRoutes: Routes = [
@@ -30,8 +31,19 @@ export const workspaceRoutes: Routes = [
         loadComponent: () => import('./tickets/ticket-list.component').then((m) => m.TicketListComponent)
     },
     {
+        // **Before `tickets/:id`**, or the router would read "new" as a ticket id and the detail
+        // screen would request a GUID that does not exist. Story 11 task 6.
+        path: 'tickets/new',
+        loadComponent: () => import('./tickets/ticket-create.component').then((m) => m.TicketCreateComponent)
+    },
+    {
         path: 'tickets/:id',
         loadComponent: () => import('./tickets/ticket-detail.component').then((m) => m.TicketDetailComponent)
+    },
+    {
+        path: 'notifications',
+        loadComponent: () =>
+            import('./notifications/notification-list.component').then((m) => m.NotificationListComponent)
     },
     {
         path: 'customers',

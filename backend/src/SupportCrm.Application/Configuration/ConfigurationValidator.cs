@@ -331,3 +331,52 @@ public sealed class QuickReplyOptionsValidator : IValidateOptions<QuickReplyOpti
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
     }
 }
+
+/// <summary>
+/// <c>SupportCrm:Ai</c> — Story 10, docs/architecture.md §5.1, §6.3.
+///
+/// <para>
+/// <b>The default configuration is always valid</b>, because the default is the fake: with nothing
+/// configured the application starts and every AI capability answers offline (A-7, product-scope §10
+/// item 5). Validation only has something to say once a real provider is deliberately selected.
+/// </para>
+///
+/// <para>
+/// <b>A selected provider with no credential fails at startup, with a sentence.</b> The alternative is
+/// a confusing <c>401</c> reaching the first agent who presses <em>Summarize</em> — a misconfiguration
+/// should be an operator's problem at boot, not a user's problem at random.
+/// </para>
+/// </summary>
+public sealed class AiOptionsValidator : IValidateOptions<AiOptions>
+{
+    public ValidateOptionsResult Validate(string? name, AiOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        _ = name;
+
+        if (options.Provider != AiProviderKind.Provider)
+        {
+            // The fake needs no endpoint, no key and no network. Nothing to check.
+            return ValidateOptionsResult.Success;
+        }
+
+        var failures = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(options.Endpoint))
+        {
+            failures.Add(
+                $"{AiOptions.SectionName}: Endpoint is required when Provider is 'Provider'. "
+                + "Set it, or leave Provider unset to use the offline fake.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.ApiKey))
+        {
+            failures.Add(
+                $"{AiOptions.SectionName}: ApiKey is required when Provider is 'Provider'. "
+                + "Supply it through the environment (SupportCrm__Ai__ApiKey); it is never committed.");
+        }
+
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+}

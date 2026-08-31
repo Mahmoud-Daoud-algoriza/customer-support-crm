@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
+import { ButtonModule } from 'primeng/button';
 import { PaginatorModule } from 'primeng/paginator';
 import { TableModule } from 'primeng/table';
 import { ApiProblem } from '../../../core/api/api-problem';
@@ -55,7 +56,7 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
-        DatePipe, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, PaginatorModule,
+        ButtonModule, DatePipe, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, PaginatorModule,
         PriorityChipComponent, RouterLink, SlaIndicatorComponent, StatusChipComponent, TableModule,
         TicketFilterBarComponent, TranslocoModule
     ],
@@ -67,8 +68,23 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
 
             <!-- Quick filters only: status, priority, breached (§5.1). The assignee and department
                  controls are hidden because both are already decided for this screen — it is one
-                 agent's own queue, and TicketScope fixes the department. -->
-            <app-ticket-filter-bar [value]="filter()" [quickOnly]="true" (filterChange)="applyFilters($event)" />
+                 agent's own queue, and TicketScope fixes the department.
+
+                 At phone width the bar collapses behind this toggle — the filter sheet of §10.3 —
+                 so the queue itself is what fills a small screen. The toggle is hidden above the
+                 breakpoint by CSS, where the bar is always shown. -->
+            <p-button
+                class="app-filter-toggle"
+                severity="secondary"
+                [outlined]="true"
+                icon="pi pi-filter"
+                [label]="'queue.filters' | transloco"
+                [attr.aria-expanded]="filtersOpen()"
+                (onClick)="filtersOpen.set(!filtersOpen())" />
+
+            <div class="app-filter-sheet" [class.app-filter-sheet--open]="filtersOpen()">
+                <app-ticket-filter-bar [value]="filter()" [quickOnly]="true" (filterChange)="applyFilters($event)" />
+            </div>
 
             @if (problem(); as failure) {
                 <!-- Inline retry, navigation still usable (§5.1, §9). -->
@@ -169,6 +185,13 @@ export class AgentQueueComponent {
     protected readonly page = signal<Paged<TicketListItem> | null>(null);
     protected readonly problem = signal<ApiProblem | null>(null);
     protected readonly filter = signal<TicketListFilter>({});
+
+    /**
+     * Whether the phone-width filter sheet is expanded (docs/ui-design.md §10.3). Above the
+     * breakpoint it is ignored: CSS shows the bar unconditionally there, so this state costs nothing
+     * and there is no second layout rule in TypeScript to keep in step.
+     */
+    protected readonly filtersOpen = signal(false);
 
     constructor() {
         // UI-9: the URL drives the screen, exactly as on the ticket list. A filter change navigates;

@@ -120,6 +120,33 @@ public sealed class Ticket
     public bool ResolutionBreached { get; private set; }
 
     /// <summary>
+    /// Flags the first-response target as missed. <b>Latching: it cannot be cleared</b>
+    /// (docs/data-model.md §2.6 invariant 5), and calling it twice is harmless — which is what makes
+    /// Story 09's sweep idempotent without a lock, a queue or a dedupe table.
+    ///
+    /// <para>
+    /// <b>It takes no timestamp and stores none.</b> §2.12 gives the flag no companion
+    /// <c>breachedAt</c> column, and the moment is already recorded — the <c>SlaBreached</c> activity
+    /// row carries it, attributed to the system. A second timestamp here would be a second answer to
+    /// the same question.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>PF-5 is visible here and is deliberately not resolved.</b> <see cref="FirstRespondedAt"/> is
+    /// set only by the first outbound message, so a ticket resolved without a reply is permanently
+    /// first-response breached. That is A-3 as written; changing it would be a change to A-3, not an
+    /// implementation choice.
+    /// </para>
+    /// </summary>
+    public void MarkFirstResponseBreached() => FirstResponseBreached = true;
+
+    /// <summary>
+    /// Flags the resolution target as missed. Latching and idempotent, exactly as
+    /// <see cref="MarkFirstResponseBreached"/>.
+    /// </summary>
+    public void MarkResolutionBreached() => ResolutionBreached = true;
+
+    /// <summary>
     /// The only way a ticket comes into existence.
     /// <para>
     /// The due timestamps are <b>parameters, not computed here</b>: A-3's arithmetic needs the

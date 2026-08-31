@@ -1,11 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { TranslocoModule } from '@jsverse/transloco';
 import { ButtonModule } from 'primeng/button';
 import { PopoverModule } from 'primeng/popover';
 import { StyleClassModule } from 'primeng/styleclass';
+import { NotificationRow } from '../../core/api/notifications.client';
 import { Department, OrganizationClient } from '../../core/api/organization.client';
+import { NotificationStore } from '../../core/notifications/notification.store';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthStore } from '../../core/auth/auth.store';
 import { RuntimeConfigService } from '../../core/config/runtime-config.service';
@@ -66,8 +70,50 @@ import { AppConfigurator } from './app.configurator';
                 </div>
             </div>
 
-            <!-- TODO Story 09: the notification bell and its unread count (A-13). Its slot is left
-                 here deliberately, between the theme controls and the avatar. -->
+            <!-- Story 09 — the notification bell and its unread count (A-13), in the slot Story 02
+                 left for it. **Staff only**: the store refuses to load for a Customer, so the badge
+                 stays at zero and the panel stays empty on the portal shell (ui-design §4.2).
+
+                 **There is no mark-all-read control here or anywhere** (AP-18, ui-design §5.8) —
+                 the endpoint was removed from the contract as unrequested surface. -->
+            @if (store.isAtLeast('Agent')) {
+                <button
+                    type="button"
+                    class="layout-topbar-action app-bell"
+                    [attr.aria-label]="'notifications.title' | transloco"
+                    (click)="bell.toggle($event)"
+                >
+                    <i class="pi pi-bell"></i>
+                    @if (notifications.hasUnread()) {
+                        <span class="app-bell__badge app-ltr-numeric">{{ notifications.unreadCount() }}</span>
+                    }
+                </button>
+
+                <p-popover #bell>
+                    <div class="app-bell-panel">
+                        <p class="app-bell-panel__title">{{ 'notifications.title' | transloco }}</p>
+
+                        @if (notifications.recent().length === 0) {
+                            <p class="app-avatar-menu__meta">{{ 'notifications.emptyTitle' | transloco }}</p>
+                        } @else {
+                            <ul class="app-bell-panel__list">
+                                @for (row of notifications.recent(); track row.id) {
+                                    <li class="app-bell-panel__row" [class.app-bell-panel__row--unread]="!row.readAt">
+                                        <a [routerLink]="['/workspace/tickets', row.ticketId]" (click)="openNotification(row)">
+                                            {{ 'notifications.type.' + row.type | transloco }}
+                                        </a>
+                                        <span class="app-avatar-menu__meta">{{ row.ticketSubject }}</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+
+                        <a class="app-bell-panel__all" routerLink="/workspace/notifications">
+                            {{ 'notifications.viewAll' | transloco }}
+                        </a>
+                    </div>
+                </p-popover>
+            }
 
             @if (store.identity(); as identity) {
                 <button
@@ -107,6 +153,8 @@ export class AppTopbar {
     private readonly auth = inject(AuthService);
     private readonly organization = inject(OrganizationClient);
 
+    protected readonly notifications = inject(NotificationStore);
+
     private readonly departments = signal<Department[]>([]);
 
     /**
@@ -121,6 +169,13 @@ export class AppTopbar {
     });
 
     constructor() {
+        // The badge refreshes **on navigation** and at no other time (T3-B: nothing polls). Every
+        // staff screen change is a natural moment to re-read a small count, and it costs one request.
+        inject(Router).events.pipe(
+            filter((event) => event instanceof NavigationEnd),
+            takeUntilDestroyed()
+        ).subscribe(() => this.notifications.refresh());
+
         // Guarded on the id, not on the role. `GET /departments` is Agent+, and a Customer's
         // departmentId is always null (DM-1) — so the guard that renders nothing is the same guard
         // that keeps a Customer from ever making a request that would be a 403. This shell serves
@@ -132,6 +187,17 @@ export class AppTopbar {
 
             this.organization.getDepartments().subscribe((departments) => this.departments.set(departments));
         });
+    }
+
+    /**
+     * Marking read happens on the way to the ticket, not instead of it: the link navigates and this
+     * records that the user has seen it. **One notification at a time** — there is no bulk read
+     * (AP-18).
+     */
+    protected openNotification(row: NotificationRow): void {
+        if (!row.readAt) {
+            this.notifications.markRead(row.id);
+        }
     }
 
     /**

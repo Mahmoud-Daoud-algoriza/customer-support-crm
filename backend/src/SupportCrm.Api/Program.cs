@@ -72,6 +72,20 @@ builder.Services.AddOptions<SlaTargetOptions>()
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<SlaTargetOptions>, SlaTargetOptionsValidator>();
 
+// Story 10 — the AI seam. **The default is the fake**, so this binds cleanly with no configuration
+// at all (A-7, product-scope §10 item 5); the validator only speaks when a provider is selected.
+builder.Services.AddOptions<AiOptions>()
+    .Bind(builder.Configuration.GetSection(AiOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<AiOptions>, AiOptionsValidator>();
+
+// Story 09 — the sweep interval (AD-6). Same section as the targets: one operator concern.
+builder.Services.AddOptions<SlaMonitorOptions>()
+    .Bind(builder.Configuration.GetSection(SlaMonitorOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services.AddOptions<QuickReplyOptions>()
     .Bind(builder.Configuration.GetSection(QuickReplyOptions.SectionName))
     .ValidateDataAnnotations()
@@ -137,6 +151,10 @@ builder.Services.AddAuthorizationBuilder().AddSupportCrmPolicies();
 builder.Services.AddScoped<CurrentUserAccessor>();
 builder.Services.AddScoped<SupportCrm.Application.Abstractions.ICurrentUser>(
     sp => sp.GetRequiredService<CurrentUserAccessor>());
+
+// Story 09 — the periodic in-process SLA breach sweep (AD-6). It holds no business logic: each tick
+// creates a scope and calls SlaEvaluationService. No queue, no broker, no external scheduler.
+builder.Services.AddHostedService<SupportCrm.Api.BackgroundServices.SlaMonitorHostedService>();
 
 // ---------------------------------------------------------------------------------------------
 // Cross-cutting API concerns (docs/api-design.md §2)
@@ -228,6 +246,19 @@ app.UseMiddleware<CurrentUserMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Story 10 — record which AI implementation is live, once, at startup. **The plan verifies this by
+// reading the log**: with no credentials configured the line must name the offline fake, which is the
+// observable form of "the whole system runs with no external accounts" (A-7, product-scope §10 item 5).
+// The provider is never named, only the kind (api-design §8.1, AP-12).
+{
+    var aiOptions = app.Services.GetRequiredService<IOptions<AiOptions>>().Value;
+
+    app.Logger.LogInformation(
+        "AI seam: {Implementation} implementation selected (SupportCrm:Ai:Provider = {Provider}).",
+        aiOptions.Provider == AiProviderKind.Provider ? "real provider" : "deterministic offline fake",
+        aiOptions.Provider);
+}
 
 app.Run();
 

@@ -23,13 +23,17 @@ queue is the part the agent demo cannot do without.
 | Slice | Plan tasks | Status |
 |---|---|---|
 | **08-1 — My queue** | **2** (queue ordering + `assigneeId=me` coverage; **no production backend change was needed** — Story 05 already implements both), **3** (`SlaIndicator`), **4** (`/workspace/queue`), **8** (staff landing and navigation) | ✅ **Done and verified 2026-08-31** |
-| **08-2 — customer panel** | **6** — the side region / phone drawer, and the draft-survival rule (UI-4) | ⏳ Not started |
-| **08-3 — quick replies** | **1** (`quickReplies` in `StaffConfig`), **7** (the composer control) | ⏳ Not started |
+| **08-2 — customer panel** | **6** — the phone drawer with its RTL-mirrored slide, the composer bottom-dock and the queue's phone filter sheet (task 5's named half). The side region and the panel's content were delivered by Story 05 task 13 | ✅ **Done and verified 2026-08-31** |
+| **08-3 — quick replies** | **1** — **already complete**: Story 16 Part A bound, validated and published `quickReplies` on `GET /config/staff`, and three are configured. **7** (the composer control) | ✅ **Done and verified 2026-08-31** |
 
-Task **5** is partly discharged: the queue reuses Story 05's existing `.app-table-view` /
-`.app-card-view` pair rather than introducing a `shared/components/paged-table/`, so no shared table
-component exists yet. The filter sheet at phone width, and the ticket-detail half of task 5, remain
-with slice 08-2.
+Task **5** is discharged apart from the component extraction: the queue reuses Story 05's existing
+`.app-table-view` / `.app-card-view` pair rather than introducing a `shared/components/paged-table/`,
+so no shared table component exists (finding **I-29**). The phone-width filter sheet landed with
+08-2. The **ticket-detail accordion** of ui-design §10.3 did not: ui-design §13 assigns *"§10 —
+cross-cutting across every screen"* to **Story 17**, and the detail already collapses to a single
+column, so the accordion is left where §13 puts it (finding **I-31**).
+
+**Story 08 is complete.** All eight plan tasks are delivered across the three slices.
 
 ## Dependency notes
 

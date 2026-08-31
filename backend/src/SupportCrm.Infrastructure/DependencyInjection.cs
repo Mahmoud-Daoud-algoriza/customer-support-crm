@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SupportCrm.Application.Abstractions;
+using SupportCrm.Application.Configuration;
+using SupportCrm.Infrastructure.Seams.Ai;
+using SupportCrm.Application.Modules.Ai;
+using Microsoft.Extensions.Options;
 using SupportCrm.Application.Modules.Administration;
 using SupportCrm.Application.Modules.Customers;
 using SupportCrm.Application.Modules.Identity;
@@ -89,7 +93,9 @@ public static class DependencyInjection
         // intake), so the registered policy assigns nobody; Story 09 replaces it with round-robin
         // across active agents in the ticket's department (T2-D). Registering the no-op now is what
         // lets TicketService.CreateAsync depend on the seam rather than on its absence.
-        services.AddScoped<IAutoAssignmentPolicy, NoAutoAssignmentPolicy>();
+        // Story 09 — round-robin across active agents in the ticket's department (T2-D). It replaces
+        // Story 05's no-op at the seam CreateAsync already calls; the creation path needed no edit.
+        services.AddScoped<IAutoAssignmentPolicy, RoundRobinAssignmentPolicy>();
 
         // Story 06 Application services — the lifecycle half of the ticket module.
         services.AddScoped<TicketLifecycleService>();
@@ -98,7 +104,9 @@ public static class DependencyInjection
         // The notification seam (A-13). Story 06 registers the LOGGING implementation because the
         // Notification entity is Story 09's; Story 09 replaces this ONE line with the persistent
         // publisher that writes rows. The interface, the call sites and the type set do not change.
-        services.AddScoped<INotificationPublisher, LoggingNotificationPublisher>();
+        // Story 09 — the swap Story 06 promised: same interface, same call sites, rows instead of a log
+        // line. LoggingNotificationPublisher was deleted, so there is one implementation.
+        services.AddScoped<INotificationPublisher, PersistentNotificationPublisher>();
 
         // Story 07 Application services — the channel seam's one ingestion service and the
         // portal's own submission path. TicketMessageService is what Story 18's log adapter calls
@@ -111,6 +119,35 @@ public static class DependencyInjection
         // through ONE policy, which is what makes the cascade shared rather than a rule each story
         // re-expresses. Story 06's TicketLifecycleService.EscalateAsync is now its first caller.
         services.AddScoped<IEscalationRecipientPolicy, EscalationRecipientPolicy>();
+
+        // Story 09 Application services — the SLA sweep and the notification read side. The sweep is
+        // scoped, not singleton: the hosted service creates a scope per tick (AD-6).
+        services.AddScoped<SlaEvaluationService>();
+        services.AddScoped<NotificationService>();
+
+        // ------------------------------------------------------------------ Story 10: the AI seam
+        // **One interface, two implementations, chosen by configuration** (architecture §5.1, AD-11).
+        //
+        // **The fake is the default**, so the application starts and every AI capability answers with
+        // no configuration, no credential and no network at all — A-7 and product-scope §10 item 5
+        // require exactly that, and the intake is blunt about why: if the provider is unavailable on
+        // demo day, the fake IS the demo.
+        //
+        // The provider adapter is registered through `AddHttpClient` so it gets a pooled handler; the
+        // fake takes no HttpClient and a test asserts it never will.
+        services.AddHttpClient<ProviderAiService>();
+
+        // Story 11 — the three agent-facing assists that consume the seam.
+        services.AddScoped<TicketAiAssistService>();
+
+        services.AddScoped<IAiAssistService>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<AiOptions>>().Value;
+
+            return options.Provider == AiProviderKind.Provider
+                ? sp.GetRequiredService<ProviderAiService>()
+                : ActivatorUtilities.CreateInstance<DeterministicFakeAiService>(sp);
+        });
 
         return services;
     }

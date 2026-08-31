@@ -25,7 +25,7 @@
 | **Last updated** | 2026-08-31 |
 | **Current focus** | **Story 07 is complete — implemented and verified 2026-08-31**, delivered **whole rather than in slices**, like stories 05 and 06. **Phase 4 has begun.** The assessment now has its **one real communication channel** and the message model every future channel adapter plugs into: a customer submits through the web form, customer and agent exchange replies over ordinary request/response, and **the one status side effect in this API** fires — an `Inbound` message on a `Pending` ticket reopens it **in the same transaction**, writing both a `MessagePosted` and a `StatusChanged` row, the latter carrying `actorKind: User` and the **replying customer** as actor (R-13, R-14), **proven live against real SQL Server**. `direction` and `channel` are server-derived and a body carrying either is a `400` (PF-7, AP-10). **No inbound HTTP endpoint exists** (AP-11), so **PF-2 stays untouched and open for story 18**. **Suite 327 passing, 1 skipped by design** (was 309/0); front end **32 specs**, unchanged. **Three findings — I-25, I-26, I-27 — and one of them, I-25, needs a user decision**: no approved document states the priority a customer-submitted ticket is created with. **I-1, I-2, I-12 and I-16 remain the user’s call** from earlier stories. **Awaiting explicit approval before story 08.** Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
 | **Story 06 (previous focus)** | **Story 06 is complete — implemented and verified 2026-08-31**, delivered **whole rather than in slices**, like story 05. **Phase 3 and the assessment's core loop are closed**: a ticket can now be created, scoped, assigned, transitioned through A-5's graph, escalated, and read back with a full append-only history, and the customer timeline story 04 left against an empty set is populated. **The two rules are enforced separately and fail differently** — `403 transition-not-permitted` for A-16 authority, `409 illegal-transition` for A-5 legality, the latter carrying `allowedTransitions`, proven live. **A-21 is applied, not re-implemented**: escalation resolves recipients through `IEscalationRecipientPolicy`, verified live on **both** rungs — with the seeded manager, and with the manager unseated, where the `Warning` fired and the escalation still succeeded. **Suite 309 passing, 0 skipped** (was 251 after story 05); front end **32 specs** (was 23). **Three findings, all about the plan rather than the product — I-22, I-23, I-24 — and none needs a product decision.** **I-1, I-2, I-12 and I-16 remain the user's call** from earlier stories. **Awaiting explicit approval before story 07.** Phase order per [00-implementation-plan.md](../.squad/plans/00-implementation-plan.md) §3 |
-| **Next immediate step** | Story 08 slice **08-2** (customer panel) or **08-3** (quick replies) — see §10, item 0 |
+| **Next immediate step** | **Story 12** (`kb-articles-search`) — see §10, item 0. **All T1 scope is now delivered** |
 
 ### 1.1 How the 35% is calculated
 
@@ -586,6 +586,46 @@ than an *Age* one**, so the column does not claim to be something it is not. The
 already carries the *"how urgent is this"* signal the queue is scanned for, which is what age would
 have duplicated less precisely. **One line to change** if the design's literal wording is wanted:
 the same `splitDistance` helper `SlaIndicator` uses would produce it |
+| **I-34** | **`SeamUnavailableException` was `sealed`, so the plan's `AiUnavailableException` could
+not derive from it.** Story 01 created the base already carrying the `ai-unavailable` slug and an
+AI-specific default message; Story 10's task 1 specifies a derived type | **The base was unsealed and
+the derived type added as the plan specifies.** The slug stays on the base because the Problem Details
+handler maps on that type, so a derived seam exception needs no per-endpoint code (AP-12). The
+alternative — using the base directly — would have left Application code and tests unable to name the
+AI case specifically, and left a base class whose default message mentions AI. One line changed |
+| **I-32** | **Switching on auto-assignment broke three tests that asserted the previous world, and
+one of them had silently become order-dependent.** `TicketCreationTests` expected a single activity
+row, `TicketHistoryTests` a five-entry sequence, and `MessagingTests` relied on a created ticket being
+unassigned. Worse, the history test's row count depended on whether round-robin happened to pick the
+same agent the manual assignment targeted — `AssignAsync` correctly writes no row for a no-op — so it
+passed or failed with the suite's execution order | **All three updated to the new approved behaviour,
+intent preserved.** The creation test now asserts the `Created` row rather than the count; the history
+test **reads the automatic assignee and manually assigns the other Billing staff member**, so the
+override is a real change every time; the messaging test **establishes the unassigned precondition
+explicitly** through EF, because the state is reachable in production (a department with no active
+agent) but no endpoint clears an assignee. Confirmed stable across **three consecutive full runs** |
+| **I-33** | **The plan's "grep for excluded infrastructure returns nothing" check cannot pass if the
+code names the excluded products.** Verification step 6 greps the source for `hangfire|quartz|rabbit|
+kafka|redis`; the hosted service's own doc comment said *"no Hangfire, no Quartz"* and so matched it |
+**The comment was reworded** to *"no queue, no broker, no external job scheduler"* with a note saying
+why the products are not named. The check now returns nothing and stays meaningful for future runs —
+a guard that always reports a hit is a guard nobody reads |
+| **I-30** | **The phone breakpoint is now written in two places.** The customer-panel drawer needs
+the §10.3 phone breakpoint in TypeScript (`matchMedia`), and `_breakpoints.scss` already declares it
+as `$breakpoint-phone: 576px`. A Sass variable cannot be read from TypeScript, so `575.98px` appears
+in `ticket-detail.component.ts` as well | **Left duplicated, with the SCSS variable named in a
+comment at the TypeScript site.** The alternatives are worse at this stage: a CSS custom property
+read back through `getComputedStyle` couples layout to a paint, and a generated constants file adds a
+build step for one number. **A `matchMedia` listener rather than a resize handler**, so it does no
+work while the user scrolls. If a third surface needs the value, generate it |
+| **I-31** | **The ticket detail's phone-width *accordion* is not implemented, and is left to
+Story 17.** [ui-design.md](ui-design.md) §10.3 says the detail's *"regions become a single-column
+accordion (UI-4); the customer panel becomes a drawer; the composer docks to the bottom"*. Slice
+08-2 delivered the drawer and the dock; the regions stack to a single column (Story 05) but do not
+collapse | **Left for Story 17**, which §13 assigns *"§10 — cross-cutting across every screen"*.
+The screen is already usable at 390 px — single column, no horizontal body scroll — so the accordion
+is a density improvement rather than the difference between usable and not. Recorded so its absence
+is a reading of §13 rather than an omission |
 | **I-29** | **No `shared/components/paged-table/` exists, though plan task 5 names one.** The task
 asks that *"`shared/components/paged-table/` gains a card mode below the table breakpoint"* — but
 **no such component was ever built**: Story 05 implemented the table/card pair inline in the ticket
@@ -791,8 +831,117 @@ keeps the narrative history behind it.
 
 ## 10. Current Next Steps
 
-0. **Story 08 slice 08-1 (My queue) is complete — implemented and verified 2026-08-31. Awaiting
-   explicit approval before the next slice.** **Execution model changed here: story 08 is delivered
+0. **Story 11 is complete — all seven plan tasks, implemented and verified 2026-08-31 — with one Done
+   Criterion left open by S9-4 (see below). All T1 scope is now delivered.**
+
+   **What landed.** `TicketAiAssistService` and the three endpoints of api-design §5.8. **Scoping runs
+   before any provider call** — an out-of-department ticket is `404` first, so customer content never
+   leaves the process for a ticket the caller may not read, and a **recording stub proves the seam was
+   never invoked**. On the front end: the `AiAssistPanel` with **an always-visible AI-generated label**
+   (a rendered element, not a tooltip — A-8, UI-6), *Insert into reply* routed to the **same composer
+   Story 08's quick replies use** (UI-7, so there is one draft and one Send), and
+   **`/workspace/tickets/new`** — the agent creation screen T1-B requires and Story 11 task 6
+   specifies — where a blur asks for a category and priority suggestion that **pre-selects both
+   selectors without touching the agent's words**.
+
+   **Verified live against real SQL Server with no AI credentials**: all three assists answer through
+   the fake, the same ticket **summarizes identically twice**, a Customer gets **`403`** on every
+   assist, and the ticket row is **unchanged** afterwards.
+
+   **T1-F proved by hand, not only by test.** A second API host was started with
+   `Provider=Provider` against an unreachable endpoint: all three assists returned
+   **`503 ai-unavailable`** while, in the same run, **creation, a reply and a transition all
+   succeeded**. That pairing is the requirement; either half alone proves much less.
+
+   **Suite 373 passing, 1 skipped by design** (was 364/1); front end **51 specs** (was 46).
+
+   ⛔ **S9-4 leaves one Done Criterion open, and no field was invented to close it.** *"The suggested
+   values, and whether the agent accepted or overrode them, are written to ticket history"* has **no
+   contract path**: `POST /tickets` accepts six fields and none is this. The capture and a **marked
+   call site** are in place; the server would reject an undocumented member with a `400` (AP-10), so
+   sending one would break creation. **This needs a Stage 7 decision** — a request field on
+   `POST /tickets`, or a small recording endpoint.
+
+0. **Story 10 is complete — all six plan tasks, implemented and verified 2026-08-31.** Backend only:
+   **no endpoint, no screen and no entity** (DM-5).
+
+   **What landed.** One interface, `IAiAssistService`, covering summary, suggested reply and
+   classification — and **A-8 is a property of its shape rather than a discipline**: every method
+   returns a suggestion record, none is named for an action, and **no method takes a ticket id**, so
+   there is nothing to write back to. `AiSeamShapeTests` asserts that **by reflection**, so adding an
+   action method fails the build (AD-12). Two implementations behind it: a **deterministic offline
+   fake** deriving every output from SHA-256 of the input — no `Random`, no ambient state, and a test
+   proving byte-identical output across two instances — and a provider adapter where **every failure
+   mode becomes `AiUnavailableException`**, so no vendor exception type crosses the seam.
+
+   **The fake is the default**, which is what makes *"runs with no external accounts"* true rather
+   than aspirational. Verified live: with no AI key configured, `docker compose up` starts clean and
+   logs **"AI seam: deterministic offline fake implementation selected"**. Selecting a provider
+   without a key **fails startup with a sentence naming the setting**, and the adapter also refuses to
+   construct — a missing credential is an operator's problem at boot, not a `401` reaching the first
+   agent who presses Summarize.
+
+   **T1-F's degradation requirement is tested at the seam**: with an `IAiAssistService` that throws on
+   every call, ticket creation, a staff reply, a status transition, a portal submission and a portal
+   reply **all still succeed** — plus a test proving the failing double really fails, without which
+   the others would pass against a working seam.
+
+   **Suite 364 passing, 1 skipped by design** (was 350/1) — fourteen new tests. Front end unchanged at
+   **46 specs**: ui-design §13 records this story as having no screen.
+
+   **Product-scope §9 question 1 is deliberately unanswered**, and the module README records what a
+   real implementation must still add — credentials, retry, token accounting, prompt versioning and a
+   **data-residency decision for customer content**. It also records that the chatbot (T3-C) would be a
+   *consumer* of this interface, and that **suggested solutions (§7.4) do not use this seam** — they
+   are Knowledge-module keyword retrieval (AD-13, Story 12).
+
+   **Finding I-34 added**, not blocking.
+
+0. **Story 09 is complete — all thirteen plan tasks, implemented and verified 2026-08-31**, as one
+   vertical slice: DB, backend, API and front end together.
+
+   **What landed.** The `Notification` entity and its migration; the **persistent publisher replacing
+   the logging one** — the swap Story 06's plan promised, with the interface, its four types and every
+   call site unchanged and `LoggingNotificationPublisher` deleted, so there is one implementation.
+   `SlaEvaluationService` sweeps both clocks, sets the **latching** flags, writes `SlaBreached` history
+   with **`actorKind: System` and a null actor**, and escalates through **Story 06's
+   `EscalateAsync`** rather than beside it. `SlaMonitorHostedService` is a `PeriodicTimer` holding no
+   business logic (AD-6) — **no queue, no broker, no external scheduler**. Round-robin auto-assignment
+   replaces Story 05's no-op at the seam `CreateAsync` already called, so **the creation path needed
+   no edit**. The notification read side is recipient-scoped with `unreadCount` at the envelope's top
+   level, and **no `read-all` route exists** (AP-18). The front end has the typed client, a store, the
+   **bell with its unread badge** in the slot Story 08 left, and `/workspace/notifications`.
+
+   **`NotificationType` moved from Application to Domain**, because `Notification` carries it and
+   Domain ends with zero references (AD-4). One declaration, so the seam and the row cannot name
+   different values.
+
+   **Verified against real SQL Server from a clean volume**: the `Notifications` migration applied,
+   **8 tickets seeded (two deliberately overdue)**, the monitor started, and the first sweep **flagged
+   exactly those 2** — `High` rose to `Urgent`, `Urgent` stayed `Urgent`, **both kept status `New`**
+   (A-5: escalation is an action, not a transition), and four notifications reached the manager.
+   A read answered `204` and **a second read left `readAt` and the count unchanged**;
+   `/notifications/read-all` answered `404`. Three consecutive tickets auto-assigned to **three
+   different agents, all `New`** (A-18). **The queue now leads with the two breached tickets**, so
+   Story 08 consumes this data with no change.
+
+   **Index usage proved, not assumed** (plan step 3): at 10 rows the sweep scans, so 20 000 probe rows
+   were inserted and the plan captured — the query **seeks both filtered indexes**
+   (`IX_Tickets_FirstResponseDueAt` and `IX_Tickets_ResolutionDueAt`) as an index union, exactly what
+   data-model §6 created them for. The probe rows were deleted and the volume rebuilt clean.
+
+   **Suite 350 passing, 1 skipped by design** (was 330/1) — twenty new tests, stable across three
+   consecutive full runs; front end **46 specs**, unchanged. **Three Story 05–07 tests asserted the
+   pre-auto-assignment world and were updated**, one of which had become order-dependent — see I-32.
+
+   **PF-5 remains open and is reported, not silently changed**: `firstRespondedAt` is set only by the
+   first outbound message, so **a ticket resolved without a reply is permanently first-response
+   breached**. That is A-3 as written; changing it would be a change to A-3.
+
+   **Findings I-32 and I-33 added**, neither blocking.
+
+0. **Story 08 is complete — all eight plan tasks, implemented and verified 2026-08-31**, across
+   three slices (08-1 My queue, 08-2 customer panel, 08-3 quick replies).** **Execution model changed here: story 08 is delivered
    in small full-stack slices**, not whole like stories 05–07, because two days remain and My queue
    is the one part of the agent demo that cannot be cut. The slice map is in
    [.squad/plans/agent-workspace/00-overview.md](../.squad/plans/agent-workspace/00-overview.md).
@@ -817,9 +966,18 @@ keeps the narrative history behind it.
 
    **Findings raised: I-28, I-29** — see §6. Neither blocks the slice.
 
-   **Remaining story 08 work:** slice 08-2 (customer panel, plan task 6) and slice 08-3 (quick
-   replies, plan tasks 1 and 7). **S9-1 still blocks the dashboard task region** and no cross-ticket
-   task endpoint was invented.
+   **08-2 and 08-3 added:** the customer panel becomes a **drawer at phone width** whose slide edge
+   mirrors under RTL, rendered as drawer *or* side region and never both, so opening it touches no
+   route and cannot remount the composer — the T1-C draft-survival rule holds by structure. The
+   composer docks to the bottom at phone width and the queue's filters collapse into the §10.3 filter
+   sheet. **Quick replies needed no backend at all**: Story 16 Part A already bound, validated and
+   published them, and three are configured. The control feeds the **one** `insert` point the AI draft
+   will also use (UI-7), so *"never auto-sent"* holds by construction — and it is **opt-in**, because
+   the same component renders in the portal and `GET /config/staff` answers a Customer `403`,
+   **verified live**. Front end **46 specs** (was 41).
+
+   **S9-1 still blocks the dashboard task region** and no cross-ticket task endpoint was invented.
+   **Findings I-30 and I-31 added**, neither blocking.
 
 
 0. **Story 07 is complete — implemented and verified 2026-08-31. Phase 4 has begun. Awaiting

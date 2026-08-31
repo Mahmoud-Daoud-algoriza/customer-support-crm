@@ -375,6 +375,237 @@
     }
 }
 
+// Story 11 — the AI assists panel (ui-design §5.3, UI-6). Logical properties only.
+// **The AI-generated label is always visible**, never a tooltip or a hover state (A-8): it is a
+// rendered element with its own style, not an affordance someone has to discover.
+.app-ticket-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-inline-size: 0;
+}
+
+.app-ai-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+
+    &__actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+}
+
+.app-ai-result {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: var(--p-content-border-radius);
+    background: var(--p-content-hover-background, rgb(127 127 127 / 8%));
+
+    // The leading edge marks AI-produced content, and it mirrors under RTL (ui-design §10.2).
+    border-inline-start: 3px solid var(--p-primary-color);
+
+    &__label {
+        margin: 0;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--p-primary-color);
+    }
+
+    &__body {
+        margin: 0;
+        white-space: pre-wrap;
+    }
+
+    &__actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+}
+
+// The same label, inline on the creation form beside the two pre-selected selectors.
+.app-ai-inline {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--p-text-muted-color);
+
+    &__label {
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--p-primary-color);
+    }
+
+    &__value {
+        font-weight: 600;
+        color: var(--p-text-color);
+    }
+
+    &__overridden {
+        font-style: italic;
+    }
+}
+
+// Story 09 — the notification bell, its badge and the panel (ui-design §4.1, §5.8).
+// Logical properties only.
+.app-bell {
+    position: relative;
+
+    &__badge {
+        position: absolute;
+        inset-block-start: 0.125rem;
+        inset-inline-end: 0.125rem;
+        min-inline-size: 1.125rem;
+        padding-inline: 0.25rem;
+        border-radius: 0.75rem;
+        background: var(--p-red-500, #ef4444);
+        color: #fff;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        line-height: 1.125rem;
+        text-align: center;
+    }
+}
+
+.app-bell-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-inline-size: 16rem;
+    max-inline-size: 22rem;
+
+    &__title {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    &__list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    &__row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+        padding-inline-start: 0.5rem;
+
+        // Unread is marked on the leading edge, so it mirrors under RTL (ui-design §10.2).
+        border-inline-start: 2px solid transparent;
+
+        &--unread {
+            border-inline-start-color: var(--p-primary-color);
+        }
+    }
+
+    &__all {
+        font-size: 0.8125rem;
+    }
+}
+
+// The notification screen (ui-design §5.8). No mark-all-read control exists anywhere (AP-18).
+.app-notifications {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    &__row {
+        display: flex;
+        gap: 1rem;
+        align-items: baseline;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        padding: 0.75rem;
+        border: 1px solid var(--p-content-border-color);
+        border-radius: var(--p-content-border-radius);
+        border-inline-start: 3px solid transparent;
+
+        &--unread {
+            border-inline-start-color: var(--p-primary-color);
+        }
+    }
+
+    &__main {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+        min-inline-size: 0;
+    }
+
+    &__type {
+        font-weight: 600;
+    }
+
+    &__subject,
+    &__when {
+        font-size: 0.8125rem;
+        color: var(--p-text-muted-color);
+    }
+}
+
+// Story 08 slice 08-2 — the phone-width filter sheet of ui-design §10.3. Above the phone
+// breakpoint the bar is always visible and the toggle does not exist, so the component's
+// `filtersOpen` state is simply ignored there.
+.app-filter-toggle {
+    display: none;
+
+    @include bp.phone-only {
+        display: inline-flex;
+        align-self: flex-start;
+    }
+}
+
+.app-filter-sheet {
+    @include bp.phone-only {
+        display: none;
+
+        &--open {
+            display: block;
+        }
+    }
+}
+
+// The customer panel inside its phone-width drawer: it is the whole drawer body, so the border and
+// padding the side region carries would be a box inside a box.
+.p-drawer-content .app-customer-panel {
+    border: 0;
+    padding: 0;
+}
+
+// Ticket detail at phone width: the composer docks to the bottom of the viewport (ui-design §10.3)
+// so the reply box is reachable without scrolling past the whole thread.
+@include bp.phone-only {
+    .app-ticket-main .app-composer {
+        position: sticky;
+        inset-block-end: 0;
+        z-index: 1;
+        padding-block: 0.75rem;
+        background: var(--p-content-background);
+        border-block-start: 1px solid var(--p-content-border-color);
+    }
+}
+
 // Story 08 — SlaIndicator (ui-design §8). The breached appearance is `.app-breach` below, applied
 // by the component, so "breached" looks the same here as it does in the ticket list.
 .app-sla {

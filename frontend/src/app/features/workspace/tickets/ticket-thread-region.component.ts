@@ -48,10 +48,13 @@ import { isTerminal } from '../../../shared/lifecycle/transition-matrix';
                 }
             }
 
+            <!-- Quick replies are switched on here and nowhere else: this is the staff side, and
+                 GET /config/staff refuses a Customer (AP-17, UI-11). -->
             <app-reply-composer
                 [busy]="sending()"
                 [problem]="sendProblem()"
                 [disabledReasonKey]="composerDisabledKey()"
+                [quickReplies]="true"
                 (send)="reply($event)" />
         </section>
     `
@@ -89,6 +92,19 @@ export class TicketThreadRegionComponent {
 
             this.load();
         });
+    }
+
+    /**
+     * **Inserts text into this region's composer — the one insertion point** (UI-7).
+     *
+     * Story 08's quick replies and Story 11's AI draft both arrive through
+     * `ReplyComposerComponent.insert`, and this is how the second one gets there: the ticket detail
+     * owns the AI panel, this region owns the composer, so the parent calls this rather than either
+     * component reaching into the other. **There is no path from here to a send** — the text lands in
+     * the draft and the agent presses Send.
+     */
+    insert(text: string): void {
+        this.composer()?.insert(text);
     }
 
     /**

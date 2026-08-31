@@ -87,7 +87,8 @@
         "users": "Users",
         "customers": "Customers",
         "tickets": "Tickets",
-        "queue": "My queue"
+        "queue": "My queue",
+        "notifications": "Notifications"
     },
     "admin": {
         "users": {
@@ -247,7 +248,10 @@
             "day": "d",
             "hour": "h",
             "minute": "m"
-        }
+        },
+        "quickReplies": "Quick replies",
+        "createTitle": "New ticket",
+        "choosecustomer": "Choose a customer"
     },
     "portal": {
         "submitTitle": "Submit a request",
@@ -265,6 +269,33 @@
         "age": "Created",
         "emptyTitle": "No tickets assigned to you",
         "emptyMessage": "Tickets assigned to you will appear here, most urgent first.",
-        "viewAllTickets": "View all tickets"
+        "viewAllTickets": "View all tickets",
+        "filters": "Filters"
+    },
+    "notifications": {
+        "title": "Notifications",
+        "viewAll": "View all notifications",
+        "showUnread": "Unread only",
+        "showAll": "Show all",
+        "emptyTitle": "No notifications",
+        "emptyMessage": "Assignments, SLA breaches, escalations and customer replies appear here.",
+        "type": {
+            "TicketAssigned": "Ticket assigned to you",
+            "SlaBreached": "SLA target missed",
+            "TicketEscalated": "Ticket escalated",
+            "CustomerReplied": "Customer replied"
+        }
+    },
+    "ai": {
+        "title": "AI assists",
+        "summarize": "Summarize",
+        "suggestReply": "Suggest reply",
+        "generatedLabel": "AI-generated",
+        "insertIntoReply": "Insert into reply",
+        "dismiss": "Dismiss",
+        "unavailable": "AI assistance is unavailable. Every other action on this screen still works.",
+        "unavailableInline": "AI assistance is unavailable — choose a category and priority yourself.",
+        "suggestedClassification": "Suggested:",
+        "overridden": "(you changed this)"
     }
 }

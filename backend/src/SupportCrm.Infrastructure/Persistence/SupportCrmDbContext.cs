@@ -5,6 +5,7 @@ using SupportCrm.Domain.Modules.Administration;
 using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
 using SupportCrm.Domain.Modules.Organization;
+using SupportCrm.Domain.Modules.Sla;
 using SupportCrm.Domain.Modules.Tickets;
 using SupportCrm.Infrastructure.Persistence.Configurations;
 
@@ -84,6 +85,9 @@ public sealed class SupportCrmDbContext(DbContextOptions<SupportCrmDbContext> op
     /// this set and never touches that one.
     /// </summary>
     public DbSet<TicketMessage> TicketMessages => Set<TicketMessage>();
+
+    /// <summary>Story 09 — docs/data-model.md §2.12.</summary>
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

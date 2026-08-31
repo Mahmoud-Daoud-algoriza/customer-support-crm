@@ -54,5 +54,10 @@ public sealed class PayloadTooLargeException(string message = "Attachment exceed
 /// 503 — an integration seam is unavailable. Used by the AI endpoints <em>only</em>
 /// (<c>ai-unavailable</c>, docs/api-design.md §2.2).
 /// </summary>
-public sealed class SeamUnavailableException(string message = "The AI service is unavailable.", Exception? inner = null)
+/// <remarks>
+/// <b>Unsealed by Story 10</b> so <c>AiUnavailableException</c> can derive from it, which is what the
+/// plan specifies. The slug stays here because the Story 01 Problem Details handler maps on this base
+/// type — a derived seam exception therefore needs no per-endpoint code (AP-12).
+/// </remarks>
+public class SeamUnavailableException(string message = "The AI service is unavailable.", Exception? inner = null)
     : AppException("ai-unavailable", message, inner);

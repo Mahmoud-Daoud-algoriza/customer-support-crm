@@ -1,3 +1,5 @@
+using SupportCrm.Domain.Modules.Sla;
+
 namespace SupportCrm.Application.Modules.Sla;
 
 /// <summary>
@@ -33,27 +35,4 @@ public interface INotificationPublisher
     /// </summary>
     Task PublishAsync(
         Guid recipientUserId, NotificationType type, Guid ticketId, CancellationToken ct);
-}
-
-/// <summary>
-/// <b>The four notification types of A-13 and no others</b> (docs/data-model.md §2.12). All four are
-/// about a ticket, which is why <c>ticketId</c> is not optional on the seam.
-/// <para>
-/// Adding a fifth member here would be a <b>data-model change</b>, not an ordinary use of this
-/// enum — §2.12 enumerates the set exhaustively.
-/// </para>
-/// </summary>
-public enum NotificationType
-{
-    /// <summary>Story 09 — a ticket was assigned to the recipient.</summary>
-    TicketAssigned,
-
-    /// <summary>Story 09 — an SLA target was missed.</summary>
-    SlaBreached,
-
-    /// <summary>Story 06 — a ticket was escalated. Recipients come from A-21.</summary>
-    TicketEscalated,
-
-    /// <summary>Story 07 — the customer replied on a ticket.</summary>
-    CustomerReplied,
 }

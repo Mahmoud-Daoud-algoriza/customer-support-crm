@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SupportCrm.Application.Abstractions;
+using SupportCrm.Application.Modules.Sla;
 using SupportCrm.Application.Configuration;
 using SupportCrm.Application.Modules.Identity;
 using SupportCrm.Domain.Modules.Identity;
@@ -37,6 +38,7 @@ public sealed class TicketService(
     ICurrentUser currentUser,
     TicketActivityRecorder activity,
     IAutoAssignmentPolicy autoAssignment,
+    INotificationPublisher notifications,
     IOptions<CategoryOptions> categoryOptions,
     IOptions<SlaTargetOptions> slaTargetOptions,
     TimeProvider clock)
@@ -347,6 +349,12 @@ public sealed class TicketService(
             ticket.Assign(assigneeId);
             await activity.RecordAsync(
                 ticket.Id, TicketActivityType.Assigned, newValue: assigneeId.ToString(), ct: ct);
+
+            // A-13's TicketAssigned. Published here rather than inside the policy so both the
+            // automatic and the manual path raise it from the same layer — the policy stays a pure
+            // choice, and there is one answer to "when is an assignee told".
+            await notifications.PublishAsync(
+                assigneeId, NotificationType.TicketAssigned, ticket.Id, ct);
         }
 
         return ticket;
@@ -462,6 +470,12 @@ public sealed class TicketService(
 
         await activity.RecordAsync(
             ticket.Id, TicketActivityType.Assigned, previousName, assignee.DisplayName, ct: ct);
+
+        // A-13's TicketAssigned on the manual path. The new assignee is told; the previous one is
+        // not, because no A-13 event means "a ticket was taken off you" and inventing one would be a
+        // fifth notification type (docs/data-model.md §2.12 enumerates four).
+        await notifications.PublishAsync(
+            assigneeId, NotificationType.TicketAssigned, ticket.Id, ct);
 
         await db.SaveChangesAsync(ct);
 
