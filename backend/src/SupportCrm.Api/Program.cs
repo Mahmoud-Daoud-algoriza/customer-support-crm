@@ -111,6 +111,13 @@ builder.Services.AddOptions<FeedbackOptions>()
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<FeedbackOptions>, FeedbackOptionsValidator>();
 
+// Story 12 — the one knowledge-base setting: how many suggested articles a ticket view receives
+// (§7.4). Presentation volume, not a product rule, and published to no client.
+builder.Services.AddOptions<KnowledgeOptions>()
+    .Bind(builder.Configuration.GetSection(KnowledgeOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // ---------------------------------------------------------------------------------------------

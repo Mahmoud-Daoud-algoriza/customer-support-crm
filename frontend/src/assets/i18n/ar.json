@@ -90,7 +90,12 @@
         "customers": "العملاء",
         "tickets": "التذاكر",
         "queue": "قائمتي",
-        "notifications": "التنبيهات"
+        "notifications": "التنبيهات",
+        "knowledge": "قاعدة المعرفة",
+        "knowledgeAuthoring": "قاعدة المعرفة",
+        "portal": "الدعم",
+        "submitRequest": "إرسال طلب",
+        "help": "المساعدة"
     },
     "admin": {
         "users": {
@@ -147,6 +152,21 @@
             "quickReplyTitle": "العنوان",
             "quickReplyBody": "النص",
             "feedbackRatingScale": "مقياس تقييم الملاحظات"
+        },
+        "knowledge": {
+            "title": "قاعدة المعرفة",
+            "create": "مقال جديد",
+            "createTitle": "مقال جديد",
+            "editTitle": "تعديل المقال",
+            "body": "المحتوى",
+            "bodyHelp": "نص عادي أو تنسيق ماركداون بسيط: عناوين وقوائم وخط عريض ومائل ورمز مضمّن.",
+            "visibilityHelp": "المقالات الداخلية لا تظهر أبدًا في بوابة العملاء.",
+            "preview": "معاينة",
+            "publish": "نشر",
+            "unpublish": "إلغاء النشر",
+            "saved": "تم الحفظ.",
+            "emptyTitle": "لا توجد مقالات بعد",
+            "emptyMessage": "أنشئ أول مقال."
         }
     },
     "organization": {
@@ -298,7 +318,15 @@
         "urgentLabel": "هذا الطلب عاجل",
         "submit": "إرسال الطلب",
         "requestTitle": "طلبك",
-        "reopened": "أعاد ردّك فتح هذا الطلب. سيتابعه أحد الموظفين من جديد."
+        "reopened": "أعاد ردّك فتح هذا الطلب. سيتابعه أحد الموظفين من جديد.",
+        "help": {
+            "title": "المساعدة",
+            "intro": "ابحث في مقالات المساعدة وإجابات الأسئلة الشائعة.",
+            "searchPlaceholder": "بماذا يمكننا مساعدتك؟",
+            "search": "بحث",
+            "emptyTitle": "لا توجد مقالات مطابقة لهذا البحث",
+            "emptyMessage": "جرّب كلمة أخرى، أو أرسل طلبًا وسنساعدك."
+        }
     },
     "queue": {
         "title": "قائمتي",
@@ -333,5 +361,39 @@
         "unavailableInline": "مساعدة الذكاء الاصطناعي غير متاحة — اختر التصنيف والأولوية بنفسك.",
         "suggestedClassification": "المقترح:",
         "overridden": "(قمت بتغييره)"
+    },
+    "knowledge": {
+        "title": "قاعدة المعرفة",
+        "searchPlaceholder": "ابحث في المقالات",
+        "anyType": "كل الأنواع",
+        "anyVisibility": "كل مستويات الظهور",
+        "anyState": "كل الحالات",
+        "articleTitle": "العنوان",
+        "type": "النوع",
+        "visibility": "الظهور",
+        "state": "الحالة",
+        "updated": "آخر تحديث",
+        "author": "الكاتب",
+        "published": "منشور",
+        "draft": "مسودة",
+        "internalBadge": "داخلي",
+        "emptyTitle": "لا توجد مقالات مطابقة لهذا البحث",
+        "emptyMessage": "جرّب كلمة أخرى أو امسح عوامل التصفية.",
+        "articleType": {
+            "Faq": "سؤال شائع",
+            "HelpArticle": "مقال مساعدة",
+            "SolutionGuide": "دليل حلول"
+        },
+        "visibilityValue": {
+            "Public": "عام",
+            "Internal": "داخلي"
+        },
+        "suggested": {
+            "title": "مقالات ذات صلة",
+            "retrievedNote": "مقالات موجودة مسبقًا عُثر عليها بالكلمات المفتاحية في هذه التذكرة.",
+            "matchScore": "التطابق",
+            "emptyTitle": "لا توجد مقالات ذات صلة",
+            "emptyMessage": "لا يوجد مقال يطابق كلمات هذه التذكرة."
+        }
     }
 }

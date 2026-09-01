@@ -10,8 +10,9 @@ import { Routes } from '@angular/router';
  *
  * Story 04 adds `customers` and `customers/:id`; Story 05 adds `tickets` and `tickets/:id`;
  * Story 08 adds `queue` and makes it the area landing;
- * Story 09 adds `notifications`. The rest arrive with Stories 12, 14, 15,
- * each added by the story that builds the screen so no route is ever a dead link.
+ * Story 09 adds `notifications`; Story 12 adds `knowledge` and `knowledge/:id`. The rest arrive
+ * with Stories 14 and 15, each added by the story that builds the screen so no route is ever a
+ * dead link.
  */
 export const workspaceRoutes: Routes = [
     {
@@ -44,6 +45,14 @@ export const workspaceRoutes: Routes = [
         path: 'notifications',
         loadComponent: () =>
             import('./notifications/notification-list.component').then((m) => m.NotificationListComponent)
+    },
+    {
+        path: 'knowledge',
+        loadComponent: () => import('./knowledge/knowledge-search.component').then((m) => m.KnowledgeSearchComponent)
+    },
+    {
+        path: 'knowledge/:id',
+        loadComponent: () => import('./knowledge/knowledge-reader.component').then((m) => m.KnowledgeReaderComponent)
     },
     {
         path: 'customers',

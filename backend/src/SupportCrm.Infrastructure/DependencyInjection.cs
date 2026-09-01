@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using SupportCrm.Application.Modules.Administration;
 using SupportCrm.Application.Modules.Customers;
 using SupportCrm.Application.Modules.Identity;
+using SupportCrm.Application.Modules.Knowledge;
 using SupportCrm.Application.Modules.Organization;
 using SupportCrm.Application.Modules.Sla;
 using SupportCrm.Application.Modules.Tickets;
@@ -51,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IDataSeeder, IdentitySeeder>();
         services.AddScoped<IDataSeeder, CustomerSeeder>();
         services.AddScoped<IDataSeeder, TicketSeeder>();
+        services.AddScoped<IDataSeeder, KnowledgeSeeder>();
 
         // ASP.NET Core's standard password hashing (docs/architecture.md §4.1). No password policy
         // engine, no account recovery — both out of scope.
@@ -148,6 +150,17 @@ public static class DependencyInjection
                 ? sp.GetRequiredService<ProviderAiService>()
                 : ActivatorUtilities.CreateInstance<DeterministicFakeAiService>(sp);
         });
+
+        // Story 12 Application services — the knowledge base. THREE services, one per audience:
+        // staff/admin CRUD and search, the customer read, and §7.4's retrieval.
+        //
+        // **SuggestedArticleService is registered here, next to the other Knowledge services, and
+        // NOT next to the AI seam above** (AP-14, architecture §5.1). It resolves no
+        // IAiAssistService and must never be moved under /ai: it retrieves existing articles by
+        // keyword (AD-13) rather than generating anything.
+        services.AddScoped<KnowledgeArticleService>();
+        services.AddScoped<PortalArticleService>();
+        services.AddScoped<SuggestedArticleService>();
 
         // Story 16 Part B — the audit read surface. AuditRecorder (above) stays the only writer;
         // this is the one read method GET /audit exposes (T2-H).

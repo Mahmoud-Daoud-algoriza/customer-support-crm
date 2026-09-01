@@ -116,8 +116,9 @@ import { ApiProblem } from '../../../core/api/api-problem';
                 </section>
             }
 
-            <!-- Story 12 fills the suggested-articles region below this one. It is a KNOWLEDGE
-                 endpoint, not an AI one (AP-14) — do not add it to this panel. -->
+            <!-- The suggested-articles region sits BELOW this panel, as its own component
+                 (Story 12). It is a KNOWLEDGE endpoint, not an AI one (AP-14) — retrieval, not
+                 generation — so it is not part of this panel and must never be folded into it. -->
         </aside>
     `
 })

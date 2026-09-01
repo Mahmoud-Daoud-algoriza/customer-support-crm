@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SupportCrm.Domain.Modules.Administration;
 using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
+using SupportCrm.Domain.Modules.Knowledge;
 using SupportCrm.Domain.Modules.Organization;
 using SupportCrm.Domain.Modules.Sla;
 using SupportCrm.Domain.Modules.Tickets;
@@ -54,6 +55,14 @@ public interface IApplicationDbContext
     /// query</b>: a notification belongs to one user and another user's row is a <c>404</c>.
     /// </summary>
     DbSet<Notification> Notifications { get; }
+
+    /// <summary>
+    /// Story 12 — the knowledge base of docs/data-model.md §2.13. Organization-wide, with
+    /// <b>no</b> relationship to <c>Ticket</c>: suggested solutions are keyword retrieval at read
+    /// time (AD-13), not stored links. The portal's visibility rule is composed once, in
+    /// <c>PortalArticleService.PortalVisible</c>.
+    /// </summary>
+    DbSet<KnowledgeArticle> KnowledgeArticles { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

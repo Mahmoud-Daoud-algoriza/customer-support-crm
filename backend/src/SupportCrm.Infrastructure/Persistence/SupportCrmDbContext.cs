@@ -4,6 +4,7 @@ using SupportCrm.Application.Abstractions;
 using SupportCrm.Domain.Modules.Administration;
 using SupportCrm.Domain.Modules.Customers;
 using SupportCrm.Domain.Modules.Identity;
+using SupportCrm.Domain.Modules.Knowledge;
 using SupportCrm.Domain.Modules.Organization;
 using SupportCrm.Domain.Modules.Sla;
 using SupportCrm.Domain.Modules.Tickets;
@@ -88,6 +89,13 @@ public sealed class SupportCrmDbContext(DbContextOptions<SupportCrmDbContext> op
 
     /// <summary>Story 09 — docs/data-model.md §2.12.</summary>
     public DbSet<Notification> Notifications => Set<Notification>();
+
+    /// <summary>
+    /// Story 12 — the knowledge base (docs/data-model.md §2.13). One entity with a <c>type</c>, not
+    /// three subsystems (T2-E). <b>No navigation to <c>Ticket</c> exists</b>, and none may be added:
+    /// §7.4's suggestions are computed by keyword retrieval at read time (AD-13).
+    /// </summary>
+    public DbSet<KnowledgeArticle> KnowledgeArticles => Set<KnowledgeArticle>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

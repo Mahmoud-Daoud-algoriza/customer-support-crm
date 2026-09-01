@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SupportCrm.Api.Auth;
 using SupportCrm.Application.Abstractions;
 using SupportCrm.Application.Modules.Customers;
+using SupportCrm.Application.Modules.Knowledge;
 using SupportCrm.Application.Modules.Tickets;
 using SupportCrm.Domain.Modules.Tickets;
 
@@ -49,7 +50,8 @@ public sealed class TicketsController(
     TicketLifecycleService lifecycle,
     TicketActivityQueryService activity,
     TicketMessageService messages,
-    AttachmentService attachments) : ApiControllerBase
+    AttachmentService attachments,
+    SuggestedArticleService suggestedArticles) : ApiControllerBase
 {
     // ------------------------------------------------------------------ Tickets
 
@@ -299,6 +301,40 @@ public sealed class TicketsController(
     public async Task<ActionResult<PagedResult<AttachmentMetadataDto>>> Attachments(
         Guid id, [FromQuery] PageQuery paging, CancellationToken ct) =>
         Ok(await attachments.ListForTicketAsync(id, paging, ct));
+
+    // ------------------------------------------------------- Suggested articles (Story 12, §7.4)
+
+    /// <summary>
+    /// <c>GET /tickets/{id}/suggested-articles</c> — the top keyword matches for this ticket
+    /// (requirements §7.4, docs/api-design.md §5.9, §6.5).
+    ///
+    /// <para>
+    /// <b>This is a Knowledge endpoint, and AP-14 is why it is not under <c>/ai</c></b>: it
+    /// <em>retrieves</em> existing articles rather than generating text, so putting it beside the
+    /// three assists of §5.8 would imply generation and turn a database <c>LIKE</c> into a provider
+    /// call. It sits on the ticket because it reads the ticket's subject and description, exactly as
+    /// the summary endpoint sits on the ticket because it reads the thread.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Scoped first</b>: an out-of-department ticket is <c>404</c> before any article is read
+    /// (AP-4). The payload carries <c>matchScore</c> — the database's own ranking (AD-13), a query
+    /// artefact rather than a stored field — and carries <b>no</b> <c>generatedBy</c>, because
+    /// nothing here was generated.
+    /// </para>
+    ///
+    /// <para>
+    /// It is not paged: §6.5 defines a short ranked list, and the size is
+    /// <c>SupportCrm:Knowledge:SuggestedArticleCount</c>. No matches is an empty array, not an error.
+    /// </para>
+    /// </summary>
+    [HttpGet("{id:guid}/suggested-articles")]
+    [ProducesResponseType<IReadOnlyList<SuggestedArticleDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<SuggestedArticleDto>>> SuggestedArticles(
+        Guid id, CancellationToken ct) =>
+        Ok(await suggestedArticles.ForTicketAsync(id, ct));
 
     /// <summary>
     /// Uploads one file to a ticket — <c>multipart/form-data</c> (AP-13), the only endpoint in this

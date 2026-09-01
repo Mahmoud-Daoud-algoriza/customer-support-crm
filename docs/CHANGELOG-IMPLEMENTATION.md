@@ -16,7 +16,104 @@
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-09-01 (latest) — story 16 Part B: audit log and read-only configuration
+### 2026-09-01 (latest) — story 12: knowledge base, search and suggested solutions
+
+**Phase 6 opens.** Story 12 delivered **whole rather than in slices**, like stories 05, 06 and 07:
+all eleven plan tasks, requirements §6 in full plus §7.4, at the depth T2-E fixes.
+
+**What changed, and where.**
+
+- **Domain** — `Modules/Knowledge/KnowledgeArticle.cs` with `ArticleType.cs` and
+  `ArticleVisibility.cs` beside it (data-model **§2.13**). **One entity with a `type`** — T2-E's
+  "not three subsystems" made structural rather than remembered. **No navigation to `Ticket`**, per
+  §2.13: suggestions are computed at read time (**AD-13**), never stored. **No versioning and no
+  delete method.** `Update` takes four fields and **not** `IsPublished`, so api-design **§6.11**'s
+  one-path rule is enforced by the entity — `Publish()` and `Unpublish()` are the only writers, and
+  both are idempotent because §5.9 defines no `409` here.
+- **Application** — `Modules/Knowledge/ArticleSearch.cs` is **the one implementation of AD-13**
+  named by 00-implementation-plan §6. `EF.Functions.Like` over `Title` and `Body`, scored by the
+  weighted count of matched terms with a **title match above a body match** (2 vs 1) — *that ranking
+  is the whole of relevance*, per the intake's exclusion of tuning, synonyms and semantic search. It
+  is built as **one SQL expression** (an expression tree spliced into a readable template) so the
+  database filters, orders and — for §7.4 — projects the score in a single statement; a C#-side sum
+  would have meant materializing every article. `RankedByRelevance` is composed by staff search,
+  portal search and suggestions alike, so "what matches and in what order" is written once.
+- **Application** — `Modules/Knowledge/PortalArticleService.cs` is **the one implementation of
+  data-model §5 constraint 19**, also named by §6. `PortalVisible` requires `Public` **and**
+  `IsPublished`, and is composed **before** the id comparison, so an internal article is *not found*
+  rather than found-and-refused: **`404`, never `403`** (**AP-4**), with one `NotFound` constant for
+  all three cases so the message layer cannot undo what the query got right.
+- **Application** — `Modules/Knowledge/SuggestedArticleService.cs` implements §7.4 as **retrieval**.
+  It scopes the ticket through `TicketScope.LoadScopedAsync` **first** (so out-of-department is
+  `404` before any article is read), extracts keywords from the ticket's **subject and description**,
+  and returns the top N staff-visible matches with the database's own `matchScore`. **It references
+  no `IAiAssistService` and is registered beside the Knowledge services, not the AI seam** —
+  **AP-14**, architecture §5.1.
+- **Application** — `Configuration/KnowledgeOptions.cs`, one key,
+  `SupportCrm:Knowledge:SuggestedArticleCount` (default 5), which task 4 specifies as configurable.
+  It is presentation volume and is **returned by no configuration tier** (AP-17). **There is
+  deliberately no weight, threshold or synonym key**: AD-13 excludes tuning, and the ranking lives
+  in `ArticleSearch` as two constants where it can be read rather than configured.
+- **Infrastructure** — `Persistence/Configurations/KnowledgeArticleConfiguration.cs` and migration
+  **`20260901143725_KnowledgeArticles`**. `Title` `nvarchar(200)` (§6.1 `Name`), `Body`
+  `nvarchar(max)` (`Text`, **never indexed**), `Type` and `Visibility` `nvarchar(64)` (`Code`,
+  stored as string codes), author FK `Restrict`. **No search index and no full-text catalogue**:
+  data-model §6 states a contains-match needs none at these volumes and records full-text as the
+  available upgrade — *a database feature, not a new component* — which this story does not take.
+- **Infrastructure** — `Persistence/Seeders/KnowledgeSeeder.cs` (`Order = 50`): **10 articles**,
+  all three types, both visibilities, bodies overlapping the seeded tickets' text so suggestions are
+  non-trivial in the demo, and **one public-but-unpublished article** so the independence of
+  `visibility` and `isPublished` is demonstrable rather than merely asserted.
+- **Api** — `Controllers/KnowledgeController.cs` (the six staff/admin routes of §5.9,
+  `RequireAgent` on the class and `RequireAdministrator` on the four writes, per **A-4**),
+  `Controllers/PortalKnowledgeController.cs` (the two portal routes, under the existing
+  `api/v1/portal` prefix, **AP-5**), and `GET /tickets/{id}/suggested-articles` added to
+  `TicketsController`. **No delete route exists anywhere.**
+- **Front end** — `core/api/knowledge.client.ts` with **two** clients sharing no DTO (AP-5);
+  `features/workspace/knowledge/` (search with URL-borne filters per **UI-9**, internal badge, and
+  the reader); `features/workspace/tickets/suggested-articles-region/` — placed **below** the AI
+  panel and deliberately unlike it: its own wording, **no sparkle icon, no AI-generated label, no
+  dismiss** (AP-14, UI-6); `features/admin/knowledge/` (authoring list, and an editor that is a
+  **plain textarea plus a live preview** with **Publish/Unpublish as buttons separate from Save** and
+  **no delete or version control**, T2-E and ui-design §6); `features/portal/portal-help*.ts`
+  (§7.4), whose `404` reads identically for missing, internal and unpublished (§9).
+  `shared/components/markdown-view/` parses basic markdown to blocks and spans and renders them
+  **through the template, never `innerHTML`** — article bodies reach a customer screen, and a spec
+  pins that HTML in a body stays text. **No body passes through a translation pipe** (**A-11**).
+  Routes and menu entries were added by this story so no entry is a dead link; the portal shell gains
+  its **first two navigation entries** (submit a request, Help) because `/portal/help` has to be
+  reachable — **story 13 completes that section**.
+- **Tests** — `tests/SupportCrm.Tests/Knowledge/`: `KnowledgeVisibilityTests` (8) and
+  `SearchAndSuggestionTests` (8), covering **all twelve tests the plan names** plus four it does not:
+  that no delete route exists on either path space, the AP-15 sort refusal, an unknown `type` filter,
+  and that matching runs against the database alone. The AP-4 case compares the **body** of an
+  internal `404` with a missing-id `404` and requires them equal. Test 12 is asserted twice — the
+  `/ai` path is not routable **and** no registered route template mentions `suggested-solutions`.
+  Front end: `knowledge.client.spec.ts` (6, about the wire) and
+  `markdown-view.component.spec.ts` (5).
+
+**Verification.** `dotnet build` 0 warnings / 0 errors; `dotnet test` **401 passed, 1 skipped**
+(story 07's deliberate skip), of which **16 are this story's**; `npm run build` and
+`npm run lint:styles` clean; `npx ng test` **62 SUCCESS** (11 this story's). The plan's
+excluded-infrastructure grep returns only the prose saying they are excluded. Against **real SQL
+Server** via `docker compose`: migration applied, 10 articles seeded, internal / unpublished /
+missing all `404` with byte-identical Problem Details, staff path `403` for a customer, five
+suggestions ordered by `matchScore` with no `generatedBy`, out-of-department `404`,
+`PATCH isPublished` `400`, publish/unpublish moving the portal read `404 → 200 → 404`, and
+**case-insensitive matching confirmed** — the thing the SQLite test host cannot prove.
+
+**One implementation choice, recorded at the code rather than as a numbered finding.** No approved
+document defines keyword *extraction* for §7.4, so `ArticleSearch.KeywordsFrom` drops words under
+three characters and a short English stop-word list, and its own comment says that this is a choice
+and not a documented rule — it decides retrieval noise, not a product or contract question. The same
+basis as story 16 Part B's inclusive `to` bound. **No new finding was raised and none was closed.**
+
+**Nothing outside the story was touched.** No search engine, vector store, versioning, review
+workflow, scheduled publishing, media library or delete path was introduced (architecture §8, T2-E).
+
+---
+
+### 2026-09-01 — story 16 Part B: audit log and read-only configuration
 
 **Story 16 is now complete in full.** Part A (configuration, 2026-08-27) landed early by design; Part
 B — `GET /audit`, the `/admin/audit` screen and the read-only `/admin/configuration` screen — is the

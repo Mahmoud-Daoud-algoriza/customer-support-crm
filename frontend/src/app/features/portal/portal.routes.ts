@@ -11,8 +11,9 @@ import { Routes } from '@angular/router';
  * now so the two endpoints are exercised end to end by the story that publishes them, rather than
  * first being called by the story that also has to get the layout right.
  *
- * `requests` (the list) and `help` are **not** routed yet: Story 13 adds the first and Story 12 the
- * second. **A route is added by the story that builds its screen, so no route is ever a dead link.**
+ * `help` and `help/:id` are **Story 12's**, and are routed here now that the screens exist.
+ * `requests` (the list) is still Story 13's. **A route is added by the story that builds its screen,
+ * so no route is ever a dead link.**
  */
 export const portalRoutes: Routes = [
     {
@@ -31,6 +32,17 @@ export const portalRoutes: Routes = [
         path: 'requests/new',
         loadComponent: () =>
             import('./portal-submit-request.component').then((m) => m.PortalSubmitRequestComponent)
+    },
+    {
+        // Story 12 — the customer's knowledge base (docs/ui-design.md §7.4). Public, published
+        // articles only; an internal or unpublished id answers `404` (AP-4).
+        path: 'help',
+        loadComponent: () => import('./portal-help.component').then((m) => m.PortalHelpComponent)
+    },
+    {
+        path: 'help/:id',
+        loadComponent: () =>
+            import('./portal-help-article.component').then((m) => m.PortalHelpArticleComponent)
     },
     {
         path: 'requests/:id',

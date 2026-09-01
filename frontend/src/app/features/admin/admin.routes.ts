@@ -5,8 +5,9 @@ import { Routes } from '@angular/router';
  * (AD-14) declared in app.routes.ts.
  *
  * Story 02 delivers the user directory, user detail and the create-user dialog. Story 16 Part B
- * delivers the audit log and the read-only configuration view. Knowledge authoring (Story 12)
- * arrives with its own story.
+ * delivers the audit log and the read-only configuration view. Story 12 delivers knowledge
+ * authoring — a list, a create route and an editor, with **no delete route and no version-history
+ * route**, because neither exists server-side (T2-E, docs/ui-design.md §6).
  */
 export const adminRoutes: Routes = [
     { path: '', pathMatch: 'full', redirectTo: 'users' },
@@ -18,6 +19,23 @@ export const adminRoutes: Routes = [
     {
         path: 'users/:id',
         loadComponent: () => import('./users/user-detail.component').then((m) => m.UserDetailComponent),
+    },
+    {
+        path: 'knowledge',
+        loadComponent: () =>
+            import('./knowledge/article-list.component').then((m) => m.AdminArticleListComponent),
+    },
+    {
+        // **Before `knowledge/:id`**, or the router would read "new" as an article id and the
+        // editor would request a GUID that does not exist.
+        path: 'knowledge/new',
+        loadComponent: () =>
+            import('./knowledge/article-editor.component').then((m) => m.AdminArticleEditorComponent),
+    },
+    {
+        path: 'knowledge/:id',
+        loadComponent: () =>
+            import('./knowledge/article-editor.component').then((m) => m.AdminArticleEditorComponent),
     },
     {
         path: 'audit',

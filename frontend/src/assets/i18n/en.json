@@ -90,7 +90,12 @@
         "customers": "Customers",
         "tickets": "Tickets",
         "queue": "My queue",
-        "notifications": "Notifications"
+        "notifications": "Notifications",
+        "knowledge": "Knowledge base",
+        "knowledgeAuthoring": "Knowledge base",
+        "portal": "Support",
+        "submitRequest": "Submit a request",
+        "help": "Help"
     },
     "admin": {
         "users": {
@@ -147,6 +152,21 @@
             "quickReplyTitle": "Title",
             "quickReplyBody": "Body",
             "feedbackRatingScale": "Feedback rating scale"
+        },
+        "knowledge": {
+            "title": "Knowledge base",
+            "create": "New article",
+            "createTitle": "New article",
+            "editTitle": "Edit article",
+            "body": "Body",
+            "bodyHelp": "Plain text or basic markdown: headings, lists, bold, italic and inline code.",
+            "visibilityHelp": "Internal articles are never shown in the customer portal.",
+            "preview": "Preview",
+            "publish": "Publish",
+            "unpublish": "Unpublish",
+            "saved": "Saved.",
+            "emptyTitle": "No articles yet",
+            "emptyMessage": "Create the first article."
         }
     },
     "organization": {
@@ -298,7 +318,15 @@
         "urgentLabel": "This is urgent",
         "submit": "Submit request",
         "requestTitle": "Your request",
-        "reopened": "Your reply reopened this request. Someone will pick it up again."
+        "reopened": "Your reply reopened this request. Someone will pick it up again.",
+        "help": {
+            "title": "Help",
+            "intro": "Search our help articles and answers to common questions.",
+            "searchPlaceholder": "What do you need help with?",
+            "search": "Search",
+            "emptyTitle": "No articles match that search",
+            "emptyMessage": "Try a different word, or submit a request and we will help."
+        }
     },
     "queue": {
         "title": "My queue",
@@ -333,5 +361,39 @@
         "unavailableInline": "AI assistance is unavailable — choose a category and priority yourself.",
         "suggestedClassification": "Suggested:",
         "overridden": "(you changed this)"
+    },
+    "knowledge": {
+        "title": "Knowledge base",
+        "searchPlaceholder": "Search articles",
+        "anyType": "Any type",
+        "anyVisibility": "Any visibility",
+        "anyState": "Any state",
+        "articleTitle": "Title",
+        "type": "Type",
+        "visibility": "Visibility",
+        "state": "State",
+        "updated": "Updated",
+        "author": "Author",
+        "published": "Published",
+        "draft": "Draft",
+        "internalBadge": "Internal",
+        "emptyTitle": "No articles match that search",
+        "emptyMessage": "Try a different keyword, or clear the filters.",
+        "articleType": {
+            "Faq": "FAQ",
+            "HelpArticle": "Help article",
+            "SolutionGuide": "Solution guide"
+        },
+        "visibilityValue": {
+            "Public": "Public",
+            "Internal": "Internal"
+        },
+        "suggested": {
+            "title": "Related articles",
+            "retrievedNote": "Existing articles found by keyword in this ticket.",
+            "matchScore": "Match",
+            "emptyTitle": "No related articles",
+            "emptyMessage": "No article matches the words in this ticket."
+        }
     }
 }

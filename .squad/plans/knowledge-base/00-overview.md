@@ -7,9 +7,9 @@ which is the **global** execution sequence across all feature folders
 
 ## Stories
 
-| NN | File | Title | Tracker id | Depends on |
-|----|------|-------|------------|------------|
-| 12 | [12-story-kb-articles-search.md](12-story-kb-articles-search.md) | Knowledge base articles, search and suggested solutions | — | Story 02; task 4 needs Story 05 |
+| NN | File | Title | Tracker id | Depends on | Status |
+|----|------|-------|------------|------------|--------|
+| 12 | [12-story-kb-articles-search.md](12-story-kb-articles-search.md) | Knowledge base articles, search and suggested solutions | — | Story 02; task 4 needs Story 05 | ✅ **Implemented and verified 2026-09-01** — all eleven tasks, delivered whole rather than in slices |
 
 Tracker integration is `none`; story ids are the folder names under
 [`.squad/stories/knowledge-base/`](../../stories/knowledge-base/).

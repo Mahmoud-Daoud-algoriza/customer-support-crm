@@ -20,6 +20,7 @@ import { isTerminal } from '../../../shared/lifecycle/transition-matrix';
 import { TicketActivityRegionComponent } from './ticket-activity-region.component';
 import { TicketAssignComponent } from './ticket-assign.component';
 import { TicketCustomerPanelComponent } from './ticket-customer-panel.component';
+import { SuggestedArticlesRegionComponent } from './suggested-articles-region/suggested-articles-region.component';
 import { TicketThreadRegionComponent } from './ticket-thread-region.component';
 
 /**
@@ -27,8 +28,9 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
  *
  * <h3>Story 05 built the header, Story 06 the lifecycle, Story 07 the thread</h3>
  * The `Transition ▾` menu, the `Escalate` control and the **activity region** are Story 06's; the
- * **thread and reply composer** are Story 07's, and the **AI assists panel** is Story 11's. Internal
- * notes, tasks and suggested articles are still to come, from Stories 12 and 14. Regions load
+ * **thread and reply composer** are Story 07's, the **AI assists panel** is Story 11's and the
+ * **suggested-articles region** is Story 12's. Internal notes and tasks are still to come, from
+ * Story 14. Regions load
  * **independently**, so a slow call never blanks the screen — and the thread is not chat: nothing on
  * this screen polls (T3-B).
  *
@@ -65,7 +67,7 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
     selector: 'app-ticket-detail',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [AiAssistPanelComponent, ButtonModule, DatePipe, DrawerModule, ErrorStateComponent, EscalateButtonComponent, LoadingStateComponent, MessageModule, PriorityChipComponent, RouterLink, StatusChipComponent, TicketActivityRegionComponent, TicketAssignComponent, TicketCustomerPanelComponent, TicketThreadRegionComponent, TransitionMenuComponent, TranslocoModule],
+    imports: [AiAssistPanelComponent, ButtonModule, DatePipe, DrawerModule, ErrorStateComponent, EscalateButtonComponent, LoadingStateComponent, MessageModule, PriorityChipComponent, RouterLink, StatusChipComponent, SuggestedArticlesRegionComponent, TicketActivityRegionComponent, TicketAssignComponent, TicketCustomerPanelComponent, TicketThreadRegionComponent, TransitionMenuComponent, TranslocoModule],
     template: `
         <section class="app-page">
             <a routerLink="/workspace/tickets">{{ 'actions.back' | transloco }}</a>
@@ -153,8 +155,7 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
                                  which is what makes the new history entry visible immediately. -->
                             <app-ticket-activity-region [ticketId]="row.id" [reloadToken]="activityToken()" />
 
-                            <!-- Story 12: suggested articles. Story 14: internal notes and tasks.
-                                 Each lands in this column. -->
+                            <!-- Story 14: internal notes and tasks land in this column. -->
                         </div>
 
                         <!-- The customer panel: a side region on desktop, a drawer at phone width
@@ -169,8 +170,14 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
                              on desktop, and stacks with it at narrower widths. Its draft is routed to
                              the thread region's composer: **one composer, one insertion point**
                              (UI-7), so there is no second way a message could leave. -->
+                        <!-- Story 12 — the suggested-articles region, BELOW the AI panel (§5.3).
+                             It is deliberately a different component with different wording: these
+                             are existing articles retrieved by keyword, not generated text, and the
+                             contrast with the labelled AI panel above it is the point (AP-14). -->
                         <div class="app-ticket-side">
                             <app-ai-assist-panel [ticketId]="row.id" (insertDraft)="thread.insert($event)" />
+
+                            <app-suggested-articles-region [ticketId]="row.id" />
                         </div>
 
                         @if (phone()) {
