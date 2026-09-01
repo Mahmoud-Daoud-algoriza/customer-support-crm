@@ -54,7 +54,10 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
                     [showClear]="true"
                     [placeholder]="'admin.users.anyRole' | transloco"
                     (onChange)="load()"
-                />
+                >
+                    <ng-template #selectedItem let-item>{{ 'roles.' + item.value | transloco }}</ng-template>
+                    <ng-template #item let-item>{{ 'roles.' + item.value | transloco }}</ng-template>
+                </p-select>
 
                 <app-department-filter
                     [value]="filter.departmentId ?? null"
@@ -69,7 +72,10 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
                     [showClear]="true"
                     [placeholder]="'admin.users.anyState' | transloco"
                     (onChange)="load()"
-                />
+                >
+                    <ng-template #selectedItem let-item>{{ item.label | transloco }}</ng-template>
+                    <ng-template #item let-item>{{ item.label | transloco }}</ng-template>
+                </p-select>
 
                 <p-button [label]="'actions.apply' | transloco" severity="secondary" (onClick)="load()" />
             </div>
@@ -131,8 +137,8 @@ export class UserDirectoryComponent {
     protected readonly roleOptions = STAFF_ROLE_OPTIONS;
 
     protected readonly activeOptions = [
-        { label: 'Active', value: true },
-        { label: 'Inactive', value: false },
+        { label: 'admin.users.active', value: true },
+        { label: 'admin.users.inactive', value: false },
     ];
 
     protected filter: UserListFilter = {};

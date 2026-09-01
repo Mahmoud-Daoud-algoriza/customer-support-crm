@@ -35,9 +35,15 @@ import { DepartmentFilterComponent } from '../department-filter/department-filte
                 <input pInputText [placeholder]="'tickets.search' | transloco" [(ngModel)]="q" (keyup.enter)="emit()" />
             }
 
-            <p-select [options]="statusOptions" [(ngModel)]="status" [showClear]="true" [placeholder]="'tickets.anyStatus' | transloco" [ariaLabel]="'tickets.statusLabel' | transloco" (onChange)="emit()" />
+            <p-select [options]="statusOptions" [(ngModel)]="status" [showClear]="true" [placeholder]="'tickets.anyStatus' | transloco" [ariaLabel]="'tickets.statusLabel' | transloco" (onChange)="emit()">
+                <ng-template #selectedItem let-code>{{ 'tickets.status.' + code | transloco }}</ng-template>
+                <ng-template #item let-code>{{ 'tickets.status.' + code | transloco }}</ng-template>
+            </p-select>
 
-            <p-select [options]="priorityOptions" [(ngModel)]="priority" [showClear]="true" [placeholder]="'tickets.anyPriority' | transloco" [ariaLabel]="'tickets.priorityLabel' | transloco" (onChange)="emit()" />
+            <p-select [options]="priorityOptions" [(ngModel)]="priority" [showClear]="true" [placeholder]="'tickets.anyPriority' | transloco" [ariaLabel]="'tickets.priorityLabel' | transloco" (onChange)="emit()">
+                <ng-template #selectedItem let-code>{{ 'tickets.priority.' + code | transloco }}</ng-template>
+                <ng-template #item let-code>{{ 'tickets.priority.' + code | transloco }}</ng-template>
+            </p-select>
 
             @if (!quickOnly()) {
             <p-select
@@ -63,10 +69,16 @@ import { DepartmentFilterComponent } from '../department-filter/department-filte
                 [placeholder]="'tickets.anyAssignee' | transloco"
                 [ariaLabel]="'tickets.assigneeLabel' | transloco"
                 (onChange)="emit()"
-            />
+            >
+                <ng-template #selectedItem let-item>{{ item.label | transloco }}</ng-template>
+                <ng-template #item let-item>{{ item.label | transloco }}</ng-template>
+            </p-select>
             }
 
-            <p-select [options]="breachedOptions" [(ngModel)]="breached" optionLabel="label" optionValue="value" [showClear]="true" [placeholder]="'tickets.anyBreach' | transloco" [ariaLabel]="'tickets.breachLabel' | transloco" (onChange)="emit()" />
+            <p-select [options]="breachedOptions" [(ngModel)]="breached" optionLabel="label" optionValue="value" [showClear]="true" [placeholder]="'tickets.anyBreach' | transloco" [ariaLabel]="'tickets.breachLabel' | transloco" (onChange)="emit()">
+                <ng-template #selectedItem let-item>{{ item.label | transloco }}</ng-template>
+                <ng-template #item let-item>{{ item.label | transloco }}</ng-template>
+            </p-select>
 
             <p-button [label]="'actions.apply' | transloco" severity="secondary" (onClick)="emit()" />
         </div>

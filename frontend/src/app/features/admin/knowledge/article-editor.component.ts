@@ -9,6 +9,7 @@ import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiProblem, problemTranslationKey } from '../../../core/api/api-problem';
+import { DirectionService } from '../../../core/i18n/direction.service';
 import {
     Article,
     ArticleType,
@@ -169,6 +170,9 @@ export class AdminArticleEditorComponent {
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
     private readonly transloco = inject(TranslocoService);
+    // Read inside the option computeds below so they re-translate on a language switch —
+    // `TranslocoService.getActiveLang()` is a plain getter and would not re-run them.
+    private readonly direction = inject(DirectionService);
 
     /** Null on `/admin/knowledge/new`; the article's id on the edit route. */
     protected readonly articleId = this.route.snapshot.paramMap.get('id');
@@ -193,7 +197,7 @@ export class AdminArticleEditorComponent {
     protected readonly saveProblem = signal<ApiProblem | null>(null);
 
     protected readonly typeOptions = computed(() => {
-        this.transloco.getActiveLang();
+        this.direction.activeLanguage();
 
         return (['Faq', 'HelpArticle', 'SolutionGuide'] as const).map((value) => ({
             value,
@@ -202,7 +206,7 @@ export class AdminArticleEditorComponent {
     });
 
     protected readonly visibilityOptions = computed(() => {
-        this.transloco.getActiveLang();
+        this.direction.activeLanguage();
 
         return (['Public', 'Internal'] as const).map((value) => ({
             value,

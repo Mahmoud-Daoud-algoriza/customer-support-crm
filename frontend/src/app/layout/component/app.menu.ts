@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 import { MenuItem } from 'primeng/api';
 import { AuthStore } from '../../core/auth/auth.store';
+import { DirectionService } from '../../core/i18n/direction.service';
 import { AppMenuitem } from './app.menuitem';
 
 /**
@@ -39,11 +40,16 @@ import { AppMenuitem } from './app.menuitem';
 export class AppMenu {
     private readonly store = inject(AuthStore);
     private readonly transloco = inject(TranslocoService);
+    private readonly direction = inject(DirectionService);
 
     readonly model = computed<MenuItem[]>(() => {
-        // Reading the active language makes the menu re-translate on a language switch without a
-        // reload (T2-J).
-        this.transloco.getActiveLang();
+        // `computed()` only re-runs when a *signal* read inside it changes. `TranslocoService`
+        // exposes the active language as a plain getter, not a signal, so reading
+        // `getActiveLang()` here established no dependency and the menu only ever picked up a
+        // language switch on the next full reload. `DirectionService.activeLanguage` is the
+        // signal that already drives `dir`/`lang` on the document (T2-J) — reading it here makes
+        // the menu re-translate live, the same way.
+        this.direction.activeLanguage();
 
         const t = (key: string) => this.transloco.translate(key);
         const sections: MenuItem[] = [];

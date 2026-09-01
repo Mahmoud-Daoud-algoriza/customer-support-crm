@@ -6,6 +6,7 @@ import { MenuItem } from 'primeng/api';
 import { MessageModule } from 'primeng/message';
 import { TicketStatus } from '../../../core/api/tickets.client';
 import { AuthStore } from '../../../core/auth/auth.store';
+import { DirectionService } from '../../../core/i18n/direction.service';
 import { isTerminal, offeredTransitions } from '../../lifecycle/transition-matrix';
 
 /**
@@ -57,6 +58,7 @@ import { isTerminal, offeredTransitions } from '../../lifecycle/transition-matri
 export class TransitionMenuComponent {
     private readonly auth = inject(AuthStore);
     private readonly transloco = inject(TranslocoService);
+    private readonly direction = inject(DirectionService);
 
     readonly status = input.required<TicketStatus>();
 
@@ -66,9 +68,13 @@ export class TransitionMenuComponent {
 
     protected readonly terminal = computed(() => isTerminal(this.status()));
 
-    protected readonly statusLabel = computed(() =>
-        this.transloco.translate(`tickets.status.${this.status()}`)
-    );
+    protected readonly statusLabel = computed(() => {
+        // See `items` below: the imperative `translate()` call needs a signal read to make this
+        // re-run on a language switch, since `TranslocoService` itself exposes none.
+        this.direction.activeLanguage();
+
+        return this.transloco.translate(`tickets.status.${this.status()}`);
+    });
 
     /**
      * The offered targets, as PrimeNG menu items.
@@ -76,13 +82,17 @@ export class TransitionMenuComponent {
      * **Labels come from the i18n dictionary keyed by the status code**, never from the server and
      * never assembled from prose — T2-J puts display text on the client and the API returns codes.
      */
-    protected readonly items = computed<MenuItem[]>(() =>
-        offeredTransitions(this.auth.role(), this.status()).map((target) => ({
+    protected readonly items = computed<MenuItem[]>(() => {
+        // `computed()` only re-runs on a signal read; `DirectionService.activeLanguage` is the one
+        // this codebase already uses to drive dir/lang everywhere else (see AppMenu).
+        this.direction.activeLanguage();
+
+        return offeredTransitions(this.auth.role(), this.status()).map((target) => ({
             // The imperative read is deliberate: PrimeNG's MenuItem takes a plain string, so the
             // pipe cannot be used inside the model. The key is the STATUS CODE — the same
             // dictionary the chip uses, so a target and a chip can never disagree.
             label: this.transloco.translate(`tickets.status.${target}`),
             command: () => this.transition.emit(target)
-        }))
-    );
+        }));
+    });
 }

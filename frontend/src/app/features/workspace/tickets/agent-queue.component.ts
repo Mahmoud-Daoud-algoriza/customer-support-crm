@@ -8,6 +8,7 @@ import { PaginatorModule } from 'primeng/paginator';
 import { TableModule } from 'primeng/table';
 import { ApiProblem } from '../../../core/api/api-problem';
 import { Paged } from '../../../core/api/paged';
+import { CustomerConfig, PlatformApiService } from '../../../core/api/platform-api.service';
 import { TicketListFilter, TicketListItem, TicketsClient } from '../../../core/api/tickets.client';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
@@ -129,7 +130,7 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
                                             />
                                         </td>
                                         <td class="app-ltr-numeric">{{ ticket.createdAt | date: 'short' }}</td>
-                                        <td>{{ ticket.categoryCode }}</td>
+                                        <td>{{ categoryName(ticket.categoryCode) }}</td>
                                         <td>
                                             <a [routerLink]="['/workspace/tickets', ticket.id]">{{ 'actions.open' | transloco }}</a>
                                         </td>
@@ -154,7 +155,7 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
                                         />
                                     </div>
 
-                                    <p class="app-ticket-card__meta">{{ ticket.customer.fullName }} · {{ ticket.categoryCode }}</p>
+                                    <p class="app-ticket-card__meta">{{ ticket.customer.fullName }} · {{ categoryName(ticket.categoryCode) }}</p>
 
                                     <p class="app-ticket-card__meta app-ltr-numeric">
                                         {{ 'queue.age' | transloco }}: {{ ticket.createdAt | date: 'short' }}
@@ -181,6 +182,7 @@ export class AgentQueueComponent {
     private readonly api = inject(TicketsClient);
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
+    private readonly platform = inject(PlatformApiService);
 
     protected readonly page = signal<Paged<TicketListItem> | null>(null);
     protected readonly problem = signal<ApiProblem | null>(null);
@@ -193,6 +195,9 @@ export class AgentQueueComponent {
      */
     protected readonly filtersOpen = signal(false);
 
+    /** Looked up by code below, the same list `app-ticket-filter-bar` uses for its own filter. */
+    private readonly categories = signal<CustomerConfig['categories']>([]);
+
     constructor() {
         // UI-9: the URL drives the screen, exactly as on the ticket list. A filter change navigates;
         // the navigation is what loads.
@@ -200,6 +205,17 @@ export class AgentQueueComponent {
             this.filter.set(readQuickFilter(params));
             this.load(params);
         });
+
+        this.platform.getCustomerConfig().subscribe((config) => this.categories.set(config.categories));
+    }
+
+    /**
+     * The category's configured display name — never the raw `categoryCode` the table and cards
+     * used to show, which is the API's stable code (§6.4), not something meant to be read. Falls
+     * back to the code itself while the config is still loading or for a code it no longer lists.
+     */
+    protected categoryName(code: string): string {
+        return this.categories().find((c) => c.code === code)?.name ?? code;
     }
 
     /** A changed filter starts again at page 1 — page 3 of a different query is not a page. */

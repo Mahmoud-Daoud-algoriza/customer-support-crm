@@ -66,7 +66,10 @@ import { STAFF_ROLE_OPTIONS } from './staff-roles';
 
                     <label class="app-field">
                         <span class="app-field__label">{{ 'admin.users.role' | transloco }}</span>
-                        <p-select name="role" [options]="roleOptions" [(ngModel)]="role" optionLabel="label" optionValue="value" />
+                        <p-select name="role" [options]="roleOptions" [(ngModel)]="role" optionLabel="label" optionValue="value">
+                            <ng-template #selectedItem let-item>{{ 'roles.' + item.value | transloco }}</ng-template>
+                            <ng-template #item let-item>{{ 'roles.' + item.value | transloco }}</ng-template>
+                        </p-select>
                     </label>
 
                     <label class="app-field">

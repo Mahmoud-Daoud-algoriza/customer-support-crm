@@ -9,6 +9,7 @@ import { MessageModule } from 'primeng/message';
 import { DirectionService } from '../../../core/i18n/direction.service';
 import { AiAssistPanelComponent } from '../../../shared/components/ai-assist-panel/ai-assist-panel.component';
 import { ApiProblem, problemTranslationKey } from '../../../core/api/api-problem';
+import { CustomerConfig, PlatformApiService } from '../../../core/api/platform-api.service';
 import { Ticket, TicketStatus, TicketsClient } from '../../../core/api/tickets.client';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { EscalateButtonComponent } from '../../../shared/components/escalate-button/escalate-button.component';
@@ -91,7 +92,7 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
                             </header>
 
                             <p class="app-page__meta">
-                                {{ 'tickets.categoryLabel' | transloco }}: {{ row.categoryCode }} · {{ 'tickets.assigneeLabel' | transloco }}:
+                                {{ 'tickets.categoryLabel' | transloco }}: {{ categoryName(row.categoryCode) }} · {{ 'tickets.assigneeLabel' | transloco }}:
                                 {{ row.assignee?.displayName ?? ('tickets.unassigned' | transloco) }}
                                 @if (row.isUrgent) {
                                     · <span class="app-breach">{{ 'tickets.urgentFlag' | transloco }}</span>
@@ -202,8 +203,12 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
 export class TicketDetailComponent {
     private readonly api = inject(TicketsClient);
     private readonly route = inject(ActivatedRoute);
+    private readonly platform = inject(PlatformApiService);
 
     private readonly ticketId = this.route.snapshot.paramMap.get('id') ?? '';
+
+    /** Looked up by code below, the same list `app-ticket-filter-bar` uses for its own filter. */
+    private readonly categories = signal<CustomerConfig['categories']>([]);
 
     protected readonly ticket = signal<Ticket | null>(null);
     protected readonly problem = signal<ApiProblem | null>(null);
@@ -249,12 +254,23 @@ export class TicketDetailComponent {
         return row !== null && isTerminal(row.status);
     });
 
+    /**
+     * The category's configured display name — never the raw `categoryCode` this line used to
+     * show, which is the API's stable code (§6.4), not something meant to be read. Falls back to
+     * the code itself while the config is still loading or for a code it no longer lists.
+     */
+    protected categoryName(code: string): string {
+        return this.categories().find((c) => c.code === code)?.name ?? code;
+    }
+
     protected errorKey = problemTranslationKey;
 
     private readonly direction = inject(DirectionService);
 
     constructor() {
         this.load();
+
+        this.platform.getCustomerConfig().subscribe((config) => this.categories.set(config.categories));
 
         // `_breakpoints.scss`'s $breakpoint-phone, as the same exclusive upper bound the mixin uses.
         const query = window.matchMedia('(max-width: 575.98px)');

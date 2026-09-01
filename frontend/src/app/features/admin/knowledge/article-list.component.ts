@@ -11,6 +11,7 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ApiProblem } from '../../../core/api/api-problem';
+import { DirectionService } from '../../../core/i18n/direction.service';
 import { ArticleListFilter, ArticleListItem, KnowledgeClient } from '../../../core/api/knowledge.client';
 import { Paged } from '../../../core/api/paged';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
@@ -137,6 +138,9 @@ export class AdminArticleListComponent {
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
     private readonly transloco = inject(TranslocoService);
+    // Read inside publishedOptions below so it re-translates on a language switch —
+    // `TranslocoService.getActiveLang()` is a plain getter and would not re-run it.
+    private readonly direction = inject(DirectionService);
 
     protected readonly page = signal<Paged<ArticleListItem> | null>(null);
     protected readonly problem = signal<ApiProblem | null>(null);
@@ -145,7 +149,7 @@ export class AdminArticleListComponent {
     protected isPublished: boolean | null = null;
 
     protected readonly publishedOptions = computed(() => {
-        this.transloco.getActiveLang();
+        this.direction.activeLanguage();
 
         return [
             { value: true, label: this.transloco.translate('knowledge.published') },

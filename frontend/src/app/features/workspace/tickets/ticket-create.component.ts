@@ -152,7 +152,10 @@ import { TICKET_PRIORITIES, TicketPriority, TicketsClient } from '../../../core/
                         [placeholder]="'tickets.anyPriority' | transloco"
                         [(ngModel)]="priority"
                         [disabled]="busy()"
-                    />
+                    >
+                        <ng-template #selectedItem let-code>{{ 'tickets.priority.' + code | transloco }}</ng-template>
+                        <ng-template #item let-code>{{ 'tickets.priority.' + code | transloco }}</ng-template>
+                    </p-select>
                 </label>
 
                 <div class="app-form__actions">

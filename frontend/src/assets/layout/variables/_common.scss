@@ -17,4 +17,13 @@
     --focus-ring-color: var(--p-focus-ring-color);
     --focus-ring-offset: var(--p-focus-ring-offset);
     --focus-ring-shadow: var(--p-focus-ring-shadow);
+
+    // The sidebar hides by sliding out through the inline-start edge — the left in English, the
+    // right in Arabic. `transform` has no logical form, so the direction travels in a variable
+    // rather than in a duplicated rule (docs/ui-design.md §10.2).
+    --layout-sidebar-hidden-x: -100%;
+}
+
+[dir='rtl'] {
+    --layout-sidebar-hidden-x: 100%;
 }

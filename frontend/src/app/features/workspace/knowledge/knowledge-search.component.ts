@@ -11,6 +11,7 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ApiProblem } from '../../../core/api/api-problem';
+import { DirectionService } from '../../../core/i18n/direction.service';
 import {
     ArticleListFilter,
     ArticleListItem,
@@ -172,6 +173,7 @@ export class KnowledgeSearchComponent {
     protected isPublished: boolean | null = null;
 
     private readonly transloco = inject(TranslocoService);
+    private readonly direction = inject(DirectionService);
 
     /**
      * The three type codes of T2-E, **labelled** through the dictionary. The values are the API's
@@ -180,7 +182,7 @@ export class KnowledgeSearchComponent {
      * reload (T2-J), the same way the shell menu does it.
      */
     protected readonly typeOptions = computed(() => {
-        this.transloco.getActiveLang();
+        this.direction.activeLanguage();
 
         return (['Faq', 'HelpArticle', 'SolutionGuide'] as const).map((value) => ({
             value,
@@ -189,7 +191,7 @@ export class KnowledgeSearchComponent {
     });
 
     protected readonly visibilityOptions = computed(() => {
-        this.transloco.getActiveLang();
+        this.direction.activeLanguage();
 
         return (['Public', 'Internal'] as const).map((value) => ({
             value,
@@ -198,7 +200,7 @@ export class KnowledgeSearchComponent {
     });
 
     protected readonly publishedOptions = computed(() => {
-        this.transloco.getActiveLang();
+        this.direction.activeLanguage();
 
         return [
             { value: true, label: this.transloco.translate('knowledge.published') },

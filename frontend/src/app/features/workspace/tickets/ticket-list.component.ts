@@ -8,6 +8,7 @@ import { PaginatorModule } from 'primeng/paginator';
 import { TableModule } from 'primeng/table';
 import { ApiProblem } from '../../../core/api/api-problem';
 import { Paged } from '../../../core/api/paged';
+import { CustomerConfig, PlatformApiService } from '../../../core/api/platform-api.service';
 import { TicketListFilter, TicketListItem, TicketsClient } from '../../../core/api/tickets.client';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
@@ -85,7 +86,7 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
                                         <td>{{ ticket.customer.fullName }}</td>
                                         <td><app-status-chip [status]="ticket.status" /></td>
                                         <td><app-priority-chip [priority]="ticket.priority" /></td>
-                                        <td>{{ ticket.categoryCode }}</td>
+                                        <td>{{ categoryName(ticket.categoryCode) }}</td>
                                         <!-- Assignee and status are two independent facts (A-18). -->
                                         <td>{{ ticket.assignee?.displayName ?? ('tickets.unassigned' | transloco) }}</td>
                                         <td class="app-ltr-numeric">
@@ -142,10 +143,14 @@ export class TicketListComponent {
     private readonly api = inject(TicketsClient);
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
+    private readonly platform = inject(PlatformApiService);
 
     protected readonly page = signal<Paged<TicketListItem> | null>(null);
     protected readonly problem = signal<ApiProblem | null>(null);
     protected readonly filter = signal<TicketListFilter>({});
+
+    /** Looked up by code below, the same list `app-ticket-filter-bar` uses for its own filter. */
+    private readonly categories = signal<CustomerConfig['categories']>([]);
 
     constructor() {
         // UI-9: the URL drives the screen. A filter change navigates; the navigation is what loads.
@@ -154,6 +159,17 @@ export class TicketListComponent {
             this.filter.set(readFilter(params));
             this.load(params);
         });
+
+        this.platform.getCustomerConfig().subscribe((config) => this.categories.set(config.categories));
+    }
+
+    /**
+     * The category's configured display name — never the raw `categoryCode` the table used to
+     * show, which is the API's stable code (§6.4), not something meant to be read. Falls back to
+     * the code itself while the config is still loading or for a code the config no longer lists.
+     */
+    protected categoryName(code: string): string {
+        return this.categories().find((c) => c.code === code)?.name ?? code;
     }
 
     /** A changed filter starts again at page 1 — page 3 of a different query is not a page. */
