@@ -1,0 +1,210 @@
+@startuml USER-FLOWS-use-cases
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of the diagrams: docs/USER-FLOWS.md
+' Diagram 11 — UML use case diagram: the four actors, their use cases and the relationships.
+'
+' THIS IS THE ACTOR/CAPABILITY MAP, NOT A FLOW. It answers "who may do what"; it answers
+' nothing about order, status codes or persistence — those stay in the flow diagrams
+' (USER-FLOWS-agent, -manager, -administrator, -customer, -authorization, -sla, -ai-kb).
+' Every use case drawn here is one already drawn in those diagrams; none is added.
+
+title Support CRM — use case diagram\nAdministrator · Manager · Agent · Customer, plus the two non-human actors\n(implemented state at commit 969bb31, 2026-09-01 — red = NOT IMPLEMENTED)
+
+left to right direction
+skinparam nodesep 14
+skinparam ranksep 55
+
+skinparam shadowing false
+skinparam ArrowColor #33475B
+skinparam ActorBorderColor #33475B
+skinparam ActorBackgroundColor #E8F0FE
+skinparam UsecaseBorderColor #33475B
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam PackageBorderColor #33475B
+skinparam PackageBackgroundColor #FBFCFE
+skinparam NoteBackgroundColor #FFFDF0
+skinparam NoteBorderColor #C8B88A
+
+actor "Customer" as CUST
+actor "Agent" as AGT
+actor "Manager" as MGR
+actor "Administrator" as ADM
+actor "SLA monitor\n<<system>>" as SLA #FFF4E5
+actor "AI provider\n<<external seam>>" as AI #FFE9D6
+
+' A-4 role hierarchy. These generalizations ARE the authorization policies, not a drawing
+' convenience: AuthorizationPolicies.AtLeast(role) makes every higher role satisfy every
+' lower policy. A Customer is not "at least an Agent", so no generalization crosses into
+' the staff side and no staff use case is ever reachable from the portal.
+MGR --|> AGT
+ADM --|> MGR
+
+note top of MGR
+  **A-4 role hierarchy** — AuthorizationPolicies.AtLeast
+  RequireAgent is satisfied by Agent, Manager and
+  Administrator; RequireManager by Manager and
+  Administrator; RequireAdministrator by Administrator
+  alone. A Manager therefore inherits every Agent use
+  case and an Administrator inherits both sets —
+  drawn once here, never repeated.
+end note
+
+package "Access and session — every role" {
+  usecase "Register as a customer\n<<anonymous>>" as U_REG
+  usecase "Sign in" as U_LOGIN
+  usecase "Resume the session\nGET /auth/me" as U_ME
+  usecase "Sign out\nclient-side only (AP-8)" as U_OUT
+  usecase "Load branding and languages\nGET /config/bootstrap <<anonymous>>" as U_BOOT
+}
+
+U_LOGIN .> U_BOOT : <<include>>
+U_REG .> U_BOOT : <<include>>
+
+CUST -- U_REG
+CUST -- U_LOGIN
+AGT -- U_LOGIN
+CUST -- U_ME
+AGT -- U_ME
+CUST -- U_OUT
+AGT -- U_OUT
+
+package "Customer Portal — /portal" {
+  usecase "Submit a request" as P_NEW
+  usecase "Choose a category\nGET /config — code and name only (AP-17)" as P_CAT
+  usecase "Read own request thread" as P_READ
+  usecase "Reply on own request" as P_REPLY
+  usecase "Reopen a Pending request\nby replying (R-13, R-14)" as P_REOPEN
+  usecase "Search the help centre\npublished and public articles only" as P_KB
+  usecase "<color:#B71C1C>List my requests</color>\n<color:#B71C1C>NOT IMPLEMENTED (story 13, T2-F)</color>" as P_LIST #FFEBEE
+  usecase "<color:#B71C1C>Cancel own request ·</color>\n<color:#B71C1C>reopen a Resolved request</color>\n<color:#B71C1C>A-16 grants it server-side; no UI calls it</color>" as P_CANCEL #FFEBEE
+  usecase "<color:#B71C1C>Portal attachments ·</color>\n<color:#B71C1C>satisfaction feedback</color>\n<color:#B71C1C>NOT IMPLEMENTED (story 13, T2-F)</color>" as P_FB #FFEBEE
+}
+
+CUST -- P_NEW
+CUST -- P_READ
+CUST -- P_REPLY
+CUST -- P_KB
+CUST -- P_LIST
+CUST -- P_CANCEL
+CUST -- P_FB
+P_NEW .> P_CAT : <<include>>
+P_REOPEN .> P_REPLY : <<extend>>
+
+note right of P_NEW
+  Four inputs only (ui-design §7.2): subject, description,
+  category, and "this is urgent" — an indication, never a
+  priority (A-17). The department (A-14), the priority and
+  the SLA due dates are server-derived and frozen (A-20).
+  Authenticated submission only (A-9).
+end note
+
+package "Staff Workspace — /workspace  (RequireAgent)" {
+  usecase "Work my queue\nserver-ordered by urgency" as W_QUEUE
+  usecase "Open a ticket" as W_TICKET
+  usecase "View thread, activity, attachments\nand the customer panel" as W_VIEW
+  usecase "Assign or reassign a ticket\nthe status does not change (A-18)" as W_ASSIGN
+  usecase "Change ticket status\nA-16 authority, then A-5 legality" as W_STATUS
+  usecase "Escalate a ticket\na separate control (AP-7)" as W_ESC
+  usecase "Reply to the customer" as W_REPLY
+  usecase "Create a ticket for a customer" as W_CREATE
+  usecase "Get an AI classification suggestion\nfreely overridable" as W_CLASS
+  usecase "Summarise a ticket /\ndraft a suggested reply" as W_AI
+  usecase "See suggested articles\nretrieval, not AI (AP-14)" as W_SUGG
+  usecase "Search the knowledge base\ninternal and public, badged" as W_KB
+  usecase "Manage customers\ndirectory, notes, attachments" as W_CUST
+  usecase "Read notifications and mark them read" as W_NOTIF
+  usecase "<color:#B71C1C>Internal notes and ticket tasks</color>\n<color:#B71C1C>NOT IMPLEMENTED (story 14, T2-C)</color>" as W_NOTES #FFEBEE
+}
+
+AGT -- W_QUEUE
+AGT -- W_TICKET
+AGT -- W_CREATE
+AGT -- W_KB
+AGT -- W_CUST
+AGT -- W_NOTIF
+AGT -- W_NOTES
+
+W_TICKET .> W_VIEW : <<include>>
+W_TICKET .> W_SUGG : <<include>>
+W_ASSIGN .> W_TICKET : <<extend>>
+W_STATUS .> W_TICKET : <<extend>>
+W_ESC .> W_TICKET : <<extend>>
+W_REPLY .> W_TICKET : <<extend>>
+W_AI .> W_TICKET : <<extend>>
+W_CREATE .> W_CLASS : <<include>>
+
+W_AI --> AI
+W_CLASS --> AI
+
+note right of AI
+  The IAiAssistService seam. The default provider is the
+  deterministic offline fake (A-7) — no HTTP call, no
+  credential. Nothing generated is persisted, no ticket
+  field is mutated, and nothing is ever auto-sent
+  (A-8, UI-6). A Customer is refused both use cases: 403.
+end note
+
+package "Manager — the differences (RequireManager)" {
+  usecase "Filter and read tickets\nacross every department" as M_SCOPE
+  usecase "Receive escalation and\nSLA-breach notifications (A-21)" as M_ESCN
+  usecase "<color:#B71C1C>Management reporting dashboard</color>\n<color:#B71C1C>NOT IMPLEMENTED (story 15, T2-G)</color>" as M_REP #FFEBEE
+}
+
+MGR -- M_SCOPE
+MGR -- M_ESCN
+MGR -- M_REP
+
+package "Administration — /admin  (RequireAdministrator)" {
+  usecase "Manage staff users\ncreate · edit role and department · deactivate" as A_USERS
+  usecase "Review the audit log\nappend-only, newest first" as A_AUDIT
+  usecase "View the effective configuration\nread-only by design" as A_CONF
+  usecase "Author knowledge articles\ncreate · edit · publish · unpublish" as A_KB
+  usecase "View platform health\nthe only screen reporting the database" as A_HEALTH
+  usecase "<color:#B71C1C>Delete an article · version history</color>\n<color:#B71C1C>Excluded by decision (T2-E)</color>" as A_KBDEL #FFEBEE
+}
+
+ADM -- A_USERS
+ADM -- A_AUDIT
+ADM -- A_CONF
+ADM -- A_KB
+ADM -- A_HEALTH
+ADM -- A_KBDEL
+
+package "System-driven — begins in no browser" {
+  usecase "Sweep tickets past their SLA due date\nSlaMonitorHostedService, in-process timer" as S_SWEEP
+  usecase "Latch the breach flag and escalate\nthe same path the manual button uses" as S_ESC
+  usecase "Raise a notification\nA-13's four types, in-app rows only" as S_NOTIF
+}
+
+SLA -- S_SWEEP
+S_SWEEP .> S_ESC : <<include>>
+S_ESC .> S_NOTIF : <<include>>
+W_ESC .> S_NOTIF : <<include>>
+W_ASSIGN .> S_NOTIF : <<include>>
+P_REPLY .> S_NOTIF : <<include>>
+S_NOTIF --> M_ESCN
+S_NOTIF --> W_NOTIF
+
+note right of S_SWEEP
+  AD-6: an in-process hosted service — no queue, no broker,
+  no external scheduler. The sweep is idempotent by
+  construction. The clock is 24/7 from createdAt: no business
+  hours, and Pending does not pause it (A-3, PF-5).
+  **NOT IMPLEMENTED:** e-mail, SMS or push delivery.
+end note
+
+note as N_SCOPE
+  **Row scoping is a second gate, after the role policy**
+  · Agent — tickets in the caller's own department; the shared
+    department filter is fixed and disabled in the UI.
+  · Manager and Administrator — unrestricted across departments.
+  · Customer — own requests only; another customer's id answers
+    404, never 403 (AP-4), and internal notes are unreachable
+    by path (AP-5).
+  Which status code is decided where: USER-FLOWS-authorization.
+end note
+
+@enduml
