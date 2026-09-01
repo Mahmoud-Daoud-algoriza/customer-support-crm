@@ -1,0 +1,121 @@
+@startuml USER-FLOWS-agent
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 3 of 11 — Agent lifecycle in the Staff Workspace
+title Agent — Staff Workspace lifecycle\nDepartment-scoped queue, ticket work, messaging, AI, knowledge, notifications
+
+skinparam shadowing false
+|#E8F0FE|Agent (browser)|
+|#FFF4E5|API — api/v1|
+|#FDEAF1|SQL Server|
+
+|Agent (browser)|
+start
+:Signed in as Agent → /workspace → /workspace/queue;
+
+partition "My queue — the landing screen (UI-2)" {
+  |API — api/v1|
+  :GET /tickets?assigneeId=me\n(no sort sent — the server owns urgency;\n"me" is resolved server-side, never sent as an id);
+  :TicketScope: DepartmentId = the caller's department;
+  |SQL Server|
+  :SELECT Tickets ORDER BY\nresolutionBreached DESC, resolutionDueAt ASC;
+  |Agent (browser)|
+  :Table (desktop) / stacked cards (phone),\nstatus and priority chips, SLA indicator,\nquick filters kept in the URL (UI-9);
+}
+
+repeat
+  if (what next ?) then (open a ticket)
+
+    partition "Ticket detail — /workspace/tickets/:id (regions load independently)" {
+      |API — api/v1|
+      :GET /tickets/{id}            → header, chips, SLA due dates (frozen, A-20);
+      :GET /tickets/{id}/messages   → customer-visible thread, oldest first;
+      :GET /tickets/{id}/activity   → append-only history, internal entries included;
+      :GET /tickets/{id}/attachments;
+      :GET /tickets/{id}/suggested-articles → keyword-matched KB articles;
+      :GET /customers/{id}          → customer panel (drawer at phone width);
+      |Agent (browser)|
+      :<color:#B71C1C>Internal notes region and ticket tasks</color>\n<color:#B71C1C>NOT IMPLEMENTED (story 14, T2-C)</color>;
+    }
+
+    if (which action on the ticket ?) then (assign / reassign)
+      |API — api/v1|
+      :POST /tickets/{id}/assignment {assignedUserId};
+      |SQL Server|
+      :UPDATE Tickets.AssignedUserId\nINSERT TicketActivity(Assigned)\nINSERT Notification(TicketAssigned);
+      |Agent (browser)|
+      :The status chip does NOT change (A-18);
+
+    elseif (change status) then
+      |Agent (browser)|
+      :Transition menu — offers legal AND permitted only (UI-3);
+      |API — api/v1|
+      :POST /tickets/{id}/transition {targetStatus}\nA-16 authority first, then A-5 legality;
+      |SQL Server|
+      :UPDATE Tickets.Status\nINSERT TicketActivity(StatusChanged)\nINSERT AuditEntry(TicketStatusChanged);
+      |Agent (browser)|
+      :No optimistic UI (UI-8) — the chip moves\nonly after the server confirms;
+
+    elseif (escalate) then
+      |Agent (browser)|
+      :A separate control, never inside the menu (AP-7).\nConfirmation dialog naming the effect (UI-12):\npriority rises one level, status unchanged,\na manager will be notified;
+      |API — api/v1|
+      :POST /tickets/{id}/escalate  (no body);
+      |SQL Server|
+      :UPDATE Tickets.Priority (+1; Urgent stays Urgent)\nINSERT Escalation + TicketActivity(Escalated)\nINSERT AuditEntry(TicketEscalated)\nINSERT Notification(TicketEscalated) → A-21 recipients;
+
+    elseif (reply to the customer) then
+      |Agent (browser)|
+      :One composer, one Send (UI-7): quick replies from\nGET /config/staff and the AI draft both land\nin the same editable draft;
+      |API — api/v1|
+      :POST /tickets/{id}/messages {body}\nthe channel is the endpoint's fact, never the client's;
+      |SQL Server|
+      :INSERT TicketMessage(direction = Outbound)\nSET Ticket.FirstRespondedAt on the first outbound\nINSERT TicketActivity(MessagePosted);
+
+    elseif (ask the AI panel) then
+      |API — api/v1|
+      :POST /tickets/{id}/ai/summary\nPOST /tickets/{id}/ai/suggested-reply\n(see USER-FLOWS-ai-kb);
+      |Agent (browser)|
+      :Always labelled AI-generated. "Insert into reply"\nputs text in the composer — never auto-sent (A-8);
+
+    else (read a suggested article)
+      |Agent (browser)|
+      :Open → /workspace/knowledge/:id;
+    endif
+
+  elseif (create a ticket for a customer ?) then (yes)
+    |Agent (browser)|
+    :/workspace/tickets/new;
+    |API — api/v1|
+    :POST /ai/classification-suggestion (on blur)\n→ pre-selects category and priority, freely overridable;
+    :POST /tickets {customerId, subject, description,\n categoryCode, priority, departmentId?}\nisUrgent, status and the SLA fields are refused (AP-10);
+    |SQL Server|
+    :INSERT Ticket — status New, department derived from\nthe category map (A-14), SLA due dates computed once;\nround-robin auto-assignment → Notification(TicketAssigned);
+    |Agent (browser)|
+    :<color:#B71C1C>Writing the AI suggestion and the agent's override</color>\n<color:#B71C1C>into ticket history: NOT IMPLEMENTED</color>\n<color:#B71C1C>(blocked by finding S9-4 — no contract field carries it)</color>;
+
+  elseif (customers ?) then (yes)
+    |API — api/v1|
+    :GET /customers  (directory — not department-scoped)\nGET /customers/{id} + /timeline + /notes + /attachments\nPOST /customers · PATCH /customers/{id}\nPOST /customers/{id}/notes · /attachments\nGET /attachments/{id}/content (streamed download);
+
+  elseif (knowledge base ?) then (yes)
+    |API — api/v1|
+    :GET /kb/articles?q=... — staff see internal AND public,\ninternal ones badged  ·  GET /kb/articles/{id};
+    |Agent (browser)|
+    :Presented as search, never as an AI answer (AP-14);
+
+  else (notifications ?)
+    |API — api/v1|
+    :GET /notifications?unreadOnly=&paging\nPOST /notifications/{id}/read (idempotent, 204);
+    |Agent (browser)|
+    :Bell badge plus the /workspace/notifications list.\nNo mark-all-read control exists (AP-18);
+  endif
+repeat while (continue working ?) is (yes) not (no)
+
+|Agent (browser)|
+:Sign out — client-side only (AP-8);
+stop
+@enduml

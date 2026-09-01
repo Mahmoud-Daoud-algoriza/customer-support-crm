@@ -1,0 +1,64 @@
+@startuml USER-FLOWS-sla
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 8 of 11 — SLA monitoring, escalation and notifications
+title SLA monitoring, escalation and notifications\nThe flow that does not start in the browser (AD-6, A-3, A-13, A-21)
+
+skinparam shadowing false
+|#FFF4E5|SlaMonitorHostedService (in-process timer)|
+|#FFE9D6|Application services|
+|#FDEAF1|SQL Server|
+|#E8F0FE|Staff browser|
+
+|SlaMonitorHostedService (in-process timer)|
+start
+:Host starts → one sweep immediately, then every\nSweepIntervalSeconds (PeriodicTimer).\nNo queue, no broker, no external scheduler;
+repeat
+  :Create a DI scope; set the SYSTEM identity;
+  |Application services|
+  :SlaEvaluationService.EvaluateDueTicketsAsync;
+  |SQL Server|
+  :SELECT Tickets WHERE the status is not terminal AND\n( (FirstResponseDueAt <= now AND NOT FirstResponseBreached\n    AND FirstRespondedAt IS NULL)\n  OR (ResolutionDueAt <= now AND NOT ResolutionBreached\n    AND ResolvedAt IS NULL) )\n— served by the two filtered indexes;
+  if (any tickets due ?) then (yes)
+    |Application services|
+    :Latch the breach flag(s) — idempotent by construction:\nthe flags this pass sets are in the next pass's predicate;
+    :Escalate through TicketLifecycleService.EscalateAsync\n(actor = System) — the SAME path the manual button uses,\nnot a second implementation;
+    :Resolve recipients via IEscalationRecipientPolicy (A-21):\nthe department's manager, else all Managers,\nelse all Administrators;
+    |SQL Server|
+    :UPDATE Tickets (breach flags, priority +1)\nINSERT TicketActivity(Escalated)\nINSERT AuditEntry(TicketEscalated)\nINSERT Notification(SlaBreached, TicketEscalated)\nCOMMITTED ONCE for the whole sweep;
+  else (no)
+    |Application services|
+    :Nothing to do;
+  endif
+repeat while (host running ?) is (yes) not (shutdown)
+|SlaMonitorHostedService (in-process timer)|
+:A failed tick is logged and the loop continues;
+stop
+
+|Staff browser|
+partition "How a notification reaches a person" {
+  :Every navigation calls NotificationStore.refresh()\n— staff only, skipped for a Customer session;
+  :GET /notifications?pageSize=10 → bell badge and panel;
+  :Opening one marks it read:\nPOST /notifications/{id}/read (204, idempotent).\nNo optimistic decrement (UI-8); no mark-all-read (AP-18);
+  :The full list is at /workspace/notifications;
+}
+
+note right
+  **The four notification types (A-13), and no others**
+  · TicketAssigned  — manual assignment, or round-robin
+  · SlaBreached     — raised by the sweep, the only system actor
+  · TicketEscalated — manual escalate, or the sweep
+  · CustomerReplied — a customer posted on the portal
+
+  **Known simplification, reported not fixed (A-3, PF-5):**
+  the clock is 24/7 wall-clock from createdAt — no business hours,
+  no holidays, and Pending does NOT pause it. A ticket resolved
+  without an outbound reply stays first-response breached.
+
+  **NOT IMPLEMENTED:** e-mail, SMS or push delivery. A notification
+  is a database row read by the in-app bell — nothing else.
+end note
+@enduml

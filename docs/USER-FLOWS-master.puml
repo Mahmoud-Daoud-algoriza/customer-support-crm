@@ -1,0 +1,146 @@
+@startuml USER-FLOWS-master
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 1 of 11 — master flow: login, authentication, role detection, routing, areas, logout
+title Support CRM — master user flow\nLogin, authentication, role detection, role-based redirect, areas, logout\n(implemented state at commit 969bb31, 2026-09-01)
+
+skinparam shadowing false
+skinparam ArrowColor #33475B
+skinparam ActivityBorderColor #33475B
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityDiamondBackgroundColor #FFF9E6
+skinparam NoteBackgroundColor #FFFDF0
+skinparam NoteBorderColor #C8B88A
+
+|#E8F0FE|Browser — Angular SPA|
+|#E9F7EF|Router + guards (hide only)|
+|#FFF4E5|API — ASP.NET Core (api/v1)|
+|#FDEAF1|SQL Server via EF Core|
+
+|Browser — Angular SPA|
+start
+:User opens the app at any URL;
+:GET /api/v1/config/bootstrap  «anonymous»\nproduct name, logo, primary colour,\nlanguages (en, ar), default language;
+note right
+  ConfigController.GetBootstrap — one of the four
+  anonymous endpoints (api-design §4.1). Feeds
+  branding + the language switcher before sign-in.
+end note
+
+if (JWT held in localStorage\nkey "supportcrm.token" ?) then (yes)
+  :GET /api/v1/auth/me\nAuthorization: Bearer <token>;
+  |API — ASP.NET Core (api/v1)|
+  :CurrentUserMiddleware (AD-15)\nreads the subject claim ONLY —\nrole, department and active status\nare deliberately NOT in the token;
+  |SQL Server via EF Core|
+  :SELECT Id, Email, DisplayName, Role,\nDepartmentId, CustomerId, IsActive\nFROM Users WHERE Id = subject;
+  |API — ASP.NET Core (api/v1)|
+  if (user exists AND IsActive ?) then (yes)
+    :200 Identity\n{id, email, displayName, role,\n departmentId, customerId};
+    |Browser — Angular SPA|
+    :AuthStore.setIdentity(...);
+  else (no — deleted or deactivated)
+    :401 unauthenticated;
+    |Browser — Angular SPA|
+    :errorInterceptor clears the token\nand the notification badge;
+    :Router → /auth/login?returnUrl=<url>;
+  endif
+else (no token)
+  |Router + guards (hide only)|
+  :authenticatedGuard / roleRedirectGuard\n→ UrlTree /auth/login?returnUrl=<url>;
+endif
+
+|Browser — Angular SPA|
+if (identity resolved ?) then (no — sign-in required)
+  repeat
+    :AuthShell renders /auth/login\n(or /auth/register for a new customer);
+    if (existing account ?) then (yes — sign in)
+      :POST /api/v1/auth/login\n{email, password};
+      |API — ASP.NET Core (api/v1)|
+      :AuthService.LoginAsync verifies\nthe stored password hash;
+      |SQL Server via EF Core|
+      :SELECT Users (case-insensitive e-mail)\nINSERT AuditEntry\n  SignInSucceeded | SignInFailed;
+      |API — ASP.NET Core (api/v1)|
+      :200 AuthToken {accessToken, user}\nor 401 invalid-credentials;
+    else (no — customer self-registration)
+      :POST /api/v1/auth/register\n{email, password, displayName, ...};
+      |API — ASP.NET Core (api/v1)|
+      :AuthService.RegisterAsync (A-15) creates\nUser(role = Customer) + Customer\non the configured default branch;
+      |SQL Server via EF Core|
+      :INSERT Users, Customers\n(409 user-already-exists if the e-mail is taken);
+      |API — ASP.NET Core (api/v1)|
+      :201 AuthToken — the new customer is\nsigned in, not bounced to the form;
+    endif
+    |Browser — Angular SPA|
+    :Render the inline error for 401 / 409.\nThe anonymous auth endpoints are excluded\nfrom the interceptor's 401 redirect rule;
+  repeat while (credentials accepted ?) is (no) not (yes)
+  :AuthStore.setToken() → localStorage\nAuthStore.setIdentity();
+endif
+
+|Router + guards (hide only)|
+:navigateByUrl(returnUrl or "/");
+:roleRedirectGuard reads identity.role\nA-4 hierarchy: Customer < Agent < Manager < Administrator;
+
+if (which role ?) then (Customer)
+  :UrlTree → /portal  (PortalShell, lazy chunk)\n→ /portal/requests/new;
+  |Browser — Angular SPA|
+  :CUSTOMER PORTAL\nSubmit a request · Request detail · Help centre;
+  note right
+    See USER-FLOWS-customer.
+    Portal navigation today: "Submit a request" and "Help".
+  end note
+elseif (Administrator) then
+  :UrlTree → /workspace  (StaffShell, lazy chunk)\n→ /workspace/queue   (UI-2 landing);
+  |Browser — Angular SPA|
+  :STAFF WORKSPACE\nMy queue · Tickets · Customers ·\nKnowledge · Notifications;
+  :ADMINISTRATION (second nav section)\nUsers · Audit log · Configuration ·\nKnowledge authoring · /status health check;
+  note right
+    An Administrator satisfies the Agent guard (A-4),
+    so an Administrator sees BOTH sections, and
+    TicketScope is unrestricted across departments.
+    See USER-FLOWS-administrator.
+  end note
+elseif (Manager) then
+  :UrlTree → /workspace → /workspace/queue;
+  |Browser — Angular SPA|
+  :STAFF WORKSPACE — same screens as an Agent,\nbut TicketScope is unrestricted across departments\n(A-2, A-4) and the department filter is enabled;
+  :<color:#B71C1C>/workspace/reports — the Manager+ dashboard</color>\n<color:#B71C1C>NOT IMPLEMENTED (story 15). The route does not</color>\n<color:#B71C1C>exist, so the URL falls through to /404</color>;
+  note right
+    See USER-FLOWS-manager.
+  end note
+else (Agent)
+  :UrlTree → /workspace → /workspace/queue;
+  |Browser — Angular SPA|
+  :STAFF WORKSPACE\nMy queue · Tickets · Customers ·\nKnowledge · Notifications;
+  :TicketScope narrows every ticket read and write\nto the agent's own department;
+  note right
+    See USER-FLOWS-agent.
+  end note
+endif
+
+|Browser — Angular SPA|
+:Work in the area\n(see the per-role diagrams);
+
+partition "Cross-cutting, on every authenticated screen" {
+  :Language switcher en / ar,\ndocument direction ltr / rtl (T2-J);
+  :Notification bell — NotificationStore.refresh()\non every navigation; nothing polls (T3-B).\nStaff only: skipped for a Customer session;
+}
+
+if (how does the session end ?) then (user signs out)
+  :AuthService.logout() — client-side ONLY (AP-8).\nNo logout endpoint exists: discard the token,\nclear the unread badge, navigate to /auth/login;
+else (server refuses — 401)
+  :errorInterceptor clears the store and\nredirects to /auth/login?returnUrl=<current>;
+endif
+stop
+
+legend right
+  |= Lane |= Meaning |
+  | Browser | Angular standalone components, PrimeNG/Sakai shell |
+  | Guards | authenticatedGuard, roleAtLeast(...), roleRedirectGuard — they hide only |
+  | API | Controllers → Application services; policies RequireCustomer/Agent/Manager/Administrator |
+  | SQL Server | EF Core, one unit of work per request, committed once |
+  Red text marks what is NOT IMPLEMENTED.
+end legend
+@enduml

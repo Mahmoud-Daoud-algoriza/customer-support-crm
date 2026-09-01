@@ -1,0 +1,80 @@
+@startuml USER-FLOWS-administrator
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 5 of 11 — Administrator lifecycle (Administration area)
+title Administrator — Administration area (plus the whole Staff Workspace)
+
+skinparam shadowing false
+|#E8F0FE|Administrator (browser)|
+|#FFF4E5|API — api/v1|
+|#FDEAF1|SQL Server|
+
+|Administrator (browser)|
+start
+:Signed in as Administrator → /workspace/queue\n(an Administrator satisfies the Agent guard, A-4);
+:The sidebar shows BOTH sections:\nWorkspace (as USER-FLOWS-agent) and Administration;
+
+repeat
+  if (which administration task ?) then (users — T1-D)
+    |API — api/v1|
+    :GET /users?role=&departmentId=&q=&paging → directory;
+    :GET /users/{id} → detail;
+    split
+      :Create a staff user;
+      |API — api/v1|
+      :POST /users {email, password, displayName,\n role, departmentId, branchId}\nrole = Customer is rejected (DM-1);
+      |SQL Server|
+      :INSERT Users + AuditEntry(UserCreated);\n409 user-already-exists on a duplicate e-mail;
+    split again
+      :Edit role / department / branch / display name;
+      |API — api/v1|
+      :PATCH /users/{id};
+      |SQL Server|
+      :UPDATE Users\nINSERT AuditEntry(UserRoleChanged |\nUserDepartmentChanged | UserEmailChanged);
+      |Administrator (browser)|
+      :Takes effect on the target's VERY NEXT request —\nthe token carries no role claim (AD-15);
+    split again
+      :Deactivate (confirmation dialog, UI-12);
+      |API — api/v1|
+      :POST /users/{id}/deactivate → 204;
+      |SQL Server|
+      :UPDATE Users.IsActive = 0\nINSERT AuditEntry(UserDeactivated);
+      |Administrator (browser)|
+      :That user's next request is 401, whatever their\ntoken says. A user is never deleted;
+    end split
+
+  elseif (audit log — T2-H) then (yes)
+    |API — api/v1|
+    :GET /audit?actorUserId=&action=&from=&to=&paging\nAdministrator-only, newest first;
+    |SQL Server|
+    :SELECT AuditEntries — append-only, written by\nAuditRecorder from Application services:\nSignInSucceeded, SignInFailed, UserCreated,\nUserDeactivated, UserRoleChanged,\nUserDepartmentChanged, UserEmailChanged,\nTicketStatusChanged, TicketEscalated;
+    |Administrator (browser)|
+    :Read-only screen. No export and no delete;
+
+  elseif (configuration — T2-I) then (yes)
+    |API — api/v1|
+    :GET /config/staff — priorities, quick replies,\nSLA targets, category → department map;\nGET /config — categories, feedback scale;
+    |Administrator (browser)|
+    :Read-only effective configuration. Editing is by\nappsettings / environment only — there is no write\nendpoint, by design;
+
+  elseif (knowledge authoring — T2-E) then (yes)
+    |API — api/v1|
+    :GET   /kb/articles                → authoring list\nPOST  /kb/articles                → create (draft by default)\nPATCH /kb/articles/{id}           → title, body, type, visibility\nPOST  /kb/articles/{id}/publish   → publish\nPOST  /kb/articles/{id}/unpublish → unpublish;
+    |SQL Server|
+    :INSERT / UPDATE KnowledgeArticles — the author is the\nauthenticated Administrator, never accepted from a client;
+    |Administrator (browser)|
+    :<color:#B71C1C>Delete an article, and version history:</color>\n<color:#B71C1C>NOT IMPLEMENTED — no route, no endpoint (T2-E)</color>;
+
+  else (platform health)
+    |API — api/v1|
+    :GET /health → the /status screen (Administrator-only),\nthe only screen that reports database connectivity;
+  endif
+repeat while (more administration ?) is (yes) not (no)
+
+|Administrator (browser)|
+:Sign out — client-side only (AP-8);
+stop
+@enduml

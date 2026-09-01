@@ -1,0 +1,56 @@
+@startuml USER-FLOWS-ai-kb
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 9 of 11 — AI assists and Knowledge Base retrieval
+title AI assists (generated, labelled) versus Knowledge Base retrieval (found, not generated)
+
+skinparam shadowing false
+|#E8F0FE|Agent (browser)|
+|#FFF4E5|API — api/v1|
+|#FFE9D6|IAiAssistService seam|
+|#FDEAF1|SQL Server|
+
+|Agent (browser)|
+start
+if (which assist ?) then (summarise / draft a reply)
+  |API — api/v1|
+  :POST /tickets/{id}/ai/summary\nPOST /tickets/{id}/ai/suggested-reply\nAgent+ only — a Customer gets 403, because A-8\nexcludes customer-facing generation;
+  :TicketScope FIRST — an out-of-scope ticket is 404 before\nany provider call, so customer content never leaves the\nprocess for a ticket the caller cannot see;
+  |IAiAssistService seam|
+  if (AiOptions.Provider) then (Fake — the default)
+    :DeterministicFakeAiService — every output derived from\nSHA-256 of the input text. No HTTP dependency at all,\nno credential, no randomness (A-7: the offline demo);
+  else (Provider)
+    :ProviderAiService over HttpClient;
+    if (provider reachable ?) then (no)
+      :<color:#B71C1C>AiUnavailableException → 503 ai-unavailable,</color>\n<color:#B71C1C>mapped once by the Problem Details handler (AP-12)</color>;
+      |Agent (browser)|
+      :Only the AI panel shows the outage. The rest of the\nticket screen stays live and every other action works;
+      stop
+    else (yes)
+    endif
+  endif
+  |API — api/v1|
+  :200 — the assist. NOTHING is persisted and no ticket field\nis mutated (a test snapshots the row before and after);
+  |Agent (browser)|
+  :AiAssistPanel renders it with a permanent "AI-generated"\nlabel and an explicit action (UI-6). "Insert into reply"\ngoes to the one shared composer (UI-7). Never auto-sent (A-8);
+
+elseif (classify a new ticket ?) then (yes)
+  |API — api/v1|
+  :POST /ai/classification-suggestion {subject, description}\n— takes no ticket id: callable before the ticket exists;
+  |Agent (browser)|
+  :Pre-selects category and priority on the creation form.\nBoth stay freely overridable and the label persists after\nan override. No inline ghost text (UI-6);
+  :<color:#B71C1C>Recording the suggestion and the agent's override in ticket</color>\n<color:#B71C1C>history: NOT IMPLEMENTED (S9-4). The activity types</color>\n<color:#B71C1C>AiSuggestionOffered / AiSuggestionResolved exist but have</color>\n<color:#B71C1C>no writer and no contract field to carry them</color>;
+
+else (find an existing article)
+  |API — api/v1|
+  :GET /tickets/{id}/suggested-articles — a Knowledge endpoint,\nNOT under /ai (AP-14)\nGET /kb/articles?q=...        staff: internal + public, badged\nGET /portal/kb/articles?q=... customer: published + public only;
+  |SQL Server|
+  :Keyword ranking over KnowledgeArticles (AD-13) — an ordinary\ndatabase search. No vector store, no model, no embedding;
+  |Agent (browser)|
+  :Rendered as retrieval, deliberately unlike the AI panel:\nno sparkle icon, no "AI-generated" label, a match score per\nrow, and rows link to the article reader — there is no\n"insert article into reply";
+endif
+stop
+@enduml

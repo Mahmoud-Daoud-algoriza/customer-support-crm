@@ -1,0 +1,68 @@
+@startuml USER-FLOWS-ticket-state
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 7 of 11 — ticket lifecycle state machine (A-5 legality x A-16 authority)
+title Ticket lifecycle — the A-5 state machine with A-16 authority\n(TicketLifecycle.Legal + TransitionAuthority.MayInvoke)
+
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #FFFFFF
+  BorderColor #33475B
+  FontColor #22303F
+}
+
+[*] --> New : POST /tickets (agent, on behalf of a customer)\nPOST /portal/tickets (customer web form)\nstatus, department and SLA dates are server-derived
+
+state New
+state Open
+state Pending
+state Resolved
+state Closed #EEEEEE
+state Cancelled #EEEEEE
+
+New --> Open : staff
+New --> Cancelled : staff, or the owning customer\n(A-16 + A-18: only while still New)
+
+Open --> Pending : staff
+Open --> Resolved : staff
+Open --> Cancelled : staff
+
+Pending --> Open : staff
+Pending --> Open : AUTOMATIC — the owning customer posts a reply\nPOST /portal/tickets/{id}/messages (R-13),\nsame transaction, attributed to the customer (R-14)
+Pending --> Resolved : staff
+Pending --> Cancelled : staff
+
+Resolved --> Open : staff, or the owning customer (reopen own)\ncustomer control NOT IMPLEMENTED (story 13)
+Resolved --> Closed : staff only — a customer may never close
+Resolved --> Cancelled : staff
+
+Closed --> [*]
+Cancelled --> [*]
+
+note right of Closed
+  Terminal: no outgoing edge at all.
+  A ticket is cancelled, never deleted.
+  There is no timer and no automatic closure anywhere.
+end note
+
+note left of New
+  **Escalation is an action, not a transition** (AP-7, A-5).
+  POST /tickets/{id}/escalate raises the priority exactly one
+  level (Urgent stays Urgent) and leaves the status where it is,
+  from any non-terminal state. Staff only.
+  It also fires from the SLA sweep — see USER-FLOWS-sla.
+end note
+
+note bottom
+  **Three independent refusals, deliberately distinguishable** (api-design §5.6)
+  · 404 — the ticket is outside the caller's scope (TicketScope, AP-4)
+  · 403 transition-not-permitted — the edge exists, the caller may not invoke it (A-16)
+  · 409 illegal-transition — the edge is not in this graph (A-5); the problem detail
+    carries allowedTransitions (finding F-1: it is not on the ticket payload)
+  The client mirrors the matrix in shared/lifecycle/transition-matrix.ts to decide
+  what to OFFER; the server decides what is ALLOWED.
+end note
+@enduml

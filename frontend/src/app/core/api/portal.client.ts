@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { UserSummary } from '../auth/identity.model';
 import { ApiClientBase, QueryValue } from './api-client.base';
+import { AttachmentMetadata } from './attachments.client';
 import { MessageDirection, TicketStatus } from './tickets.client';
 import { Paged, PageRequest } from './paged';
 
@@ -76,6 +77,34 @@ export interface PortalPostedMessage {
 }
 
 /**
+ * The body of `POST /portal/tickets/{id}/transition` — docs/api-design.md §5.7.
+ *
+ * **Two targets and no others** (A-16): `Cancelled` while the request is `New` — a window A-18
+ * keeps genuinely open, because an auto-assigned request is still `New` — and `Open` to reopen a
+ * `Resolved` one.
+ *
+ * **`Pending` is not among them.** Replying reopens a `Pending` request automatically (R-13), which
+ * is exactly why docs/ui-design.md §7.3 forbids the UI from offering a manual reopen for one. The
+ * type says so, so a screen cannot ask for it by mistake.
+ */
+export type PortalTransitionTarget = 'Cancelled' | 'Open';
+
+/**
+ * `Feedback` — docs/api-design.md §6.4. What `POST /portal/tickets/{id}/feedback` answers with.
+ *
+ * **`rating` carries no range in this type, and must not gain one (OQ-1).** The permitted values
+ * come from `feedback.ratingScale` in `GET /config`; the contract fixes none, and neither does this
+ * interface.
+ */
+export interface PortalFeedback {
+    id: string;
+    ticketId: string;
+    rating: number;
+    comment?: string | null;
+    submittedAt: string;
+}
+
+/**
  * The typed client for the **customer** path space — docs/api-design.md §5.7.
  *
  * <h3>Why this is a separate client from `TicketsClient`</h3>
@@ -92,8 +121,9 @@ export interface PortalPostedMessage {
  * Portal messaging is ordinary request/response (T3-B). There is no interval, no subscription and
  * no long-poll in this file, and none may be added and called real-time chat.
  *
- * Story 07 publishes three of §5.7's endpoints; **Story 13 adds the rest** — own ticket list,
- * detail, transition, attachments and feedback — into this same client.
+ * Story 07 published three of §5.7's endpoints and **Story 13 added the rest** into this same
+ * client — own list, own detail, transition, attachments and feedback. **The portal path space is
+ * complete**, and a method that is not here corresponds to no route.
  */
 @Injectable({ providedIn: 'root' })
 export class PortalClient extends ApiClientBase {
@@ -127,5 +157,85 @@ export class PortalClient extends ApiClientBase {
      */
     postMessage(id: string, body: string): Observable<PortalPostedMessage> {
         return this.post<PortalPostedMessage>(`portal/tickets/${id}/messages`, { body });
+    }
+
+    /**
+     * `GET /portal/tickets` — **the caller's own requests** (docs/ui-design.md §7.1).
+     *
+     * **There is no `customerId` parameter, and there must never be one.** Ownership is the
+     * server's scope, applied before any filter — a client neither supplies it nor could widen it.
+     *
+     * Filter: `status`. Sort whitelist: `createdAt` alone (AP-15); anything else is a `400`.
+     */
+    list(query?: PageRequest & { status?: string | null }): Observable<Paged<PortalTicket>> {
+        return this.get<Paged<PortalTicket>>('portal/tickets', query as Record<string, QueryValue>);
+    }
+
+    /**
+     * `GET /portal/tickets/{id}` — the customer's own request.
+     *
+     * Another customer's id is `404`, worded identically to one that does not exist (AP-4), so **no
+     * screen may try to tell the two apart**.
+     *
+     * Named `getRequest` rather than `get`: `get` is the base class's protected HTTP verb, and the
+     * portal's noun for a ticket is a *request* (docs/ui-design.md §7).
+     */
+    getRequest(id: string): Observable<PortalTicket> {
+        return this.get<PortalTicket>(`portal/tickets/${id}`);
+    }
+
+    /**
+     * `POST /portal/tickets/{id}/transition` — cancel or reopen.
+     *
+     * **The server is the authority.** A target the caller may not invoke comes back as
+     * `403 transition-not-permitted`, and one outside A-5's graph as `409 illegal-transition` — so
+     * a screen that offers too much can only be refused, never obeyed.
+     */
+    transition(id: string, targetStatus: PortalTransitionTarget): Observable<PortalTicket> {
+        return this.post<PortalTicket>(`portal/tickets/${id}/transition`, { targetStatus });
+    }
+
+    /** `GET /portal/tickets/{id}/attachments` — metadata only; `storagePath` is in no response. */
+    attachments(id: string, paging?: PageRequest): Observable<Paged<AttachmentMetadata>> {
+        return this.get<Paged<AttachmentMetadata>>(
+            `portal/tickets/${id}/attachments`,
+            paging as Record<string, QueryValue>
+        );
+    }
+
+    /**
+     * `POST /portal/tickets/{id}/attachments` — `multipart/form-data` (AP-13). The part is named
+     * `file`, which is what the controller binds.
+     *
+     * **Offered after submission, never on the form** (docs/ui-design.md §7.2): the web form has
+     * exactly four inputs, and a file needs a request to belong to. Over the configured cap is
+     * `413`, surfaced inline on the uploader.
+     */
+    uploadAttachment(id: string, file: File): Observable<AttachmentMetadata> {
+        const form = new FormData();
+        form.append('file', file, file.name);
+
+        return this.post<AttachmentMetadata>(`portal/tickets/${id}/attachments`, form);
+    }
+
+    /**
+     * `POST /portal/tickets/{id}/feedback` — **the sole CSAT input** (requirements §8.5, T2-F).
+     *
+     * **Once per request, write-once.** A second call is `409 feedback-already-submitted`; a request
+     * that has never reached `Resolved` is `409 feedback-not-available`.
+     *
+     * **⚠ `rating` is validated against the configured scale, and this client asserts none (OQ-1).**
+     * The caller reads the range from `feedback.ratingScale` in `GET /config`; a value outside it is
+     * `400`. **Do not add a range check, a default or a star count here.**
+     *
+     * **There is no `decline` method**, because declining is simply never calling this one — the
+     * absence of a row is the meaningful outcome (docs/data-model.md §2.15).
+     */
+    submitFeedback(id: string, rating: number, comment?: string | null): Observable<PortalFeedback> {
+        // `comment` is omitted rather than sent as null when there is nothing to say: it is optional
+        // in the contract, and an explicit null would be a value the customer did not enter.
+        const body = comment ? { rating, comment } : { rating };
+
+        return this.post<PortalFeedback>(`portal/tickets/${id}/feedback`, body);
     }
 }

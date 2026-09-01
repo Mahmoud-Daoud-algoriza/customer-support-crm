@@ -1,0 +1,88 @@
+@startuml USER-FLOWS-customer
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 6 of 11 — Customer lifecycle in the Customer Portal
+title Customer — Customer Portal self-service lifecycle
+
+skinparam shadowing false
+|#E8F0FE|Customer (browser)|
+|#FFF4E5|API — api/v1|
+|#FDEAF1|SQL Server|
+
+|Customer (browser)|
+start
+if (has an account ?) then (no)
+  :/auth/register — self-registration;
+  |API — api/v1|
+  :POST /auth/register  «anonymous»;
+  |SQL Server|
+  :INSERT Users(role = Customer) + Customers\non the configured default branch (A-15);
+  |API — api/v1|
+  :201 AuthToken — signed in immediately;
+else (yes)
+  :/auth/login → POST /auth/login → 200 AuthToken;
+endif
+
+|Customer (browser)|
+:roleRedirectGuard → /portal (PortalShell)\n→ /portal/requests/new;
+note right
+  A Customer is not "at least an Agent", so no staff
+  screen is ever loaded — /workspace and /admin are
+  separate lazy chunks behind their own guards (AD-14),
+  and their endpoints answer 403 regardless.
+  Portal navigation today: Submit a request · Help.
+end note
+
+repeat
+  if (what next ?) then (submit a request — T2-B)
+    |API — api/v1|
+    :GET /config → categories (code and name only —\nthe category → department map is staff-only, AP-17)\nand the feedback rating scale;
+    |Customer (browser)|
+    :Exactly four inputs (ui-design §7.2): subject,\ndescription, category, and a "this is urgent" checkbox —\nan indication, never a priority (A-17).\nNo department, no priority, no SLA wording (UI-11);
+    |API — api/v1|
+    :POST /portal/tickets\nAuthenticated submission only (A-9);
+    |SQL Server|
+    :INSERT Ticket — status New, department derived from\nthe category (A-14), priority server-derived, SLA due\ndates computed once and frozen (A-20);\nround-robin auto-assignment → Notification(TicketAssigned);
+    |Customer (browser)|
+    :201 → navigate to /portal/requests/{id};
+
+  elseif (read or reply to a request ?) then (yes)
+    |API — api/v1|
+    :GET /portal/tickets/{id}/messages\nAnother customer's ticket → 404 (AP-4).\nInternal notes are unreachable by path (AP-5);
+    |Customer (browser)|
+    :Thread plus reply composer. Channel and author role\nare omitted from the portal payload (UI-11).\nNothing polls — this is not chat (T3-B);
+    |API — api/v1|
+    :POST /portal/tickets/{id}/messages {body};
+    |SQL Server|
+    :INSERT TicketMessage(direction = Inbound, channel = Portal)\nINSERT TicketActivity(MessagePosted)\nINSERT Notification(CustomerReplied) → staff;
+    if (what was the status ?) then (Pending)
+      |SQL Server|
+      :UPDATE Tickets.Status = Open in the SAME transaction\nINSERT TicketActivity(StatusChanged), attributed to\nthe replying customer (R-13, R-14);
+      |Customer (browser)|
+      :The response envelope {message, ticketStatus, statusChanged}\ndrives the "reopened" cue in place — no re-fetch, no guess;
+    elseif (Closed or Cancelled) then
+      :<color:#B71C1C>409 ticket-terminal (A-5)</color>;
+    else (New / Open / Resolved)
+      :Status unchanged. A reply never reopens a Resolved\nrequest — that is the explicit transition A-16 grants,\nand its control is story 13's;
+    endif
+
+  elseif (help centre — T2-E) then (yes)
+    |API — api/v1|
+    :GET /portal/kb/articles?q=...\nGET /portal/kb/articles/{id};
+    |SQL Server|
+    :SELECT KnowledgeArticles WHERE IsPublished = 1\nAND Visibility = Public (constraint 19).\nAn internal or unpublished id → 404;
+    |Customer (browser)|
+    :Self-service search and article reader\n(/portal/help and /portal/help/:id);
+
+  else (nothing else exists yet)
+    :<color:#B71C1C>NOT IMPLEMENTED for a Customer today (story 13, T2-F):</color>\n<color:#B71C1C>· /portal/requests — the "My requests" list</color>\n<color:#B71C1C>  (/portal lands on requests/new instead)</color>\n<color:#B71C1C>· Cancel-own-request and reopen-resolved controls —</color>\n<color:#B71C1C>  the A-16 authority exists server-side, no UI calls it</color>\n<color:#B71C1C>· Portal attachments, and the satisfaction / feedback control</color>\n<color:#B71C1C>· A customer notification feed — excluded by design:</color>\n<color:#B71C1C>  A-13's four notification types are staff-facing</color>;
+  endif
+repeat while (continue ?) is (yes) not (no)
+
+|Customer (browser)|
+:Sign out — client-side only (AP-8);
+stop
+@enduml

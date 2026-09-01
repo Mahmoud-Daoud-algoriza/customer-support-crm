@@ -1,0 +1,48 @@
+@startuml USER-FLOWS-manager
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 4 of 11 — Manager lifecycle (cross-department scope)
+title Manager — everything an Agent can do, across every department
+
+skinparam shadowing false
+|#E8F0FE|Manager (browser)|
+|#FFF4E5|API — api/v1|
+|#FDEAF1|SQL Server|
+
+|Manager (browser)|
+start
+:Signed in as Manager;
+:roleRedirectGuard → /workspace → /workspace/queue\n(authentication and redirect exactly as in the master flow);
+
+note right
+  A Manager satisfies RequireAgent (A-4), so every
+  Agent screen and endpoint in USER-FLOWS-agent is
+  available unchanged. Only the differences are drawn here.
+end note
+
+partition "Difference 1 — scope" {
+  |API — api/v1|
+  :TicketScope for Manager and Administrator is\nunrestricted across departments;
+  |Manager (browser)|
+  :The shared department filter is ENABLED.\nAn Agent's is fixed to their own department and\ndisabled, with a hint explaining why;
+}
+
+partition "Difference 2 — escalation target" {
+  |SQL Server|
+  :A-21 recipient cascade on escalate and on SLA breach:\n1. the department's own Manager\n2. else every active Manager\n3. else every active Administrator;
+  |Manager (browser)|
+  :Notification(TicketEscalated | SlaBreached) appears\non the bell and in /workspace/notifications;
+}
+
+partition "Difference 3 — reporting" {
+  :<color:#B71C1C>/workspace/reports — the management dashboard</color>\n<color:#B71C1C>(volume, SLA, per-department and per-branch aggregates):</color>\n<color:#B71C1C>**NOT IMPLEMENTED** (story 15, T2-G).</color>\n<color:#B71C1C>The nav entry is a TODO placeholder in app.menu.ts and</color>\n<color:#B71C1C>the route does not exist, so /workspace/reports falls</color>\n<color:#B71C1C>through the wildcard to /404</color>;
+}
+
+|Manager (browser)|
+:Otherwise: queue, tickets, assignment, transitions,\nescalation, messaging, AI assists, knowledge,\ncustomers and notifications — as USER-FLOWS-agent;
+:Sign out — client-side only (AP-8);
+stop
+@enduml

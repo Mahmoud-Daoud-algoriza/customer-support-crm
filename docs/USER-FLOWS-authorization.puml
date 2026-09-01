@@ -1,0 +1,130 @@
+@startuml USER-FLOWS-authorization
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 2 of 11 — authorization and failure branches (401 / 403 / 404 / 400 / 409 / 413 / 422 / 503)
+title Authorization and failure branches — what each refusal means, and where it is decided
+
+skinparam shadowing false
+skinparam ActivityDiamondBackgroundColor #FFF9E6
+
+|#E9F7EF|Angular router + guards|
+|#FFF4E5|ASP.NET Core pipeline|
+|#E8F0FE|Angular errorInterceptor|
+
+|Angular router + guards|
+start
+:User navigates to a route;
+if (route matches the tree ?) then (no)
+  :<color:#B71C1C>wildcard "**" → redirect /404</color>\n<color:#B71C1C>StatusPageComponent(kind = notFound)</color>;
+  stop
+else (yes)
+endif
+
+if (authenticatedGuard: identity, or a usable token ?) then (no)
+  :UrlTree /auth/login?returnUrl=<url>;
+  stop
+else (yes)
+endif
+
+if (roleAtLeast(minimum) — the A-4 rank ?) then (insufficient)
+  :<color:#B71C1C>UrlTree → /403</color>\n<color:#B71C1C>StatusPageComponent(kind = forbidden)</color>;
+  note right
+    Route rules mirror server rules; they never
+    replace them. /workspace needs Agent+,
+    /admin and /status need Administrator,
+    /portal needs any authenticated user.
+  end note
+  stop
+else (sufficient)
+endif
+
+|ASP.NET Core pipeline|
+:Request carries the Bearer token\n(authInterceptor attaches it when one is held);
+if (JWT valid ?) then (no)
+  :<color:#B71C1C>401 — authentication failed</color>;
+  detach
+else (yes)
+endif
+
+:CurrentUserMiddleware re-reads the user row (AD-15);
+if (user exists AND IsActive ?) then (no)
+  :<color:#B71C1C>401 unauthenticated —</color>\n<color:#B71C1C>a deactivated user is refused HERE, not 403</color>;
+  detach
+else (yes)
+endif
+
+if (endpoint policy satisfied ?\nRequireCustomer / RequireAgent /\nRequireManager / RequireAdministrator) then (no)
+  :<color:#B71C1C>403 — a capability denial the caller can</color>\n<color:#B71C1C>infer from their own role</color>\n<color:#B71C1C>(e.g. Customer → GET /config/staff)</color>;
+  detach
+else (yes)
+endif
+
+if (row in the caller's scope ?\nTicketScope / customer ownership / notification owner) then (no)
+  :<color:#B71C1C>404 — worded identically to a missing id (AP-4).</color>\n<color:#B71C1C>An out-of-department ticket, another customer's ticket,</color>\n<color:#B71C1C>or an internal / unpublished article on the portal KB</color>\n<color:#B71C1C>endpoints must not be confirmable</color>;
+  detach
+else (yes)
+endif
+
+if (request valid ?) then (no)
+  :<color:#B71C1C>400 — validation, unknown member (AP-10),</color>\n<color:#B71C1C>unsupported sort field (AP-15),</color>\n<color:#B71C1C>unknown categoryCode</color>;
+  detach
+else (yes)
+endif
+
+if (which operation ?) then (ticket transition)
+  if (A-16 authority — TransitionAuthority.MayInvoke ?) then (permitted)
+    if (A-5 edge legal — TicketLifecycle.IsLegal ?) then (legal)
+      :200 Ticket (status changed, activity + audit written);
+    else (illegal)
+      :<color:#B71C1C>409 illegal-transition</color>\n<color:#B71C1C>+ allowedTransitions in the problem detail</color>\n<color:#B71C1C>(the only place the contract publishes the set — F-1)</color>;
+    endif
+  else (refused)
+    :<color:#B71C1C>403 transition-not-permitted</color>;
+  endif
+
+elseif (assignment) then
+  if (assignee is active staff in the ticket's department ?) then (yes)
+    :200 Ticket — status unchanged (A-18);
+  else (no)
+    :<color:#B71C1C>422 assignee-out-of-department</color>;
+  endif
+
+elseif (attachment upload) then
+  if (within the configured size cap ?) then (yes)
+    :201 Attachment metadata\n(storagePath never leaves the server);
+  else (no)
+    :<color:#B71C1C>413 payload too large</color>;
+  endif
+
+elseif (AI assist) then
+  if (AI provider available ?) then (yes)
+    :200 AI suggestion, labelled AI-generated;
+  else (no)
+    :<color:#B71C1C>503 ai-unavailable — mapped once by</color>\n<color:#B71C1C>ProblemDetailsExceptionHandler (AP-12).</color>\n<color:#B71C1C>The rest of the screen stays live</color>;
+  endif
+
+else (create user / self-register)
+  if (e-mail already taken ?) then (yes)
+    :<color:#B71C1C>409 user-already-exists</color>;
+  else (no)
+    :201 Created + Location header;
+  endif
+endif
+
+|Angular errorInterceptor|
+:Every failure is normalised to a typed ApiProblem;
+if (which status ?) then (401)
+  :Clear the session → /auth/login?returnUrl\n(skipped for the anonymous auth endpoints);
+elseif (403) then
+  :Route to /403. The session is NOT cleared;
+elseif (400 / 404 / 409 / 413 / 422 / 503) then
+  :Passed through untouched — rendered inline,\nin context, by the screen that asked;
+else (5xx / network)
+  :One translated toast;
+endif
+:The problem is always rethrown;
+stop
+@enduml

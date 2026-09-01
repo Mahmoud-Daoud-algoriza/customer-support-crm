@@ -1,0 +1,116 @@
+@startuml USER-FLOWS-overview
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 0 of 11 — high-level map of the whole product journey.
+'
+' THIS IS THE MAP, NOT THE TERRITORY. No endpoint, status code, table or guard name belongs
+' here; each role's detail lives in its own diagram (USER-FLOWS-agent, -manager,
+' -administrator, -customer, -authorization, -ticket-state, -sla, -ai-kb).
+
+title Support CRM — product journey overview\nAnonymous visitor → authentication → role → area → work → sign-out\n(implemented state at commit 969bb31, 2026-09-01)
+
+skinparam shadowing false
+skinparam ArrowColor #33475B
+skinparam ActivityBorderColor #33475B
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityDiamondBackgroundColor #FFF9E6
+skinparam PartitionBorderColor #33475B
+skinparam NoteBackgroundColor #FFFDF0
+skinparam NoteBorderColor #C8B88A
+
+start
+
+partition "Anonymous" {
+  :Visitor opens the app;
+  if (has an account ?) then (yes)
+    :Sign in;
+  else (no — customer only)
+    :Register as a customer;
+  endif
+}
+
+partition "Authentication and routing" {
+  :Authenticate — the server issues a token;
+  :Identity and role resolved on every request\n(the token carries the user id only);
+  :Role-based routing to an area;
+}
+
+if (which role ?) then (Customer)
+
+  partition "Customer Portal" {
+    :Submit a request;
+    :View a request and reply on its thread;
+    :Read the Help centre / Knowledge Base;
+    :<color:#B71C1C>My requests list, cancel, reopen,</color>\n<color:#B71C1C>attachments and feedback: NOT IMPLEMENTED</color>\n<color:#B71C1C>(story 13)</color>;
+  }
+
+elseif (Agent) then
+
+  partition "Staff Workspace — own department" {
+    :My queue — the landing screen,\nordered by SLA urgency;
+    :Open a ticket;
+    :Assign · change status · escalate · reply;
+    :AI assists · Knowledge Base · suggested articles;
+    :Customers directory · notifications;
+    :<color:#B71C1C>Internal notes and tasks: NOT IMPLEMENTED</color>\n<color:#B71C1C>(story 14)</color>;
+  }
+
+elseif (Manager) then
+
+  partition "Staff Workspace — every department" {
+    :Everything an Agent can do;
+    :Cross-department scope and filtering;
+    :Receives escalation and SLA-breach notifications;
+    :<color:#B71C1C>Management dashboard / reports:</color>\n<color:#B71C1C>NOT IMPLEMENTED (story 15)</color>;
+  }
+
+else (Administrator)
+
+  partition "Staff Workspace + Administration" {
+    :Everything a Manager can do;
+    :Users — create, edit role and department, deactivate;
+    :Audit log;
+    :Configuration (read-only);
+    :Knowledge authoring — write, publish, unpublish;
+    :Platform health;
+  }
+
+endif
+
+:Work in the area;
+:Sign out — client-side only, the token is discarded;
+stop
+
+partition "System flows a ticket triggers — no browser involved" {
+  start
+  :A ticket exists;
+  fork
+    :SLA monitoring — a periodic in-process sweep;
+    :Breach flagged;
+    :Escalation — priority raised one level,\nstatus unchanged;
+    :Notifications to the responsible staff;
+  fork again
+    :AI assist on demand — summary, suggested reply,\nclassification at creation;
+    :An agent accepts, edits or discards.\nNothing is ever auto-sent;
+  fork again
+    :Knowledge Base suggestions — existing articles\nretrieved by keyword, not generated;
+  end fork
+  stop
+}
+
+legend right
+  |= Where the detail lives |= Diagram |
+  | Login, guards, redirect, areas, logout | USER-FLOWS-master |
+  | 401 / 403 / 404 / 400 / 409 / 413 / 422 / 503 | USER-FLOWS-authorization |
+  | Per-role screens, endpoints and database writes | USER-FLOWS-agent · -manager · -administrator · -customer |
+  | Ticket statuses and who may move them | USER-FLOWS-ticket-state |
+  | SLA sweep, escalation, notifications | USER-FLOWS-sla |
+  | AI seam and Knowledge retrieval | USER-FLOWS-ai-kb |
+  | Everything designed but absent | USER-FLOWS-not-implemented |
+  Red text marks what is NOT IMPLEMENTED.
+end legend
+
+@enduml

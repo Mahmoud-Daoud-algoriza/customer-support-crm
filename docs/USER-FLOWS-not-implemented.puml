@@ -1,0 +1,83 @@
+@startuml USER-FLOWS-not-implemented
+' Customer Support CRM — user flows. READ-ONLY DOCUMENTATION, nothing here is invented.
+' Drawn from the repository at commit 969bb31 (2026-09-01): the Angular routes and guards,
+' the ASP.NET Core controllers and their authorization policies, the Application services,
+' the EF Core entities and migrations, and the approved documents under docs/ and .squad/.
+' Red text marks what is NOT IMPLEMENTED. Index of all 11 diagrams: docs/USER-FLOWS.md
+' Diagram 10 of 11 — inventory of designed-but-absent flows
+title Designed but NOT IMPLEMENTED — what a user cannot reach today\n(specified in docs/; absent from the code at commit 969bb31)
+
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #FFEBEE
+  BorderColor #B71C1C
+  FontColor #7F1D1D
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #33475B
+}
+
+package "Customer Portal — story 13 (T2-F)" {
+  rectangle "/portal/requests — the 'My requests' list.\n/portal lands on requests/new instead." as P1
+  rectangle "Cancel own request / reopen a resolved request.\nThe A-16 authority is enforced server-side;\nno portal control invokes it." as P2
+  rectangle "Portal attachments on a request." as P3
+  rectangle "Satisfaction / feedback rating control.\nThe scale is published by GET /config;\nnothing consumes it. OQ-1 is still open." as P4
+}
+
+package "Staff Workspace — story 14 (T2-C)" {
+  rectangle "Internal notes region on the ticket detail\n(TicketInternalNote entity and\n/tickets/{id}/internal-notes)." as W1
+  rectangle "Ticket tasks / checklists." as W2
+}
+
+package "Reporting — story 15 (T2-G)" {
+  rectangle "/workspace/reports — the Manager+ management\ndashboard (volume, SLA attainment, per-department\nand per-branch aggregates). The route does not\nexist, so the URL 404s; the nav entry is a\nTODO placeholder." as R1
+}
+
+package "Integration seams — story 18 (T3-A, T3-D)" {
+  rectangle "External channel adapters (e-mail, WhatsApp, social).\nInfrastructure/Seams/Channels is an empty folder;\nthere is no inbound HTTP endpoint (AP-11, PF-2)." as I1
+  rectangle "ERP / external-system adapter.\nInfrastructure/Seams/Erp is an empty folder." as I2
+}
+
+package "AI — story 11, blocked by finding S9-4" {
+  rectangle "Writing the AI classification suggestion and the\nagent's accept/override decision into ticket history.\nThe activity types exist; no writer, no contract field." as A1
+}
+
+package "Knowledge base — excluded by design (T2-E)" {
+  rectangle "Article delete, and version history.\nNo route and no endpoint — deliberate, not an omission." as K1
+}
+
+package "Excluded outright (T3-B, T3-C, T4, product-scope §8)" {
+  rectangle "Live chat / real-time anything.\nNothing polls; there are no sockets." as X1
+  rectangle "Customer-facing AI chatbot (documented seam only)." as X2
+  rectangle "E-mail / SMS / push delivery of notifications —\na notification is an in-app row read by the bell." as X3
+  rectangle "Multi-tenancy; a role editor or custom RBAC engine;\na configurable workflow / rules engine; anonymous\nticket submission (A-9 requires an authenticated customer)." as X4
+}
+
+note as N0 #FFF9C4
+  **Story 13 was landing in the working tree while this was drawn (2026-09-01).**
+  These diagrams describe the COMMITTED state (HEAD = 969bb31). Uncommitted
+  changes already add the portal shell of ui-design §4.2 (My requests · Help ·
+  avatar sign-out), a CustomerFeedback entity and migration, and the portal
+  endpoints GET /portal/tickets, GET /portal/tickets/{id},
+  POST /portal/tickets/{id}/transition (cancel / reopen),
+  GET+POST /portal/tickets/{id}/attachments and POST /portal/tickets/{id}/feedback.
+  The /portal/requests LIST ROUTE AND SCREEN were still absent when this was
+  written, so the P1–P4 boxes describe HEAD, not the finished story.
+  **Re-generate this file once story 13 is committed.**
+end note
+
+note as N1
+  **Also worth knowing when reading these diagrams**
+  · docs/PROJECT-PROGRESS.md §3 still lists stories 08–11 as
+    "Not Started", and docs/CHANGELOG-IMPLEMENTATION.md has no
+    entry for them, but their code IS present (commit a853cdd:
+    My queue, quick replies, the SLA sweep, round-robin assignment,
+    notifications, the AI seam and the three AI endpoints).
+    These diagrams follow the CODE, not that table.
+  · Story 17 Part A (i18n scaffolding, en + ar, RTL) is in place;
+    the full translation and branding pass is Part B.
+  · The portal submit and request-detail screens are story 07
+    stubs by design — story 13 replaces them.
+end note
+@enduml
