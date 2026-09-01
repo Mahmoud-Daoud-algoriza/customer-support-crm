@@ -16,7 +16,90 @@
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-08-31 (latest) — story 07: web form intake and in-portal messaging, delivered whole
+### 2026-09-01 (latest) — story 16 Part B: audit log and read-only configuration
+
+**Story 16 is now complete in full.** Part A (configuration, 2026-08-27) landed early by design; Part
+B — `GET /audit`, the `/admin/audit` screen and the read-only `/admin/configuration` screen — is the
+story's own **last administrative surface**, so nothing further is deferred once it lands.
+
+**What changed, and where.**
+
+- **Application** — `Modules/Administration/AuditQueryService.cs`: the **one read method**,
+  `ListAsync(actorUserId?, action?, from?, to?, page)`, newest first over `AuditEntry`, using the
+  `(OccurredAt)` and `(ActorUserId)` indexes data-model §6 already carries. Projects `actor` as
+  `UserSummaryDto?` exactly as `TicketActivityQueryService` already does for its own actor column —
+  null (omitted from JSON, `WhenWritingNull`) exactly when no user could be resolved, per §2.14.
+- **Api** — `Controllers/AuditController.cs`: **one route**, `GET /audit`, gated by the same
+  `RequireAdministrator` policy `UsersController` uses. **No write, update, patch or delete action
+  exists**, and the plan's own words — *"none may be added"* — are the reason none was.
+- **Infrastructure** — `DependencyInjection.cs`: `AuditQueryService` registered scoped, alongside
+  Story 02's `AuditRecorder` (unchanged; still the only writer).
+- **Tests** — `tests/SupportCrm.Tests/Administration/AuditReadTests.cs` (9 tests: role gating —
+  Administrator `200`, Manager/Agent/Customer `403`; actor/action/date-range filters combined with
+  AND; a failed sign-in projects with `actor` absent and `actorDescriptor` populated; every write
+  verb `405` with the row count unchanged before and after; reflection over the Administration
+  module finds no `Update`/`Delete`/`Remove` method; a source scan finds no
+  `AuditEntries.Remove`/`RemoveRange`/`ExecuteDelete` anywhere in `backend/src`) and
+  `AuditAndHistoryAreSeparateTests.cs` (3 tests, the AD-10 assertion the intake requires: a
+  `UserRoleChanged` audit entry references no `TicketActivity` row in any of that table's own Guid
+  columns; a `MessagePosted` activity row has no corresponding `AuditEntry`; `GET /audit` and
+  `GET /tickets/{id}/activity`, driven live in the same test, share no field in either response).
+  **12 new tests**, reusing `TicketApiFixture` (Story 05's world) rather than a new fixture.
+- **Frontend** — `core/api/audit.client.ts` (`AuditClient`, one `list` method, no write method);
+  `features/admin/audit/audit-log.component.ts` (`/admin/audit` — filters bound to the URL per
+  **UI-9**, exactly as `TicketListComponent` already does it, not `UserDirectoryComponent`'s older
+  component-state pattern; a `p-paginator`; **zero row actions**); `features/admin/configuration/configuration.component.ts`
+  (`/admin/configuration` — reads `GET /config` and `GET /config/staff` through the **existing**
+  `PlatformApiService`, and reads branding from the **already-loaded** `RuntimeConfigService`
+  (`GET /config/bootstrap`, loaded once at app bootstrap) rather than adding a third HTTP call for a
+  value the app already holds; **zero** `input`/`select`/`textarea`/`button[type=submit]` elements,
+  verified live); `admin.routes.ts`, `app.menu.ts` and both `assets/i18n/*.json` dictionaries updated
+  to wire the two new routes and their nav entries.
+
+**Why the write side needed nothing.** Every action `AuditAction` names already had a live call site
+before this task — Story 02's sign-in and user-administration writes, Story 04's `UserEmailChanged`
+(A-19), Story 06's `TicketStatusChanged` and `TicketEscalated` — confirmed by reading each call site
+in this task, exactly as the plan's task 6 coverage table asks. Part B is a pure read surface.
+
+**One implementation choice, recorded at the code rather than as a numbered finding**: the audit
+screen's `to` date filter is treated as inclusive of the whole selected day (end-of-day, not
+midnight), because a date-only picker naturally produces midnight and no approved document or
+existing UI pattern in this codebase settles what a date-range "to" bound should mean. This decides a
+UI detail, not a product or contract question, so it did not warrant an `I-*` finding.
+
+**Verified.** Build 0 warnings / 0 errors; `dotnet test` **385 passing, 1 skipped** (12 of them this
+slice's own; see PROJECT-PROGRESS §1.1 for why the rest of the growth since story 07's recorded 327
+is not attributed here — a pre-existing bookkeeping gap, unrelated to this change, disclosed there).
+`npm run build` and `npm run lint:styles` both clean; `npx ng test` **51/51**, unchanged by this
+slice. **Against real SQL Server**, on the already-running `docker compose` stack rebuilt with this
+slice's code: coverage by hand (a wrong password, a user created and deactivated, a ticket
+transitioned) all four actions appeared correctly in live `GET /api/v1/audit`; every write verb was
+`405` with the audit row count unchanged before and after (24 → 24); a raw-JSON sweep of the live
+response for `passwordHash`/`storagePath` found neither; `openapi/v1.json`, re-measured live,
+confirmed `/api/v1/audit` as the only path this slice adds. **Driven live in a real browser** against
+the running `web` container (Playwright, no project run-skill existed for this app so
+`chromium.launch()` was used directly): both screens render correctly with real data, screenshotted;
+the plan's own DOM query (`input, select, textarea, button[type=submit]`) returns exactly the audit
+screen's four filter controls and nothing on the configuration screen; a non-Administrator deep-link
+to `/admin/audit` redirects to `/403`; neither screen overflows horizontally at 390 px. **The
+load-bearing-guard technique (§4.1) was attempted but not completed as specified**: this session's
+own safety classifier refused to run `dotnet test` while `AuditController`'s policy was weakened to a
+plain `[Authorize]`, so the file was restored immediately and the underlying claim (Administrator-only
+enforcement) was instead proven live against the real deployed API — Agent `403`, anonymous `401`,
+Administrator `200`.
+
+**A bookkeeping gap in PROJECT-PROGRESS.md was found and disclosed, not fixed, while recording this
+change**: its §10 already narrates stories 08 through 11 as complete and verified (2026-08-31), with
+suite-count progressions this task's own fresh measurement corroborates exactly, but none of that
+ever reached §1's headline, §1.1's delivery percentage, §3's story table or §8's evidence rows. See
+PROJECT-PROGRESS §1.1 and §10 for the full disclosure. **Nothing was invented to close that gap** —
+reconciling four other stories' tracking is outside Story 16 Part B's scope.
+
+**Not touched.** No design document. No entity, migration, endpoint or configuration key beyond
+`GET /audit`. No change to Part A's option types, validation or `/config`/`/config/staff` contracts —
+`ConfigurationTierTests` (8) re-run unchanged confirms it.
+
+### 2026-08-31 — story 07: web form intake and in-portal messaging, delivered whole
 
 **Phase 4 opens with the one real communication channel, and the message model every other channel
 would plug into.** Delivered **whole rather than in slices** — the plan's ten numbered tasks were

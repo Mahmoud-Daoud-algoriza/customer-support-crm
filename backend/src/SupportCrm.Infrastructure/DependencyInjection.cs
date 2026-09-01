@@ -149,6 +149,10 @@ public static class DependencyInjection
                 : ActivatorUtilities.CreateInstance<DeterministicFakeAiService>(sp);
         });
 
+        // Story 16 Part B — the audit read surface. AuditRecorder (above) stays the only writer;
+        // this is the one read method GET /audit exposes (T2-H).
+        services.AddScoped<AuditQueryService>();
+
         return services;
     }
 }

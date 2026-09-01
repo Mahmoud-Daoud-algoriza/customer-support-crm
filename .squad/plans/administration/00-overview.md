@@ -79,3 +79,27 @@ list-bearing sections bind through a single `Items` (or `Levels`) property, beca
 `AddOptions<T>().Bind()` binds a section to an object and a bare JSON array is not one; and the
 attachment cap's default is 10 MiB, a number no document states — which is precisely why it is
 configuration rather than a constant.
+
+### 16 Part B — Audit surface and configuration view — **complete** (2026-09-01)
+
+Tasks 6–11. **Story 16 is now complete in full** — per the plan's own words, Part B *"is the last
+administrative surface"*, so nothing further is deferred.
+
+| Task | Delivered |
+|---|---|
+| 6 — Coverage confirmed | Every action `AuditAction` names already had a live write call site before this task (Story 02's sign-in and user-administration writes, Story 04's `UserEmailChanged`, Story 06's `TicketStatusChanged` and `TicketEscalated`) — confirmed by reading each call site. No write path was added |
+| 7 — `AuditQueryService` | `Application/Modules/Administration/AuditQueryService.cs` — the one read method, newest first, filtered by `actorUserId`, `action` and a `from`/`to` range |
+| 8 — `AuditController` | `GET /api/v1/audit`, `RequireAdministrator`-gated. No write, update or delete action |
+| 9 — Tests | `AuditReadTests` (9) and `AuditAndHistoryAreSeparateTests` (3) — **12 passing**, reusing `TicketApiFixture` |
+| 10 — Audit screen | `/admin/audit` — URL-bound filters (UI-9), a paginator, zero row actions |
+| 11 — Configuration screen | `/admin/configuration` — reads `GET /config`/`GET /config/staff` through the existing `PlatformApiService`, branding from the already-loaded `RuntimeConfigService`; zero writable elements, verified live |
+
+**Verified.** Build 0 warnings / 0 errors; backend suite **385 passing, 1 skipped** (12 this slice's
+own); `npm run build`/`lint:styles` clean; front end **51/51** unchanged. Against real SQL Server and
+the real running front end: coverage-by-hand for all four audited actions, every write verb `405`
+with the row count unchanged, AD-10 independence proven live, and the plan's own DOM query confirming
+zero writable elements on the configuration screen and exactly four filter controls on the audit
+screen. Full evidence in [PROJECT-PROGRESS.md](../../../docs/PROJECT-PROGRESS.md) §8.
+
+**No finding raised.** The `to` date-filter's end-of-day inclusivity is a UI implementation choice
+recorded at the code, not a product or contract question.

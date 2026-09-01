@@ -68,7 +68,9 @@ export class AppMenu {
                 label: t('nav.admin'),
                 items: [
                     { label: t('nav.users'), icon: 'pi pi-fw pi-users', routerLink: ['/admin/users'] },
-                    // TODO Story 12: Knowledge authoring. Story 16: Audit log, Configuration.
+                    { label: t('nav.audit'), icon: 'pi pi-fw pi-history', routerLink: ['/admin/audit'] },
+                    { label: t('nav.configuration'), icon: 'pi pi-fw pi-cog', routerLink: ['/admin/configuration'] },
+                    // TODO Story 12: Knowledge authoring.
                 ],
             });
         }
