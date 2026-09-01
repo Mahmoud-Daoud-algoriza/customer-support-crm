@@ -116,6 +116,11 @@ public static class DependencyInjection
         services.AddScoped<TicketMessageService>();
         services.AddScoped<PortalTicketService>();
 
+        // Story 13 — the sole CSAT input (requirements §8.5, T2-F). It is registered beside the
+        // ticket services because CustomerFeedback belongs to the Tickets module (DM-7); there is no
+        // Portal backend module to register it in, and no eleventh module was added.
+        services.AddScoped<CustomerFeedbackService>();
+
         // The escalation-recipient seam — A-21, closing OQ-3 (docs/product-scope.md §7).
         // Story 06's manual escalate and Story 09's automatic breach sweep resolve recipients
         // through ONE policy, which is what makes the cascade shared rather than a rule each story

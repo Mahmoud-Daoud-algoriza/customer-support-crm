@@ -7,9 +7,9 @@ which is the **global** execution sequence across all feature folders
 
 ## Stories
 
-| NN | File | Title | Tracker id | Depends on |
-|----|------|-------|------------|------------|
-| 13 | [13-story-portal-self-service.md](13-story-portal-self-service.md) | Customer portal self-service and feedback | — | Stories 02, 04–07, 12 |
+| NN | File | Title | Tracker id | Depends on | Status |
+|----|------|-------|------------|------------|--------|
+| 13 | [13-story-portal-self-service.md](13-story-portal-self-service.md) | Customer portal self-service and feedback | — | Stories 02, 04–07, 12 | ✅ **Implemented and verified 2026-09-01** — all twelve tasks, delivered whole rather than in slices. **OQ-1 remains open and was not answered**: ui-design §11's interim behaviour was implemented, so no scale exists in the schema, the Domain, the service, the tests or the UI |
 
 Tracker integration is `none`; story ids are the folder names under
 [`.squad/stories/customer-portal/`](../../stories/customer-portal/).

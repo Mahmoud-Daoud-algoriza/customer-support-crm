@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -15,12 +15,6 @@ import { CustomerConfig, PlatformApiService } from '../../core/api/platform-api.
 /**
  * Submit a request — `/portal/requests/new` (docs/ui-design.md §7.2).
  *
- * <h3>A Story 07 stub, and Story 13 replaces it</h3>
- * Story 07 owns the **endpoints**; **Story 13 owns the designed screens**. This exists so
- * `POST /portal/tickets` is exercised end to end now rather than first being called by the story
- * that also has to get its layout right. It is deliberately plain — no cards, no empty-state
- * illustration, no attachment affordance.
- *
  * <h3>Exactly four inputs, and that is the contract, not a simplification</h3>
  * Subject, description, **category** and the **"this is urgent"** checkbox (§7.2). There is no
  * department field — **the customer chooses a category and the server derives the department**
@@ -31,19 +25,28 @@ import { CustomerConfig, PlatformApiService } from '../../core/api/platform-api.
  * **UI-11.** Nothing here names a department, an assignee, an SLA or a priority, and the category
  * list comes from `GET /config`, which publishes `code` and `name` only — the routing map is
  * staff-only (AP-17), so this screen could not reveal the department even if it tried.
+ *
+ * <h3>Attachments are offered after submission, not here</h3>
+ * §7.2 says so, and the reason is structural: an attachment belongs to a request, and there is no
+ * request until this form is sent. On success the customer lands on the detail screen, where the
+ * uploader is.
+ *
+ * <h3>Single column at every width</h3>
+ * ui-design §10.3. The form is one column of full-width fields on a phone and the same column on a
+ * desktop; there is no second column to collapse.
  */
 @Component({
     selector: 'app-portal-submit-request',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [ButtonModule, CheckboxModule, FormsModule, InputTextModule, MessageModule, SelectModule, TextareaModule, TranslocoModule],
+    imports: [ButtonModule, CheckboxModule, FormsModule, InputTextModule, MessageModule, RouterLink, SelectModule, TextareaModule, TranslocoModule],
     template: `
         <section class="app-page">
             <header class="app-page__header">
                 <h1 class="app-page__title">{{ 'portal.submitTitle' | transloco }}</h1>
             </header>
 
-            <form class="app-form" (ngSubmit)="submit()">
+            <form class="app-form app-form--portal" (ngSubmit)="submit()">
                 <label class="app-form__field">
                     <span>{{ 'portal.subject' | transloco }}</span>
                     <input pInputText name="subject" [(ngModel)]="subject" [disabled]="busy()" />
@@ -84,6 +87,8 @@ import { CustomerConfig, PlatformApiService } from '../../core/api/platform-api.
                     [loading]="busy()"
                     [disabled]="busy() || !canSubmit()" />
             </form>
+
+            <p><a routerLink="/portal/requests">{{ 'portal.detail.backToRequests' | transloco }}</a></p>
         </section>
     `
 })

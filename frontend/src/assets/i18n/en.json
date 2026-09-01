@@ -53,7 +53,9 @@
         "assignee-out-of-department": "That agent is not in this ticket’s department.",
         "transition-not-permitted": "Your role can't make that change to this ticket.",
         "illegal-transition": "That change isn't allowed from the ticket's current status.",
-        "ticket-terminal": "This ticket is closed, so no further replies are accepted."
+        "ticket-terminal": "This ticket is closed, so no further replies are accepted.",
+        "feedback-already-submitted": "You have already rated this request.",
+        "feedback-not-available": "You can rate this request once it has been resolved."
     },
     "primeng": {
         "accept": "Yes",
@@ -95,7 +97,8 @@
         "knowledgeAuthoring": "Knowledge base",
         "portal": "Support",
         "submitRequest": "Submit a request",
-        "help": "Help"
+        "help": "Help",
+        "myRequests": "My requests"
     },
     "admin": {
         "users": {
@@ -326,6 +329,39 @@
             "search": "Search",
             "emptyTitle": "No articles match that search",
             "emptyMessage": "Try a different word, or submit a request and we will help."
+        },
+        "requests": {
+            "title": "My requests",
+            "submit": "Submit a request",
+            "anyStatus": "Any status",
+            "statusLabel": "Status",
+            "responseNeeded": "Response needed from you",
+            "submitted": "Submitted",
+            "resolved": "Resolved",
+            "emptyTitle": "You haven't submitted any requests yet",
+            "emptyFilteredTitle": "No requests match that status",
+            "emptyMessage": "When you send us a request it will appear here, with its status."
+        },
+        "detail": {
+            "conversation": "Conversation",
+            "attachments": "Attachments",
+            "cancel": "Cancel this request",
+            "cancelConfirm": "This request will be cancelled and no one will work on it. You can always send a new one.",
+            "cancelClosed": "This request can no longer be cancelled, because we have started working on it.",
+            "reopen": "Reopen this request",
+            "readOnly": "This request is {{status}}, so it can no longer be changed.",
+            "replyClosed": "This request is closed, so replies are no longer accepted.",
+            "backToRequests": "Back to my requests",
+            "replyPlaceholder": "Write your reply…"
+        },
+        "feedback": {
+            "title": "How did we do?",
+            "question": "How satisfied are you with how this request was handled?",
+            "lowest": "Not satisfied",
+            "highest": "Very satisfied",
+            "commentLabel": "Anything you would like to add? (optional)",
+            "submit": "Send rating",
+            "thanks": "Thank you for your feedback."
         }
     },
     "queue": {

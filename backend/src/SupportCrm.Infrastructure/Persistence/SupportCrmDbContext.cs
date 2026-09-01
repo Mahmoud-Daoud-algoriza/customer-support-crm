@@ -97,6 +97,14 @@ public sealed class SupportCrmDbContext(DbContextOptions<SupportCrmDbContext> op
     /// </summary>
     public DbSet<KnowledgeArticle> KnowledgeArticles => Set<KnowledgeArticle>();
 
+    /// <summary>
+    /// Story 13 — the customer's satisfaction rating (docs/data-model.md §2.15), owned by the
+    /// <c>Tickets</c> module (<b>DM-7</b>). <b>Write-once</b>: <see cref="CustomerFeedback"/> exposes
+    /// no mutator, so there is no update or delete path to expose later by accident, and the unique
+    /// index on <c>TicketId</c> makes a second row impossible.
+    /// </summary>
+    public DbSet<CustomerFeedback> CustomerFeedback => Set<CustomerFeedback>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SupportCrmDbContext).Assembly);

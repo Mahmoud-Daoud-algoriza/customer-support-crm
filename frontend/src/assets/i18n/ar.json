@@ -53,7 +53,9 @@
         "assignee-out-of-department": "هذا الوكيل ليس ضمن قسم هذه التذكرة.",
         "transition-not-permitted": "لا يسمح دورك بإجراء هذا التغيير على هذه التذكرة.",
         "illegal-transition": "هذا التغيير غير مسموح من الحالة الحالية للتذكرة.",
-        "ticket-terminal": "هذه التذكرة مغلقة، لذلك لا تُقبل ردود إضافية."
+        "ticket-terminal": "هذه التذكرة مغلقة، لذلك لا تُقبل ردود إضافية.",
+        "feedback-already-submitted": "لقد قمت بتقييم هذا الطلب مسبقًا.",
+        "feedback-not-available": "يمكنك تقييم هذا الطلب بعد أن يتم حلّه."
     },
     "primeng": {
         "accept": "نعم",
@@ -95,7 +97,8 @@
         "knowledgeAuthoring": "قاعدة المعرفة",
         "portal": "الدعم",
         "submitRequest": "إرسال طلب",
-        "help": "المساعدة"
+        "help": "المساعدة",
+        "myRequests": "طلباتي"
     },
     "admin": {
         "users": {
@@ -326,6 +329,39 @@
             "search": "بحث",
             "emptyTitle": "لا توجد مقالات مطابقة لهذا البحث",
             "emptyMessage": "جرّب كلمة أخرى، أو أرسل طلبًا وسنساعدك."
+        },
+        "requests": {
+            "title": "طلباتي",
+            "submit": "إرسال طلب",
+            "anyStatus": "أي حالة",
+            "statusLabel": "الحالة",
+            "responseNeeded": "مطلوب ردّ منك",
+            "submitted": "أُرسل في",
+            "resolved": "تمّ الحل في",
+            "emptyTitle": "لم ترسل أي طلب بعد",
+            "emptyFilteredTitle": "لا توجد طلبات بهذه الحالة",
+            "emptyMessage": "عند إرسال طلب سيظهر هنا مع حالته."
+        },
+        "detail": {
+            "conversation": "المحادثة",
+            "attachments": "المرفقات",
+            "cancel": "إلغاء هذا الطلب",
+            "cancelConfirm": "سيُلغى هذا الطلب ولن يعمل عليه أحد. يمكنك إرسال طلب جديد في أي وقت.",
+            "cancelClosed": "لم يعد بالإمكان إلغاء هذا الطلب، لأننا بدأنا العمل عليه.",
+            "reopen": "إعادة فتح هذا الطلب",
+            "readOnly": "حالة هذا الطلب {{status}}، فلم يعد بالإمكان تعديله.",
+            "replyClosed": "هذا الطلب مغلق، فلم تعد الردود مقبولة.",
+            "backToRequests": "العودة إلى طلباتي",
+            "replyPlaceholder": "اكتب ردّك…"
+        },
+        "feedback": {
+            "title": "كيف كان أداؤنا؟",
+            "question": "ما مدى رضاك عن طريقة معالجة هذا الطلب؟",
+            "lowest": "غير راضٍ",
+            "highest": "راضٍ جدًا",
+            "commentLabel": "هل تود إضافة شيء؟ (اختياري)",
+            "submit": "إرسال التقييم",
+            "thanks": "شكرًا لملاحظاتك."
         }
     },
     "queue": {

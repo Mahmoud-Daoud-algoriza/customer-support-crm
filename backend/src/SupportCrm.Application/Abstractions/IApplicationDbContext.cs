@@ -64,5 +64,13 @@ public interface IApplicationDbContext
     /// </summary>
     DbSet<KnowledgeArticle> KnowledgeArticles { get; }
 
+    /// <summary>
+    /// Story 13 — the sole CSAT input of docs/data-model.md §2.15. It belongs to the <c>Tickets</c>
+    /// module (<b>DM-7</b>): there is no <c>Portal</c> backend module. <b>Write-once and unique per
+    /// ticket</b>, and the absence of a row is meaningful — declining is a normal outcome (T2-F), so
+    /// reporting reads a missing row as "no response", never as a zero.
+    /// </summary>
+    DbSet<CustomerFeedback> CustomerFeedback { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

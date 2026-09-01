@@ -38,10 +38,29 @@ namespace SupportCrm.Infrastructure.Persistence.Seeders;
 /// </list>
 ///
 /// <para>
+/// <b>Story 13 gave the portal something to demonstrate.</b> The four screens of
+/// docs/ui-design.md §7 each need a request in a particular state, and a demo where every request
+/// looks alike cannot show any of them. Three <c>Resolved</c> requests were added, and the mix is
+/// the point:
+/// </para>
+/// <list type="bullet">
+///   <item><description><b>One <c>Resolved</c> request per portal customer with <em>no</em> feedback</b> — so the rating control is actually offered when either of them signs in (T2-F).</description></item>
+///   <item><description><b>One <c>Resolved</c> request that <em>is</em> rated</b> — so Story 15's §9.4 satisfaction tile has a real average rather than an empty set, and so the "already rated, no control" branch of §7.3 is visible too.</description></item>
+///   <item><description>The <b><c>New</c></b> and <b><c>Pending</c></b> rows already here carry the other two demonstrations: <b>cancel</b> is offered only while <c>New</c> (A-16, A-18) and the <b>automatic reopen</b> fires only from <c>Pending</c> (R-13).</description></item>
+/// </list>
+///
+/// <para>
+/// <b>The seeded rating is read from the configured scale, never written as a literal (OQ-1).</b>
+/// docs/data-model.md §2.15 forbids inferring a range anywhere, and a hardcoded <c>5</c> here would
+/// be exactly that — invisible, and wrong the moment OQ-1 answers differently. See
+/// <see cref="SeedFeedback"/>.
+/// </para>
+///
+/// <para>
 /// <b>Every status here was reached through <see cref="Ticket.TransitionTo"/></b>, never by writing
 /// the column: A-5's graph refuses an illegal edge however the ticket was reached, <em>including
-/// from a seeder</em>. The remaining four stay <c>New</c>, which is the honest state for a ticket
-/// nobody has picked up.
+/// from a seeder</em>. The rows left <c>New</c> are the honest state for a ticket nobody has picked
+/// up.
 /// </para>
 ///
 /// <para>
@@ -54,6 +73,7 @@ public sealed class TicketSeeder(
     SupportCrmDbContext db,
     IOptions<CategoryOptions> categoryOptions,
     IOptions<SlaTargetOptions> slaTargetOptions,
+    IOptions<FeedbackOptions> feedbackOptions,
     TimeProvider clock,
     ILogger<TicketSeeder> logger) : IDataSeeder
 {
@@ -72,6 +92,15 @@ public sealed class TicketSeeder(
         // Story 09 — deliberately created in the PAST so their SLA deadlines have already passed.
         public static readonly Guid BillingBreachedStatement = new("44444444-4444-4444-4444-444444444407");
         public static readonly Guid TechnicalBreachedOutage = new("44444444-4444-4444-4444-444444444408");
+
+        // ---------------------------------------------------------------- Story 13 (task 6)
+        // Three RESOLVED requests, one per portal-visible demonstration of §7.3's feedback block.
+        // Both portal customers get an unrated one, so whichever login is used the control appears.
+        public static readonly Guid BillingResolvedLatePayment = new("44444444-4444-4444-4444-444444444409");
+        public static readonly Guid TechnicalResolvedSlowReports = new("44444444-4444-4444-4444-444444444410");
+
+        /// <summary>The one that <b>is</b> rated — Story 15's satisfaction tile reads it.</summary>
+        public static readonly Guid AccountResolvedRatedRename = new("44444444-4444-4444-4444-444444444411");
     }
 
     public async Task SeedAsync(CancellationToken ct)
@@ -145,6 +174,29 @@ public sealed class TicketSeeder(
                 "The reporting dashboard returns a server error for every user in the customer's organisation.",
                 IdentitySeeder.Users.TechnicalAgent, null, true,
                 CreatedHoursAgo: 48),
+
+            // ---------------------------------------------------------------- Story 13 (task 6)
+            // **All three belong to a customer who HAS a portal login** — Amina and Chen Wei — which
+            // is the whole point: a Resolved ticket whose customer cannot sign in demonstrates
+            // nothing. They are backdated a little so the resolution reads as having happened, and
+            // so the thread below them sits in the past.
+            (Tickets.BillingResolvedLatePayment, CustomerSeeder.Customers.AminaHaddad, "billing",
+                TicketPriority.Medium, "Late-payment fee applied after a bank delay",
+                "A fee was charged because the transfer arrived a day late. The customer asked whether it can be waived.",
+                IdentitySeeder.Users.BillingAgent, IdentitySeeder.Users.BillingAgent, false,
+                CreatedHoursAgo: 30),
+
+            (Tickets.TechnicalResolvedSlowReports, CustomerSeeder.Customers.ChenWei, "technical",
+                TicketPriority.Low, "Reports took several minutes to open",
+                "Opening the monthly report was very slow last week. It seems better now, but the customer wants it checked.",
+                IdentitySeeder.Users.TechnicalAgent, IdentitySeeder.Users.TechnicalAgent, false,
+                CreatedHoursAgo: 26),
+
+            (Tickets.AccountResolvedRatedRename, CustomerSeeder.Customers.AminaHaddad, "account",
+                TicketPriority.Medium, "Rename the account to the new company name",
+                "The company changed name last month and the account should show the new one on invoices.",
+                IdentitySeeder.Users.TechnicalAgent, IdentitySeeder.Users.TechnicalAgent, false,
+                CreatedHoursAgo: 22),
         };
 
         var seeded = 0;
@@ -226,6 +278,7 @@ public sealed class TicketSeeder(
         }
 
         var messages = SeedThreads(created, now);
+        var ratings = SeedFeedback(created, now);
 
         if (seeded > 0)
         {
@@ -233,7 +286,8 @@ public sealed class TicketSeeder(
         }
 
         logger.LogInformation(
-            "TicketSeeder: {Tickets} ticket(s) and {Messages} message(s) seeded.", seeded, messages);
+            "TicketSeeder: {Tickets} ticket(s), {Messages} message(s) and {Ratings} rating(s) seeded.",
+            seeded, messages, ratings);
     }
 
     /// <summary>
@@ -311,7 +365,109 @@ public sealed class TicketSeeder(
             Transition(invoice, TicketStatus.Pending, IdentitySeeder.Users.BillingAgent, now.AddSeconds(20));
         }
 
+        // ---- Story 13. Three requests taken all the way to `Resolved`, each with the outbound
+        //      message that resolved it — a resolution with no explanation would render an empty
+        //      thread under a feedback control, which is not what a customer would be rating.
+        //
+        //      The path is New → Open → Resolved, both edges legal under A-5 and both taken through
+        //      TransitionTo, so ResolvedAt is stamped by the entity exactly as an endpoint stamps it.
+        //      That matters: `ResolvedAt` is what CustomerFeedbackService reads to decide whether a
+        //      request has REACHED Resolved, so a seeder writing the column directly would have
+        //      produced rows the feedback endpoint refuses.
+        messages += Resolve(
+            created, Tickets.BillingResolvedLatePayment, IdentitySeeder.Users.BillingAgent,
+            "I have waived the fee and it will drop off the next statement. Sorry for the trouble.",
+            now);
+
+        messages += Resolve(
+            created, Tickets.TechnicalResolvedSlowReports, IdentitySeeder.Users.TechnicalAgent,
+            "We found a slow query behind the monthly report and fixed it. Opening times are back to normal.",
+            now);
+
+        messages += Resolve(
+            created, Tickets.AccountResolvedRatedRename, IdentitySeeder.Users.TechnicalAgent,
+            "The account now shows the new company name, and the next invoice will carry it.",
+            now);
+
         return messages;
+    }
+
+    /// <summary>
+    /// One request taken from <c>New</c> to <c>Resolved</c>, with the outbound message that resolved
+    /// it. Both transitions go through <see cref="Ticket.TransitionTo"/> and the message through
+    /// <see cref="Post"/>, so a seeded resolution is indistinguishable from one an agent performed —
+    /// including the <c>firstRespondedAt</c> stamp and the two <c>StatusChanged</c> history rows.
+    /// </summary>
+    private int Resolve(
+        IReadOnlyDictionary<Guid, Ticket> created,
+        Guid ticketId,
+        Guid agentUserId,
+        string closingMessage,
+        DateTimeOffset now)
+    {
+        if (!created.TryGetValue(ticketId, out var ticket))
+        {
+            // A re-run against an existing volume created nothing, so there is nothing to resolve —
+            // the same idempotence rule SeedThreads follows.
+            return 0;
+        }
+
+        Transition(ticket, TicketStatus.Open, agentUserId, now.AddSeconds(5));
+
+        var messages = Post(
+            ticket, agentUserId, MessageDirection.Outbound, closingMessage, now.AddSeconds(15));
+
+        Transition(ticket, TicketStatus.Resolved, agentUserId, now.AddSeconds(20));
+
+        return messages;
+    }
+
+    /// <summary>
+    /// The one seeded rating — Story 13 task 6, so Story 15's §9.4 satisfaction tile is non-trivial
+    /// and §7.3's "already rated" branch is demonstrable.
+    ///
+    /// <para>
+    /// <b>⚠ The value comes from the configured scale, never from a literal (OQ-1).</b>
+    /// docs/data-model.md §2.15 states that no minimum, maximum or step <em>"may be inferred from
+    /// this document into a validation rule, a check constraint, or a UI control"</em> — and a
+    /// hardcoded number in a seeder is the quietest place of all to encode one. It seeds
+    /// <see cref="FeedbackOptions.Max"/>: the top of whatever range is configured is *a satisfied
+    /// answer* under every candidate OQ-1 might choose, including a binary one, so the row stays
+    /// meaningful rather than becoming out of range the day the key changes.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The other two <c>Resolved</c> requests are deliberately left unrated.</b> §2.15: declining
+    /// is a normal outcome and the absence of a row is meaningful — so the demo carries both cases,
+    /// and reporting has "no response" rows to treat as such rather than as zeros.
+    /// </para>
+    /// </summary>
+    private int SeedFeedback(IReadOnlyDictionary<Guid, Ticket> created, DateTimeOffset now)
+    {
+        if (!created.TryGetValue(Tickets.AccountResolvedRatedRename, out var ticket))
+        {
+            return 0;
+        }
+
+        db.CustomerFeedback.Add(CustomerFeedback.Submit(
+            Guid.NewGuid(),
+            ticket.Id,
+            feedbackOptions.Value.Max,
+            "Handled quickly and the invoice looks right now.",
+            now.AddSeconds(30)));
+
+        // The history spine records it, exactly as CustomerFeedbackService does. Written directly
+        // rather than through TicketActivityRecorder for the reason the rest of this seeder records:
+        // the recorder resolves its actor from ICurrentUser, and a seeder runs with no request.
+        // Attributed to the CUSTOMER'S portal login, because that is who submits a rating.
+        db.TicketActivities.Add(TicketActivity.ByUser(
+            Guid.NewGuid(),
+            ticket.Id,
+            TicketActivityType.FeedbackSubmitted,
+            CustomerSeeder.PortalUsers.AminaHaddad,
+            now.AddSeconds(30)));
+
+        return 1;
     }
 
     /// <summary>

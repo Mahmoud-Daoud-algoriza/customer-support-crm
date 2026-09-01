@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using SupportCrm.Application.Abstractions;
 using SupportCrm.Domain.Modules.Tickets;
 
@@ -21,14 +22,24 @@ namespace SupportCrm.Application.Modules.Tickets;
 /// </para>
 ///
 /// <para>
-/// <b>Story 13 completes this class</b> with the remaining §5.7 reads and actions (own ticket list,
-/// detail, transition, feedback). Story 07 publishes submission and the thread only.
+/// <b>Story 13 completed this class</b> with the remaining §5.7 reads and actions — the customer's
+/// own list, their own detail, and the two transitions A-16 gives them. <b>Feedback is its own
+/// service</b> (<c>CustomerFeedbackService</c>): it is a different entity with a different
+/// invariant, and folding it in here would put a write-once reporting fact behind a ticket reader.
+/// </para>
+///
+/// <para>
+/// <b>Every read here composes <c>TicketScope</c>, and none of them re-states ownership.</b> A
+/// customer sees only their own tickets because <c>ForCaller</c> narrows on
+/// <c>CustomerId == caller.CustomerId</c> — the same helper every staff read composes (AD-5,
+/// docs/architecture.md §4.3). There is no second ownership predicate in this file to forget.
 /// </para>
 /// </summary>
 public sealed class PortalTicketService(
     IApplicationDbContext db,
     ICurrentUser currentUser,
-    TicketService tickets)
+    TicketService tickets,
+    TicketLifecycleService lifecycle)
 {
     /// <summary>
     /// <c>POST /portal/tickets</c>.
@@ -109,9 +120,178 @@ public sealed class PortalTicketService(
     /// </summary>
     private const TicketPriority SubmittedPriority = TicketPriority.Medium;
 
+    // ------------------------------------------------------------------------------ reads
+
     /// <summary>
-    /// <c>Ticket (portal)</c> — docs/api-design.md §6.4. Built from the entity rather than re-read,
-    /// because <see cref="SubmitAsync"/> has just written it and every member is on the row.
+    /// <c>GET /portal/tickets</c> — <b>the caller's own requests, and nothing else</b>
+    /// (docs/api-design.md §5.7, docs/ui-design.md §7.1).
+    ///
+    /// <para>
+    /// <b>Ownership is <c>TicketScope.ForCaller</c>'s, applied first</b>, so the <c>status</c> filter
+    /// narrows within it and can never widen it. There is no <c>customerId</c> parameter to supply
+    /// and no ownership predicate written here — a customer's own set is the <em>scope</em>, not a
+    /// filter (AD-5).
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The sort whitelist has exactly one field, <c>createdAt</c></b> (§5.7, AP-15) — anything
+    /// else is a <c>400</c> rather than silently ignored. <b>The default direction is descending</b>:
+    /// no approved document fixes one for this endpoint, and newest-first is the direction §5.5
+    /// already fixes for every other customer-facing list (notes, attachments, the timeline), so it
+    /// is the reading that introduces no second convention. A client wanting the other order asks
+    /// for <c>sort=createdAt:asc</c>.
+    /// </para>
+    /// </summary>
+    public async Task<PagedResult<PortalTicketDto>> ListAsync(
+        string? status, PageQuery? page, CancellationToken ct)
+    {
+        var (pageNumber, pageSize) = page.Normalize();
+
+        // Validated against the whitelist even though it holds one field: an unknown sort field is a
+        // 400, never silently ignored (AP-15). The field itself is discarded because there is only
+        // one thing it can be — the direction is what varies.
+        var (_, descendingRequested) = page.ParseSort(SortableFields, DefaultSortField);
+
+        // ParseSort defaults to ascending, which is the right default for a generic whitelist helper
+        // and the wrong one here, so it is overridden when the caller supplied no sort at all. An
+        // EXPLICIT sort is obeyed exactly as written.
+        var descending = string.IsNullOrWhiteSpace(page?.Sort) ? DefaultDescending : descendingRequested;
+
+        // Scope first. The filter below narrows within it and can never widen it.
+        var query = db.Tickets.AsNoTracking().ForCaller(currentUser);
+
+        if (TicketStatusParser.ParseOptional(status) is { } parsed)
+        {
+            query = query.Where(t => t.Status == parsed);
+        }
+
+        var ordered = descending
+            ? query.OrderByDescending(t => t.CreatedAt)
+            : query.OrderBy(t => t.CreatedAt);
+
+        return await Project(ordered).ToPagedResultAsync(pageNumber, pageSize, ct);
+    }
+
+    /// <summary>
+    /// <c>GET /portal/tickets/{id}</c> — the customer's own request.
+    ///
+    /// <para>
+    /// <b>Another customer's id is a <c>404</c></b>, worded identically to one that does not exist
+    /// (<b>AP-4</b>) — and it is the same <c>TicketScope.ForCaller</c> narrowing plus the same
+    /// <c>TicketScope.NotFound</c> message <c>LoadScopedAsync</c> uses, so the two cannot be told
+    /// apart. It is composed on an <c>AsNoTracking</c> query and projected in the database, because
+    /// this is a read: the tracked <c>LoadScopedAsync</c> exists for write paths that mutate and
+    /// commit (docs/architecture.md §4.3).
+    /// </para>
+    /// </summary>
+    public async Task<PortalTicketDto> GetAsync(Guid id, CancellationToken ct)
+    {
+        var dto = await Project(db.Tickets.AsNoTracking().ForCaller(currentUser).Where(t => t.Id == id))
+            .FirstOrDefaultAsync(ct);
+
+        return dto ?? throw new NotFoundException(TicketScope.NotFound);
+    }
+
+    // ----------------------------------------------------------------------------- writes
+
+    /// <summary>
+    /// <c>POST /portal/tickets/{id}/transition</c> — <b>cancel own while <c>New</c></b>, or
+    /// <b>reopen own <c>Resolved</c></b> (docs/api-design.md §5.7).
+    ///
+    /// <para>
+    /// <b>It delegates, and delegating is the decision.</b> Story 06's
+    /// <c>TicketLifecycleService.TransitionAsync</c> already enforces the whole order §5.6 fixes —
+    /// scope (<c>404</c>), then <b>A-16</b> authority (<c>403 transition-not-permitted</c>), then
+    /// <b>A-5</b> legality (<c>409 illegal-transition</c>) — and writes the history row and the audit
+    /// entry. <b>The customer's permitted set is not restated here</b>: it is two cells of the A-16
+    /// matrix, whose one home is <c>TransitionAuthority.MayInvoke</c> — cancel while <c>New</c> (the
+    /// window <b>A-18</b> keeps genuinely open, because an auto-assigned ticket is still <c>New</c>)
+    /// and reopen a <c>Resolved</c> one. A second copy in this file could drift from it, and the
+    /// drift would be a security bug in the quiet direction.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The staff DTO it returns is discarded and the ticket re-read as the portal one.</b> That
+    /// costs one extra query and buys exactly what AP-5 is about: a portal endpoint <em>cannot</em>
+    /// answer with an assignee, a department, a priority or an SLA field, because the type it returns
+    /// has no such member (AP-16, UI-11).
+    /// </para>
+    ///
+    /// <para>
+    /// <b>A customer's <c>Pending → Open</c> does not come through here.</b> R-13 makes it automatic
+    /// on a reply, which is why A-16 gives them no such invocation and docs/ui-design.md §7.3 forbids
+    /// the UI from offering a manual reopen on a <c>Pending</c> request.
+    /// </para>
+    /// </summary>
+    public async Task<PortalTicketDto> TransitionAsync(
+        Guid ticketId, TicketStatus targetStatus, CancellationToken ct)
+    {
+        await lifecycle.TransitionAsync(ticketId, targetStatus, ct);
+
+        return await GetAsync(ticketId, ct);
+    }
+
+    /// <summary>
+    /// The sort whitelist for <c>GET /portal/tickets</c> (AP-15). docs/api-design.md §5.7 enumerates
+    /// it as a single field, so a second entry here would be a contract change.
+    /// </summary>
+    private static readonly Dictionary<string, string> SortableFields = new(StringComparer.Ordinal)
+    {
+        ["createdAt"] = nameof(Ticket.CreatedAt),
+    };
+
+    private const string DefaultSortField = nameof(Ticket.CreatedAt);
+
+    /// <summary>
+    /// <b>Newest first</b> when the caller asks for no particular order.
+    /// <para>
+    /// No approved document fixes a default direction for this endpoint. Newest-first is the one
+    /// docs/api-design.md §5.5 already fixes for every other customer-facing list — notes,
+    /// attachments, the interaction timeline — so taking it here introduces no second convention,
+    /// and it is what §7.1's card list wants: a customer opening the portal is far more often
+    /// tracking their latest request than their first.
+    /// </para>
+    /// </summary>
+    private const bool DefaultDescending = true;
+
+    /// <summary>
+    /// <c>Ticket (portal)</c> — docs/api-design.md §6.4 — as <b>one projection used by both reads</b>,
+    /// so the list row and the detail payload cannot diverge. §6.4 defines them as one shape.
+    ///
+    /// <para>
+    /// <b><c>hasFeedback</c> is an existence check, never a column</b> (docs/api-design.md §7,
+    /// finding <b>N-4</b>). It translates to an <c>EXISTS</c> against the unique index on
+    /// <c>CustomerFeedback.TicketId</c>, and it stays a projection because a stored flag would be a
+    /// second answer to a question the feedback row already answers.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The members that are absent are the payload's design.</b> No assignee (<b>AP-16</b>), no
+    /// department, no priority, no SLA or breach field, no internal anything (<b>UI-11</b>) — and
+    /// they are absent from <see cref="PortalTicketDto"/> itself, so this projection could not leak
+    /// one even by mistake. A test asserts it on the serialized JSON rather than on the type.
+    /// </para>
+    /// </summary>
+    private IQueryable<PortalTicketDto> Project(IQueryable<Ticket> query) =>
+        query.Select(t => new PortalTicketDto(
+            t.Id,
+            t.Subject,
+            t.Description,
+            t.CategoryCode,
+            t.Status.ToString(),
+            t.IsUrgent,
+            t.CreatedAt,
+            t.ResolvedAt,
+            db.CustomerFeedback.Any(f => f.TicketId == t.Id)));
+
+    /// <summary>
+    /// <c>Ticket (portal)</c> from the entity <see cref="SubmitAsync"/> has just written — every
+    /// member is on the row, so re-reading it would be a query for data already in hand.
+    /// <para>
+    /// <c>hasFeedback</c> is <see langword="false"/> here as a <b>fact, not a placeholder</b>: a
+    /// ticket created one statement ago is <c>New</c>, has never reached <c>Resolved</c>, and
+    /// therefore could not have been rated even in principle.
+    /// </para>
     /// </summary>
     private static PortalTicketDto ToDto(Ticket ticket) =>
         new(
@@ -123,8 +303,5 @@ public sealed class PortalTicketService(
             ticket.IsUrgent,
             ticket.CreatedAt,
             ticket.ResolvedAt,
-
-            // Story 13 replaces this with the CustomerFeedback existence check. A ticket that was
-            // created one statement ago has none under any implementation.
             HasFeedback: false);
 }

@@ -16,9 +16,11 @@ import { AppMenuitem } from './app.menuitem';
  * Entries whose screens arrive later point at routes that do not resolve yet, so they are added by
  * the story that builds the screen rather than left as dead links.
  *
- * **The portal section is Story 13's to complete.** Story 12 adds the two destinations that exist —
- * submit a request, and Help — because `/portal/help` has to be reachable from the shell; the
- * requests list joins them with Story 13.
+ * **This menu is staff-only, and Story 13 is why.** Story 12 put the portal's two destinations here
+ * because the portal shell was still the shared staff chrome. It no longer is: ui-design §4.2 gives
+ * the portal a header with two links and **no sidebar**, and `PortalShellComponent` now renders it.
+ * A Customer never mounts this component, so a portal section here would be unreachable code —
+ * and, if it were ever reached, a customer inside agent chrome (AD-14). **Do not add one back.**
  */
 @Component({
     selector: 'app-menu',
@@ -79,18 +81,9 @@ export class AppMenu {
             });
         }
 
-        // The Customer portal (docs/ui-design.md §4.2). A Customer is not "at least an Agent", so
-        // none of the staff sections above apply to them — and no staff entry may be added here.
-        // Story 13 adds the requests list and makes it the landing entry.
-        if (this.store.role() === 'Customer') {
-            sections.push({
-                label: t('nav.portal'),
-                items: [
-                    { label: t('nav.submitRequest'), icon: 'pi pi-fw pi-plus', routerLink: ['/portal/requests/new'] },
-                    { label: t('nav.help'), icon: 'pi pi-fw pi-book', routerLink: ['/portal/help'] },
-                ],
-            });
-        }
+        // **No Customer section, by design** (docs/ui-design.md §4.2). The portal has its own shell
+        // with two header links and no sidebar, so a Customer never renders this menu at all — see
+        // the class remarks.
 
         return sections;
     });

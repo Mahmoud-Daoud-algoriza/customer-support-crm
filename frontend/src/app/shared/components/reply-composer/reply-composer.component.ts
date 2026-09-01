@@ -51,7 +51,7 @@ import { PlatformApiService, QuickReply } from '../../../core/api/platform-api.s
                     pTextarea
                     rows="4"
                     class="app-composer__input"
-                    [placeholder]="'tickets.replyPlaceholder' | transloco"
+                    [placeholder]="placeholderKey() | transloco"
                     [disabled]="busy()"
                     [ngModel]="draft()"
                     (ngModelChange)="draft.set($event)"></textarea>
@@ -114,6 +114,19 @@ export class ReplyComposerComponent {
      * not, and the request is not made at all when it does not.
      */
     readonly quickReplies = input(false);
+
+    /**
+     * The placeholder's translation key. **It defaults to the staff wording** — *"Write a reply to
+     * the customer…"* — which is right on the ticket detail and plainly wrong on the portal, where
+     * the reader *is* the customer.
+     *
+     * This is the third thing that differs between the two configurations of this one component
+     * (docs/ui-design.md §8), alongside `quickReplies` and the AI insert. It is a **key**, not
+     * prose, because display text is translated at the point of rendering (T2-J) — and it is an
+     * input rather than a second component for the same reason §8 gives: two configurations, one
+     * composer.
+     */
+    readonly placeholderKey = input('tickets.replyPlaceholder');
 
     readonly send = output<string>();
 

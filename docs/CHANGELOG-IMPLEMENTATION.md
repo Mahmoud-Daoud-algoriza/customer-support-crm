@@ -16,7 +16,143 @@
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-09-01 (latest) — story 12: knowledge base, search and suggested solutions
+### 2026-09-01 (latest) — story 13: customer portal self-service and feedback
+
+**Phase 6 closes.** Story 13 delivered **whole rather than in slices**, like stories 05, 06, 07 and
+12: all twelve plan tasks, requirements **§8** in full — submit, track, view history, access FAQs and
+submit feedback — as *a separate, simpler surface for the Customer role over the same backend*, not a
+second application with its own data.
+
+**What changed, and where.**
+
+- **Domain** — `Modules/Tickets/CustomerFeedback.cs` (data-model **§2.15**). It sits under
+  **`Tickets`**, which is **DM-7**: `customer-portal` is an Angular area and a planning slug, not a
+  backend module, and **no eleventh module was created**. **Write-once by construction** — private
+  setters, **no mutator at all**, no `Update`, no `Withdraw` — so §2.15's *"not editable, not
+  resubmittable"* is a property of the type rather than a rule a service remembers. The factory
+  refuses only what is structurally impossible (no ticket) and **range-checks nothing**: **there is no
+  rating constant anywhere in the Domain** (**OQ-1**).
+- **Infrastructure** — `Persistence/Configurations/CustomerFeedbackConfiguration.cs` and migration
+  `20260901154739_CustomerFeedback`. **Unique index on `TicketId`** (data-model §6, §5 constraint 21),
+  FK to `Ticket` as **`Restrict`** rather than cascade — a rating is a reporting fact feeding the §9.4
+  average, and because the *absence* of a row is meaningful, deleting one with its ticket would
+  silently change a reported number. **No check constraint on `Rating`**, deliberately: a range here
+  would encode **OQ-1** into the schema, which §2.15 forbids.
+- **Application** — `Modules/Tickets/CustomerFeedbackService.cs`, whose four preconditions run in a
+  fixed order and the order *is* the contract: **scope first** (`404`, **AP-4**) so a customer never
+  learns from a `409` that someone else's ticket exists; then *has reached `Resolved`*; then
+  one-per-ticket (`409 feedback-already-submitted`); then **the configured range** (`400`). *"Has
+  reached `Resolved`"* is read from **`ResolvedAt`, not from the current status** — that stamp is the
+  only record the ticket ever got there, so a `Closed` ticket qualifies (it is reached *from*
+  `Resolved`) and so does one the customer reopened, both of which a status check would get wrong.
+  `PortalTicketService` gained `ListAsync`, `GetAsync` and `TransitionAsync`; the transition
+  **delegates to story 06's `TicketLifecycleService`** and restates **no part of A-16** — the matrix
+  has one home in `TransitionAuthority`, and a second copy could drift in the quiet direction. It then
+  re-reads the ticket as `PortalTicketDto`, which costs one query and makes it **impossible** for the
+  staff DTO the lifecycle service returns to escape through a portal route. `hasFeedback` is an
+  **`EXISTS` projection**, never a column (api-design §7, finding **N-4**).
+- **Api** — `PortalTicketsController` gained the remaining **six** endpoints of api-design **§5.7**:
+  the own list, the own detail, the transition, both attachment actions and feedback. With story 07's
+  three and story 12's two, **the portal path space is complete at eleven** and matches §5.7 endpoint
+  for endpoint. Story 07's `Location` header was retargeted from the thread to the detail action, as
+  its own comment asked once that action existed. **There is no portal download route** — `GET
+  /attachments/{id}/content` serves every role, **AP-19**'s single named exception to AP-5's split.
+- **Infrastructure (seed)** — `TicketSeeder` gained three `Resolved` requests and one rating, so every
+  branch of ui-design §7.3 is demonstrable in one sign-in: an unrated `Resolved` request **for each of
+  the two portal customers**, one already rated (so story 15's §9.4 tile is non-trivial and the
+  "already rated" branch is visible), with the existing `New` and `Pending` rows carrying cancel and
+  the automatic reopen. Both new transitions go through `Ticket.TransitionTo`, so `ResolvedAt` is
+  stamped by the entity exactly as an endpoint stamps it — which matters, because that is the field
+  the feedback precondition reads.
+- **Front end** — `layout/portal-shell/` is now **its own shell** rather than the staff `AppLayout`:
+  **two destinations, no sidebar, no notification bell** (ui-design **§4.2**). The Customer branch was
+  removed from `layout/component/app.menu.ts`, because a customer no longer mounts that component.
+  `features/portal/portal-requests.component.ts` is the **card** list of §7.1 with its *"response
+  needed from you"* cue and a URL-bound status filter (**UI-9**); `portal-submit-request.component.ts`
+  keeps its **exactly four** inputs (§7.2); `portal-request-detail.component.ts` replaces the Story 07
+  stub with the five regions of §7.3. `shared/components/rating-input/` takes `{ min, max }`.
+  `core/api/portal.client.ts` gained five methods and `PortalTransitionTarget`, a union of the **two**
+  targets A-16 allows.
+
+**Why, with the ids.**
+
+- **DM-7** — feedback is domain behaviour attached to a ticket, so it lives in `Tickets`. **No
+  eleventh backend module.**
+- **AP-5 / AP-16 / UI-11** — the portal returns a **distinct DTO**, not the staff one with fields
+  hidden. `PortalIsolationTests` asserts the absence of `assignee`, `departmentId`, `priority`,
+  `firstResponseDueAt`, `resolutionDueAt`, `firstResponseBreached` and `resolutionBreached` **on the
+  raw JSON** of the detail, a list row *and* the transition response — a type is what the server
+  promises; the payload is what a customer receives.
+- **A-16 / A-18** — cancel only while `New`, reopen only from `Resolved`, and **no manual `Pending →
+  Open`**, because **R-13** does it automatically. The client's `PortalTransitionTarget` makes the
+  forbidden target unspellable, and the server refuses it independently.
+- **R-13** — the chip moves **from the reply's own envelope**, never from a re-fetch and never from a
+  guess, which is what §6.4 put `ticketStatus` and `statusChanged` there for.
+- **T2-F / data-model §2.15** — **declining is a normal outcome.** There is no decline endpoint, no
+  *"declined"* state and no re-prompt; the absence of a row is the recorded answer, and reporting must
+  read it as *"no response"*, never as a zero.
+- **⚠ OQ-1 is not answered, and the plan's interim behaviour (ui-design §11) was implemented
+  instead.** No scale exists in the schema (no check constraint), the Domain (no constant), the
+  service (the range is read from the `Feedback rating scale` key on every call), the tests (both
+  out-of-range values are computed from `IOptions<FeedbackOptions>` at run time, so the suite survives
+  a **binary** answer), the seeder (it writes `FeedbackOptions.Max`, not a number) or the UI
+  (`RatingInput` renders `min..max`; **no star widget, no `1..5` array, no thumbs pair**, with
+  `binaryLabels()` left as a documented, deliberately inert seam).
+
+**Findings recorded.**
+
+- **I-35** — ui-design §7.1 asks each card to show a *"last update"* that **no payload and no entity
+  carries**: `Ticket (portal)` (§6.4) has `createdAt` and `resolvedAt`, and data-model §2.6 defines no
+  modification timestamp on `Ticket` at all. **Nothing was invented**; the card shows the timestamps
+  the payload does carry under honest labels. Each way to satisfy §7.1 literally is an amendment to an
+  approved document, and therefore the user's.
+- **I-36** — the feedback endpoint has **two** distinct `409`s and §5.7 names a slug for only one.
+  Added `feedback-not-available`, on the precedent story 07 set with `ticket-terminal`. It is new
+  contract surface either way, and whether api-design §6.12's enumeration is meant to be exhaustive is
+  the user's call. **No approved document was edited.**
+- **I-23 is CLOSED** — story 06 recorded that A-16's customer column could only be asserted against
+  `TransitionAuthority` directly, because no endpoint existed a `Customer` could call. This story
+  published `POST /portal/tickets/{id}/transition`, and `PortalLifecycleTests` now asserts the same
+  column over HTTP.
+- **One smaller choice is recorded at the code rather than as a numbered finding**, on the same basis
+  as story 12's keyword extraction and story 16 Part B's inclusive `to` bound: no document fixes a
+  default sort *direction* for `GET /portal/tickets`, so it defaults to **newest-first** — the
+  direction §5.5 already fixes for every other customer-facing list — and says so in its own comment.
+
+**One defect found by driving the real browser, and fixed.** The shared `ReplyComposer` was showing
+its **staff** placeholder — *"Write a reply to the customer…"* — to the customer. It now takes a
+`placeholderKey`, which is the third configuration point between the two uses of the one component
+(ui-design §8), alongside quick replies and the AI insert.
+
+**What was verified.** `dotnet build` **0 warnings, 0 errors**; `dotnet test` **417 passing, 1 skipped
+by design** (was 401/1) — **+16, exactly the sixteen the plan names**, in the three files it names;
+`npm run build` clean; `npm run lint:styles` clean; `npx ng test` **66 SUCCESS** (was 62, **+4**).
+**Against real SQL Server** on a `docker compose down -v` fresh volume: the migration applied and the
+seeder reported `11 ticket(s), 7 message(s) and 1 rating(s)`; another customer's id `404` and
+**byte-identical** to a missing one; `/portal/…/internal-notes` **not routable**; a customer on a
+staff route `403`; an **auto-assigned `New`** request cancelled `200` (A-18) while an `Open` one was
+`403` and `→ Closed` was `403`; a reopen `200` with `Resolved -> Open | User | Amina Haddad` in ticket
+history; a reply to the `Pending` request returning `ticketStatus: "Open"`, `statusChanged: true`;
+feedback `201` then `409`, `409 feedback-not-available` too early, `400` outside the configured range
+with **no row written**, and `404` on another customer's request. Read off the live schema: the index
+is **unique** (a direct duplicate refused with error **2601**), the FK is `NO_ACTION`, and
+`sys.check_constraints` is **empty** — a rating of `999` inserted directly was **accepted**, which is
+the proof OQ-1 is not in the schema. `DateTimeOffset` ordering, which the SQLite host cannot prove,
+is correct in both directions, and `sort=priority:desc` is `400` (AP-15). **22 browser checks at
+390 px**, all passing: single column and **zero** horizontal overflow on every portal screen, two nav
+destinations, no sidebar, no bell, the `Pending` cue, no reopen or cancel control on `Pending`, the
+chip moving `Pending → Open` in place with the *"reopened"* cue, the rating control's steps compared
+**against `GET /config` in the same assertion**, and zero steps plus **no nag** on an already-rated
+request.
+
+**What was deliberately not touched.** **No story 14 work**: `TicketInternalNote` does not exist, no
+`/internal-notes` route exists on either path space, and `InternalNotesAreUnreachableTests` is **still
+skipped with its `Assert.Fail` body intact** — story 13 asserted the *routing* half in its own suite
+and left story 14's entity-level test alone, as the plan directs. **No story 15 work** — only the
+seeded rating story 15 will read. **No approved document was edited**, and **OQ-1 was not answered**.
+**Nothing was committed.**
+
+### 2026-09-01 — story 12: knowledge base, search and suggested solutions
 
 **Phase 6 opens.** Story 12 delivered **whole rather than in slices**, like stories 05, 06 and 07:
 all eleven plan tasks, requirements §6 in full plus §7.4, at the depth T2-E fixes.
