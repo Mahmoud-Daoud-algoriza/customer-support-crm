@@ -98,7 +98,8 @@
         "portal": "الدعم",
         "submitRequest": "إرسال طلب",
         "help": "المساعدة",
-        "myRequests": "طلباتي"
+        "myRequests": "طلباتي",
+        "reports": "التقارير"
     },
     "admin": {
         "users": {
@@ -452,6 +453,36 @@
             "matchScore": "التطابق",
             "emptyTitle": "لا توجد مقالات ذات صلة",
             "emptyMessage": "لا يوجد مقال يطابق كلمات هذه التذكرة."
+        }
+    },
+    "reports": {
+        "title": "التقارير",
+        "department": "القسم",
+        "branch": "الفرع",
+        "allDepartments": "كل الأقسام",
+        "allBranches": "كل الفروع",
+        "ticketCounts": "أعداد التذاكر",
+        "slaAttainment": "الالتزام باتفاقية مستوى الخدمة",
+        "agentPerformance": "أداء الوكلاء",
+        "satisfaction": "رضا العملاء",
+        "met": "مُحقَّق",
+        "breached": "متجاوَز",
+        "attainment": "نسبة الالتزام",
+        "agent": "الوكيل",
+        "ticketsAssigned": "التذاكر المُسندة",
+        "ticketsResolved": "التذاكر المُحلّة",
+        "averageResolution": "متوسط زمن الحل",
+        "averageOf": "{{average}} من {{max}}",
+        "responseCount": "عدد الردود",
+        "empty": {
+            "tickets": "لا توجد تذاكر في هذا التحديد",
+            "ticketsMessage": "غيّر مرشّح القسم أو الفرع لعرض تذاكر أخرى.",
+            "sla": "لا توجد بيانات اتفاقية مستوى الخدمة لهذا التحديد",
+            "slaMessage": "تظهر نسبة الالتزام بمجرد وجود تذاكر في هذا التحديد.",
+            "agents": "لا يوجد نشاط للوكلاء في هذا التحديد",
+            "agentsMessage": "يظهر أداء الوكلاء بمجرد عملهم على تذاكر هنا.",
+            "ratings": "لم يتم إرسال أي تقييم بعد",
+            "ratingsMessage": "يُطلب من العملاء تقييم الطلب بعد حلّه."
         }
     }
 }

@@ -11,6 +11,7 @@ using SupportCrm.Application.Modules.Administration;
 using SupportCrm.Application.Modules.Customers;
 using SupportCrm.Application.Modules.Identity;
 using SupportCrm.Application.Modules.Knowledge;
+using SupportCrm.Application.Modules.Reporting;
 using SupportCrm.Application.Modules.Organization;
 using SupportCrm.Application.Modules.Sla;
 using SupportCrm.Application.Modules.Tickets;
@@ -176,6 +177,11 @@ public static class DependencyInjection
         // Story 16 Part B — the audit read surface. AuditRecorder (above) stays the only writer;
         // this is the one read method GET /audit exposes (T2-H).
         services.AddScoped<AuditQueryService>();
+
+        // Story 15 — the one management-dashboard read (requirements §9, T2-G). Registered as a
+        // service, not a repository: it composes four aggregate queries and owns no state (AD-3).
+        // §9 introduces NO entity (data-model §7), so there is no DbSet and no migration beside it.
+        services.AddScoped<DashboardReportService>();
 
         return services;
     }

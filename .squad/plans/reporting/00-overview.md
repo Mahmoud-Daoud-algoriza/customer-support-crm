@@ -14,6 +14,24 @@ which is the **global** execution sequence across all feature folders
 Tracker integration is `none`; story ids are the folder names under
 [`.squad/stories/reporting/`](../../stories/reporting/).
 
+## Implementation progress
+
+Story 15 was delivered **whole** — all six plan tasks in one vertical slice, backend and front end
+together.
+
+| Story | Plan tasks | Status |
+|---|---|---|
+| **15 — Management dashboard** | **1–6** — the four aggregate queries, `GET /reports/dashboard`, the seed-data second rating, the twenty-one tests, the typed client and `/workspace/reports`, and the four regions with their empty states | ⚠ **Implemented 2026-09-06; verification PARTIAL** — backend, data layer and live stack verified; **front-end screen checks outstanding** (no browser-driving capability). **No blocked criterion** |
+
+✅ **PF-4 / S9-9 was answered before implementation began (R-18): "tickets assigned" means
+*currently* assigned.** The plan's blocked-decision box is therefore discharged, not carried —
+`AgentPerformanceQuery` encodes the reading once and no method throws. **The plan's claim that the
+blocker was "isolated to one method" was too narrow**: the field is composed into the single §6.8
+response, so a throwing method would have made every dashboard call a `500`.
+
+**OQ-1 needed no answer here**, exactly as the plan's box says — the tile renders the configured
+scale beside the average and hardcodes no denominator.
+
 ## Dependency notes
 
 **Phase 7.** Late by design — every metric depends on data other stories produce.

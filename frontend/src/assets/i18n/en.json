@@ -98,7 +98,8 @@
         "portal": "Support",
         "submitRequest": "Submit a request",
         "help": "Help",
-        "myRequests": "My requests"
+        "myRequests": "My requests",
+        "reports": "Reports"
     },
     "admin": {
         "users": {
@@ -452,6 +453,36 @@
             "matchScore": "Match",
             "emptyTitle": "No related articles",
             "emptyMessage": "No article matches the words in this ticket."
+        }
+    },
+    "reports": {
+        "title": "Reports",
+        "department": "Department",
+        "branch": "Branch",
+        "allDepartments": "All departments",
+        "allBranches": "All branches",
+        "ticketCounts": "Ticket counts",
+        "slaAttainment": "SLA attainment",
+        "agentPerformance": "Agent performance",
+        "satisfaction": "Customer satisfaction",
+        "met": "Met",
+        "breached": "Breached",
+        "attainment": "Attainment",
+        "agent": "Agent",
+        "ticketsAssigned": "Tickets assigned",
+        "ticketsResolved": "Tickets resolved",
+        "averageResolution": "Average resolution time",
+        "averageOf": "{{average}} of {{max}}",
+        "responseCount": "Responses",
+        "empty": {
+            "tickets": "No tickets in this selection",
+            "ticketsMessage": "Change the department or branch filter to see other tickets.",
+            "sla": "No SLA data for this selection",
+            "slaMessage": "SLA attainment appears once tickets exist in this selection.",
+            "agents": "No agent activity in this selection",
+            "agentsMessage": "Agent performance appears once agents are working tickets here.",
+            "ratings": "No ratings submitted yet",
+            "ratingsMessage": "Customers are asked to rate a request once it has been resolved."
         }
     }
 }

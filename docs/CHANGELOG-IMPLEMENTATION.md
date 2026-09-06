@@ -16,7 +16,228 @@
 
 Newest first. Every meaningful project change gets an entry.
 
-### 2026-09-01 (latest) — story 13: customer portal self-service and feedback
+### 2026-09-06 (latest) — story 15: management dashboard and operational reports
+
+**Phase 7's reporting half.** Story 15 delivered **whole rather than in slices** — all six plan
+tasks — and **with no blocked criterion**, because the decision that gated it was taken first.
+Requirements **§9** in full at **T2-G**: one management dashboard with a small fixed metric set, and
+**no report builder, no scheduling, no export**.
+
+✅ **PF-4 / S9-9 was closed before a line was written — R-18.** *"Tickets assigned"* was genuinely
+undefined by every approved document: requirements §9.3 and product-scope T2-G word it unqualified,
+`api-design.md` §5.11 says *"this contract does not decide it"*, §6.8 calls the field *"deliberately
+unqualified"*, and §9 item 2's requirement to pin it **before this story was planned** was never
+met. **The product owner chose *currently assigned*** — open tickets on the agent's plate now,
+excluding `Closed` and `Cancelled`. A ticket reassigned away stops counting; a ticket they closed
+stops counting. **"Ever assigned" was rejected.** No contract changed: §6.8 promised the field name
+and shape were *"stable either way"*, and they were.
+
+> **One correction to how the plan scoped that blocker.** It recorded PF-4 as *"isolated to one
+> method"* which throws until decided. That is true of **where the decision lives** and false of
+> **what it blocked**: `assignedCount` is composed into the single §6.8 response, so a throwing
+> method would have made **every** `GET /reports/dashboard` a `500`, failing plan tests 1–9 and Done
+> Criterion 1. PF-4 gated the whole endpoint, not one field — which is why the decision was taken up
+> front rather than the story being part-delivered around it.
+
+**The reporting module, and no entity.** A new `Application/Modules/Reporting/` holds
+`DashboardReportService` and four query types — `TicketCountsQuery` (§9.1), `SlaAttainmentQuery`
+(§9.2), `AgentPerformanceQuery` (§9.3) and `SatisfactionQuery` (§9.4). **`data-model.md` §7 records
+that §9 introduces no entity**, so this story adds **no migration, no DbSet and no schema change**:
+every number is an aggregate over data other stories own.
+
+**The filter is applied once**, in `DashboardReportService.Filtered`, and `branchId` resolves
+**through the customer** because `Ticket` has no branch column (§4.4, data-model §2.3).
+**`TicketScope.ForCaller` is deliberately NOT composed**, with the reason written at the code so
+nobody "fixes" it: Manager and Administrator are unrestricted across departments, so composing it
+would be a no-op today and wrong tomorrow — it would let a future role change **silently narrow an
+aggregate**, which is one of the four reasons **AD-5** gives for rejecting global query filters.
+
+**"Empty is not zero" is implemented three times.** No ratings → `averageRating: null`, never
+`0.0`, which would read as universal dissatisfaction (data-model §2.15 — declining is a normal
+outcome). No resolutions → `averageResolutionHours: null`, never `0.0`. A priority with no tickets →
+`attainmentPercent: null`, never `100`, which would claim perfect attainment on no evidence.
+`SlaAttainmentQuery` is the one query that **enumerates every priority** rather than returning only
+observed groups, because *"which priorities are meeting their target"* is unanswerable if a priority
+can silently vanish.
+
+**One endpoint, `RequireManager`** — `ReportsController`, publishing `GET /reports/dashboard` with
+the two filters of §5.11 and nothing else. `403` for Agent and Customer is correct here rather than
+AP-4's `404`: refusing a capability the caller can infer from their own role reveals nothing about
+which records exist.
+
+**Front end**: `ReportsClient`, the `/workspace/reports` route behind a **`Manager+`** guard, the
+Reports nav entry for Manager and above, and the four regions of ui-design §5.7 — each with its own
+empty state, a null percent and a null average both rendering **"—"**, and the satisfaction tile
+rendering the average **beside its configured scale** so no denominator is hardcoded (**OQ-1** is
+not answered here). **"Tickets assigned" carries no clarifying tooltip** (ui-design §11). Filters are
+URL-bound (UI-9); the tables **scroll inside their own container** (architecture §2.3). **No
+charting dependency was added** — PrimeNG table and tag only, as the intake requires. 20 new keys in
+each dictionary, key sets verified identical (390 each).
+
+**Seed data**: a **second** `CustomerFeedback` row with a **different** rating, so the §9.4 average
+is a real average rather than one row echoed back — the intake's *"every tile shows a non-trivial
+value"*. **Its value is read from configuration, never written as a literal**, holding the rule story
+13 set: no rating constant may appear anywhere, because that would encode OQ-1.
+
+**Three findings, all informational.** **I-38** — the resolution average is computed over a
+two-column projection rather than in SQL, because `EF.Functions.DateDiff*` is SQL Server only and
+**throws on the SQLite test host** while `TimeSpan` subtraction translates on neither; only
+`createdAt`/`resolvedAt` for resolved tickets is materialized, nothing leaves the server, and the
+intake's *"do not ship raw ticket lists to the browser"* rule is untouched and separately asserted.
+**I-39** — `?format=csv` returned **`200` with a valid dashboard**, because
+`UnmappedMemberHandling.Disallow` governs JSON bodies, not query strings; AP-15's *"unknown filter →
+`400`"* is now enforced on this endpoint, and **the same gap on other endpoints is reported, not
+fixed** (cross-cutting, outside this slice). **I-40** — `averageRating`, `averageResolutionHours` and
+`attainmentPercent` were being **omitted** rather than sent as `null`; they now opt back in under
+§2's own *"except where null is meaningful"* exception, which makes the payload match §6.8's example,
+as it previously did not.
+
+**Verified 2026-09-06 — backend, data layer and live stack.** `dotnet build` **0 warnings, 0
+errors**. Suite **451 passing, 0 skipped**, up from **430** — **21 this story's**, across
+`DashboardAccessTests` (9), `DashboardMetricsTests` (7) and `AggregationHappensOnTheServerTests` (2).
+Front end **66 specs** unchanged and unedited; `npm run build` and `npm run lint:styles` clean.
+**Against real SQL Server**: the role gate by hand (**Agent 403 · Customer 403 · Manager 200 ·
+Administrator 200 · anonymous 401**); `?format=csv` **400**; **branch derivation proven by
+comparison** — the API's per-branch totals equal the SQL count joined through `Customers` (6 and 5)
+and **differ** from the count joined through the assigned agent (4 and 3); **empty is not zero**
+proven on a **scratch** database with every rating deleted, where the raw JSON reads
+`"averageRating":null`; and the response over 11 tickets is **1535 bytes** containing **zero**
+occurrences of `subject`, `description`, `ticketId`, `createdAt` or `categoryCode`. The scratch
+database was dropped afterwards — **`docker compose down -v` was not used and the dev volume was
+never wiped**. **`openapi/v1.json` now publishes 49 paths and 66 operations — the complete
+api-design contract**, story 15 having closed the last missing endpoint.
+
+⚠ **Not verified: the front-end screen checks.** Plan verification step 8's browser half — all four
+regions rendering, filters combining and surviving a reload, tables scrolling internally at phone
+width — **could not be run**: no browser-driving capability was available, the same limitation story
+14 hit. **No result was fabricated.** The assertions are enumerated in PROJECT-PROGRESS §8, and
+**until they are covered story 15 is not verified in full and does not count toward §1.1**.
+
+**Deliberately not touched.** No approved document was edited. No migration and no entity were
+added, because §9 needs neither. No export endpoint, `format` parameter, saved report, schedule or
+date-range picker was introduced (product-scope §8). No charting library was added. The AP-15
+query-parameter gap on **other** endpoints was left alone (I-39). Story 14's outstanding UI evidence
+and the stale §3 rows for stories 08–11 were both left exactly as they are — neither is this story's
+work.
+
+---
+
+### 2026-09-06 — story 14: tasks and internal notes
+
+**Phase 7 continues.** Story 14 delivered **whole rather than in slices**, like stories 05, 06, 07,
+12 and 13 — but **not in full**: plan tasks **1–7, 9 and 10** are implemented, **task 8 is not
+built**, and the front-end screen checks are **outstanding**. Requirements **§4.3** (tasks and
+reminders) and **§4.5** (team collaboration) at **T2-C**, which is deliberately the minimum
+defensible reading: a due-dated to-do attached to a ticket, and internal notes as *the whole of*
+collaboration — no @mentions, no presence, no chat, no shared ownership, no calendar, no recurrence,
+no reminders.
+
+**The visibility rule is structural, not filtered — and that is the whole design.**
+`TicketInternalNote` (`Domain/Modules/Tickets/TicketInternalNote.cs`) is a **separate table that no
+customer-facing query names** (data-model **§2.9**), so `TicketInternalNoteService` contains **no
+exclusion logic** — there is nothing to exclude. The three customer-facing reads were each re-read,
+as the plan's task 3 requires, and **none needed changing**: the portal thread queries
+`TicketMessage` and does not join the note table (story 07); the customer timeline excludes
+`Internal` visibility **and** does not join it (story 04 task 5, story 06 task 6, §5 constraint 18);
+and A-13 defines four notification types, none of which is a note. The entity is **immutable by
+construction** — private setters, no mutator (§5 constraint 16).
+
+**`TicketTask`** (`Domain/Modules/Tickets/TicketTask.cs`) carries a required `dueAt` and assignee,
+and its single mutator `SetDone` is the **only** writer of `completedAt` — **§5 constraint 23**
+expressed as the one assignment path rather than a rule a caller remembers.
+
+**`TicketActivity.InternalNotePosted` mirrors story 07's `MessagePosted`.** It accepts **neither an
+activity type nor a visibility**, so **§2.7**'s two invariants — *"`internalNoteId` is set if and
+only if `activityType = InternalNotePosted`"* and *"`InternalNotePosted` is always `Internal`
+visibility"* — cannot be spelled wrongly at a call site, because neither can be spelled there at
+all. `TicketActivityConfiguration` completes `InternalNoteId` as a **real foreign key**, the
+placeholder that file had carried since story 05, `Restrict` for the same §5 constraint 17 reason
+`MessageId` is.
+
+**Five endpoints on the existing staff controller** (api-design **§5.6**), all `RequireAgent`:
+`GET`/`POST /tickets/{id}/internal-notes`, `GET`/`POST /tickets/{id}/tasks`,
+`PATCH /tickets/{id}/tasks/{taskId}`. **No `/portal` counterpart exists and none may be added**
+(**AP-5**) — *the path space is the visibility rule*. `completedAt` is server-set and is a member of
+no request model (**AP-10**, §7). The `ticket-terminal` and `assignee-out-of-department` slugs were
+**reused, not minted** — both are existing rules with a new call site.
+
+**Migration `TasksAndInternalNotes`**, the name 00-implementation-plan §6 fixes: two tables with the
+two indexes data-model **§6** declares, including `TicketTask(assignedUserId, isDone, dueAt)` —
+created **regardless of how S9-1 is decided**, because the index is the data model's requirement and
+not the endpoint's.
+
+**Front end** (`frontend/src/app/features/workspace/tickets/`): the **internal-notes region** between
+the thread and the activity region, a distinct amber block whose *"Not visible to the customer"*
+marker is **always rendered** — not a hover state, not a per-item badge, and **not conditional on the
+list being non-empty**, because an empty region is exactly when someone is about to write one
+(**UI-5**). It reads **its own endpoint**; there is no merged list and no client-side filter, so a
+rendering bug cannot leak one (ui-design **§5.3**). **No edit and no delete control**, because
+neither exists server-side. The **tasks region** sits in the side column with overdue rows
+distinguished by **colour and a text label**, and its add dialog offers **no calendar view, no
+recurrence and no reminder**. Both style with **logical properties only**. 12 new keys in each of
+`en.json` and `ar.json`, key sets verified identical (363 each).
+
+**Seed data** (task 6): one internal note and one open task on `PaymentsCardDeclined` — chosen
+because it **already has a customer thread**, so a demo shows on one screen that the agent's view
+(3 messages + a note + a to-do) and the customer's view (3 messages) differ.
+
+⛔ **S9-1 came due and stopped task 8, which is the correct outcome, not a shortfall.**
+`ui-design.md` §5.1 and §13, story 14's own AC 2 and `data-model.md` §6's index all assume a
+**cross-ticket** task list; `api-design.md` §5.6 publishes **none**. The plan's instruction is *"do
+not invent an endpoint"*, so `TicketTaskService.ListForUserAsync` was written, marked
+`// S9-1: no endpoint publishes this. Do not add a route until the decision is recorded.`, and left
+**referenced by no controller**; story 08's marker at `agent-queue.component.ts:175` is untouched.
+**Story 14's AC 2 is open pending the user's Option A / Option B decision.**
+
+**Findings.** **I-37** *(informational)* — no approved document fixes a default sort for
+`GET /tickets/{id}/tasks`; soonest-due-first was implemented and stated at the code. **I-16 was
+reused rather than re-raised**: the task assignee picker hits the identical
+no-agent-readable-staff-directory gap story 05's ticket assignment hit, and story 05's recorded
+resolution was applied instead of a second answer being invented.
+
+**Two deliberate deviations, both recorded in PROJECT-PROGRESS §6.8 rather than folded in silently.**
+**D-1** — `TicketAssigneePolicy` was **extracted** from `TicketService`, because task 4 requires the
+task assignee to *"reuse the check Story 05 wrote"* and that check was a private inline condition;
+the rule is unchanged and story 05's assignment tests pass untouched. **D-2** —
+`CustomerNotesAndTimelineTests`'s guard was **re-expressed** (the set now exists **and** the timeline
+still does not read it) because its own remarks said it *"fails loudly the moment a set for internal
+notes appears without the guard being revisited"*; it was neither deleted nor weakened.
+
+**Verified 2026-09-06 — backend, data layer and live stack.** `dotnet build` **0 warnings, 0
+errors**. Backend suite **430 passing, 0 skipped**, up from **418 passing, 1 skipped** — **13 new,
+and the skip reaching zero is the point**: story 07's `InternalNotesAreUnreachableTests` stub, whose
+body was `Assert.Fail` and whose remarks demanded *"Story 14 unskips it and fills the body — it must
+not be made vacuous instead"*, is **implemented**. Front end **66 specs**, unchanged and unedited;
+`npm run build` and `npm run lint:styles` clean. **Against real SQL Server**: the migration applied
+**incrementally** to the existing volume **and from scratch** to a throwaway database (dropped
+afterwards — **`docker compose down -v` was not used and the dev volume was never wiped**), where the
+seeder logged *"1 internal note(s) and 1 task(s)"*. A canary note (`INTERNAL-CANARY-9137`) posted
+live returns **0** hits across the portal thread, portal detail, portal list and customer timeline,
+measured against a **populated** 3-message thread; a Customer is **403** on both staff verbs and
+**404** on the non-routable portal paths; AP-4 was proven **by comparison**, out-of-scope and
+non-existent returning identical bodies; `completedAt` round-trips both ways and a body carrying it
+is **400** with the row **re-read** unchanged; **`DateTimeOffset` ordering** was proven across three
+UTC offsets, which SQLite cannot do. **The guard was proven load-bearing**: reverting
+`Visibility = Internal` turned **exactly 2** tests red with 428 unaffected, and the line was restored
+(`git diff --stat`: 68 insertions, **0 deletions**) and re-proved green.
+
+⚠ **Not verified: the front-end screen checks.** Plan verification step 7 and the ui-design §10
+browser pass **could not be run** — no browser-driving capability was available (puppeteer and
+playwright both absent) and installing one was outside the slice. **No result was fabricated.** The
+four outstanding assertions are enumerated in PROJECT-PROGRESS §8, and **until they are covered story
+14 is not verified in full and does not count toward §1.1** — which is why the overall figure stays
+at 71.1% rather than moving to 74.7%.
+
+**Deliberately not touched.** No approved document was edited. Plan task 8 was not built (S9-1) and
+no endpoint was invented for it. No `/portal` route, DTO or client method for notes or tasks was
+added. No thirteenth `TicketActivity` type was added for tasks — §2.7 enumerates twelve and none is a
+task. No edit or delete path exists for a note; no patchable title, due date or assignee for a task,
+because §5.6 publishes `{ isDone }` and nothing more. The stale §3 rows for stories 08–11 were left
+exactly as they are: that drift predates this story and reconciling it is the user's call.
+
+---
+
+### 2026-09-01 — story 13: customer portal self-service and feedback
 
 **Phase 6 closes.** Story 13 delivered **whole rather than in slices**, like stories 05, 06, 07 and
 12: all twelve plan tasks, requirements **§8** in full — submit, track, view history, access FAQs and

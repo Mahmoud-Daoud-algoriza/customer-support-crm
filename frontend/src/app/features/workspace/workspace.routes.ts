@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { roleAtLeast } from '../../core/guards/auth.guards';
 
 /**
  * The Agent and Manager area (docs/ui-design.md §2): queue, tickets, customers, knowledge, reports,
@@ -40,6 +41,14 @@ export const workspaceRoutes: Routes = [
     {
         path: 'tickets/:id',
         loadComponent: () => import('./tickets/ticket-detail.component').then((m) => m.TicketDetailComponent)
+    },
+    {
+        // Story 15 — the management dashboard (docs/ui-design.md §5.7). **Manager+**: an Agent who
+        // reaches the route is redirected by the guard, AND GET /reports/dashboard returns 403
+        // regardless of what the router allowed. The guard hides; the server protects.
+        path: 'reports',
+        canActivate: [roleAtLeast('Manager')],
+        loadComponent: () => import('./reports/reports.component').then((m) => m.ReportsComponent)
     },
     {
         path: 'notifications',

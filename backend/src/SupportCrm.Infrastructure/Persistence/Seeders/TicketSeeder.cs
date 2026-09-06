@@ -543,7 +543,40 @@ public sealed class TicketSeeder(
             CustomerSeeder.PortalUsers.AminaHaddad,
             now.AddSeconds(30)));
 
-        return 1;
+        var ratings = 1;
+
+        // Story 15 task 3 — a SECOND rating, with a DIFFERENT value, so the §9.4 average is a real
+        // average rather than a single row echoed back. With one row the tile cannot show a
+        // non-trivial number, which is the intake's acceptance criterion for seed data.
+        //
+        // It sits on a BILLING ticket while the first is an ACCOUNT one, so the department filter
+        // visibly changes the average rather than only the count.
+        //
+        // **The value is read from configuration, never written as a literal** — the same rule
+        // story 13 held to: no rating constant may appear in the schema, the Domain, a service, a
+        // test or a seeder, because that would encode OQ-1 (data-model §2.15). Min and Max are the
+        // two values guaranteed to exist and to differ under any answer OQ-1 takes, and their
+        // average is the midpoint of whatever scale is configured.
+        if (created.TryGetValue(Tickets.BillingResolvedLatePayment, out var billing))
+        {
+            db.CustomerFeedback.Add(CustomerFeedback.Submit(
+                Guid.NewGuid(),
+                billing.Id,
+                feedbackOptions.Value.Min,
+                "It was sorted in the end, but it took far too long to get an answer.",
+                now.AddSeconds(35)));
+
+            db.TicketActivities.Add(TicketActivity.ByUser(
+                Guid.NewGuid(),
+                billing.Id,
+                TicketActivityType.FeedbackSubmitted,
+                CustomerSeeder.PortalUsers.AminaHaddad,
+                now.AddSeconds(35)));
+
+            ratings++;
+        }
+
+        return ratings;
     }
 
     /// <summary>

@@ -67,7 +67,9 @@ export class AppMenu {
             workspace.push({ label: t('nav.notifications'), icon: 'pi pi-fw pi-bell', routerLink: ['/workspace/notifications'] });
 
             if (this.store.isAtLeast('Manager')) {
-                // TODO Story 15: Reports — Manager+ only (docs/ui-design.md §4.1).
+                // Story 15 — Manager+ only (docs/ui-design.md §4.1, §5.7). Hiding the entry is
+                // convenience; GET /reports/dashboard refuses an Agent with 403 regardless.
+                workspace.push({ label: t('nav.reports'), icon: 'pi pi-fw pi-chart-bar', routerLink: ['/workspace/reports'] });
             }
 
             if (workspace.length > 0) {
