@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -23,6 +22,7 @@ import { Paged } from '../../../core/api/paged';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * Knowledge base (staff) — `/workspace/knowledge` (docs/ui-design.md §5.6). Agent+.
@@ -50,7 +50,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
     selector: 'app-knowledge-search',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [ButtonModule, DatePipe, EmptyStateComponent, ErrorStateComponent, FormsModule, InputTextModule, LoadingStateComponent, PaginatorModule, RouterLink, SelectModule, TableModule, TagModule, TranslocoModule],
+    imports: [AppDatePipe, ButtonModule, EmptyStateComponent, ErrorStateComponent, FormsModule, InputTextModule, LoadingStateComponent, PaginatorModule, RouterLink, SelectModule, TableModule, TagModule, TranslocoModule],
     template: `
         <section class="app-page">
             <header class="app-page__header">
@@ -139,7 +139,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
                                                 [value]="(article.isPublished ? 'knowledge.published' : 'knowledge.draft') | transloco"
                                             />
                                         </td>
-                                        <td class="app-ltr-numeric">{{ article.updatedAt | date: 'short' }}</td>
+                                        <td class="app-ltr-numeric">{{ article.updatedAt | appDate: 'short' }}</td>
                                     </tr>
                                 </ng-template>
                             </p-table>

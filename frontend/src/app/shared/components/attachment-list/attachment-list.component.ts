@@ -61,7 +61,7 @@ import { EmptyStateComponent } from '../empty-state/empty-state.component';
                     </label>
 
                     @if (capLabel(); as cap) {
-                        <p class="app-attachments__meta app-ltr-numeric">{{ 'attachments.cap' | transloco: { size: cap } }}</p>
+                        <p class="app-attachments__meta">{{ 'attachments.cap' | transloco: { size: cap } }}</p>
                     }
 
                     <!-- 413 is inline on the uploader, with the rest of the region untouched

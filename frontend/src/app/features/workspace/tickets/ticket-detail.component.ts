@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -25,6 +24,8 @@ import { TicketAssignComponent } from './ticket-assign.component';
 import { TicketCustomerPanelComponent } from './ticket-customer-panel.component';
 import { SuggestedArticlesRegionComponent } from './suggested-articles-region/suggested-articles-region.component';
 import { TicketThreadRegionComponent } from './ticket-thread-region.component';
+import { LtrEmbedDirective } from '../../../shared/directives/ltr-embed.directive';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * Ticket detail — `/workspace/tickets/:id` (docs/ui-design.md §5.3). Agent+.
@@ -75,7 +76,7 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
     selector: 'app-ticket-detail',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [AiAssistPanelComponent, ButtonModule, DatePipe, DrawerModule, ErrorStateComponent, EscalateButtonComponent, InternalNotesRegionComponent, LoadingStateComponent, MessageModule, PriorityChipComponent, RouterLink, StatusChipComponent, SuggestedArticlesRegionComponent, TasksRegionComponent, TicketActivityRegionComponent, TicketAssignComponent, TicketCustomerPanelComponent, TicketThreadRegionComponent, TransitionMenuComponent, TranslocoModule],
+    imports: [AppDatePipe, LtrEmbedDirective, AiAssistPanelComponent, ButtonModule, DrawerModule, ErrorStateComponent, EscalateButtonComponent, InternalNotesRegionComponent, LoadingStateComponent, MessageModule, PriorityChipComponent, RouterLink, StatusChipComponent, SuggestedArticlesRegionComponent, TasksRegionComponent, TicketActivityRegionComponent, TicketAssignComponent, TicketCustomerPanelComponent, TicketThreadRegionComponent, TransitionMenuComponent, TranslocoModule],
     template: `
         <section class="app-page">
             <a routerLink="/workspace/tickets">{{ 'actions.back' | transloco }}</a>
@@ -107,12 +108,14 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
                             </p>
 
                             <!-- The SLA line. Frozen at creation (A-20). -->
-                            <p class="app-page__meta app-ltr-numeric">
-                                {{ 'tickets.firstResponseDue' | transloco }}: {{ row.firstResponseDueAt | date: 'short' }}
+                            <p class="app-page__meta">
+                                {{ 'tickets.firstResponseDue' | transloco }}:
+                                <span appLtrEmbed>{{ row.firstResponseDueAt | appDate: 'short' }}</span>
                                 @if (row.firstResponseBreached) {
                                     <span class="app-breach">{{ 'tickets.breached' | transloco }}</span>
                                 }
-                                · {{ 'tickets.resolutionDue' | transloco }}: {{ row.resolutionDueAt | date: 'short' }}
+                                · {{ 'tickets.resolutionDue' | transloco }}:
+                                <span appLtrEmbed>{{ row.resolutionDueAt | appDate: 'short' }}</span>
                                 @if (row.resolutionBreached) {
                                     <span class="app-breach">{{ 'tickets.breached' | transloco }}</span>
                                 }

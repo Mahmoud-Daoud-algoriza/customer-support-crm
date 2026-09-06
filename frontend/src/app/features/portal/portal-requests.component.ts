@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +14,8 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
+import { LtrEmbedDirective } from '../../shared/directives/ltr-embed.directive';
+import { AppDatePipe } from '../../shared/pipes/app-date.pipe';
 
 /**
  * My requests — `/portal/requests` (docs/ui-design.md §7.1). The portal's landing screen.
@@ -52,7 +53,7 @@ import { StatusChipComponent } from '../../shared/components/status-chip/status-
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
-        ButtonModule, DatePipe, EmptyStateComponent, ErrorStateComponent, FormsModule,
+        AppDatePipe, LtrEmbedDirective, ButtonModule, EmptyStateComponent, ErrorStateComponent, FormsModule,
         LoadingStateComponent, PaginatorModule, RouterLink, SelectModule, StatusChipComponent,
         TranslocoModule,
     ],
@@ -116,15 +117,15 @@ import { StatusChipComponent } from '../../shared/components/status-chip/status-
                                         </p>
                                     }
 
-                                    <p class="app-request-card__meta app-ltr-numeric">
+                                    <p class="app-request-card__meta">
                                         {{ 'portal.requests.submitted' | transloco }}
-                                        {{ request.createdAt | date: 'medium' }}
+                                        <span appLtrEmbed>{{ request.createdAt | appDate: 'medium' }}</span>
                                     </p>
 
                                     @if (request.resolvedAt) {
-                                        <p class="app-request-card__meta app-ltr-numeric">
+                                        <p class="app-request-card__meta">
                                             {{ 'portal.requests.resolved' | transloco }}
-                                            {{ request.resolvedAt | date: 'medium' }}
+                                            <span appLtrEmbed>{{ request.resolvedAt | appDate: 'medium' }}</span>
                                         </p>
                                     }
                                 </li>

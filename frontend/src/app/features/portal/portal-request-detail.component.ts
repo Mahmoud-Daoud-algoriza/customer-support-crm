@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -19,6 +18,8 @@ import { MessageThreadComponent } from '../../shared/components/message-thread/m
 import { RatingInputComponent } from '../../shared/components/rating-input/rating-input.component';
 import { ReplyComposerComponent } from '../../shared/components/reply-composer/reply-composer.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
+import { LtrEmbedDirective } from '../../shared/directives/ltr-embed.directive';
+import { AppDatePipe } from '../../shared/pipes/app-date.pipe';
 
 /**
  * Request detail — `/portal/requests/:id` (docs/ui-design.md §7.3). **Replaces Story 07's stub.**
@@ -62,7 +63,7 @@ import { StatusChipComponent } from '../../shared/components/status-chip/status-
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
-        AttachmentListComponent, ButtonModule, ConfirmDialogModule, DatePipe, ErrorStateComponent,
+        AppDatePipe, LtrEmbedDirective, AttachmentListComponent, ButtonModule, ConfirmDialogModule, ErrorStateComponent,
         FormsModule, LoadingStateComponent, MessageModule, MessageThreadComponent,
         RatingInputComponent, ReplyComposerComponent, RouterLink, StatusChipComponent,
         TextareaModule, TranslocoModule,
@@ -83,8 +84,9 @@ import { StatusChipComponent } from '../../shared/components/status-chip/status-
                     <app-status-chip [status]="current.status" />
                 </header>
 
-                <p class="app-page__meta app-ltr-numeric">
-                    {{ 'portal.requests.submitted' | transloco }} {{ current.createdAt | date: 'medium' }}
+                <p class="app-page__meta">
+                    {{ 'portal.requests.submitted' | transloco }}
+                    <span appLtrEmbed>{{ current.createdAt | appDate: 'medium' }}</span>
                 </p>
 
                 <p class="app-request-detail__description">{{ current.description }}</p>

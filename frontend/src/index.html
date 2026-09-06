@@ -2,7 +2,10 @@
 <html lang="en" dir="ltr">
     <head>
         <meta charset="utf-8" />
-        <title>Support CRM</title>
+        <!-- Deliberately not the product name. Branding is read at runtime from
+             GET /config/bootstrap and never compiled in (T3-E, architecture §6.3); RuntimeConfigService
+             sets the real document title before the first screen renders. -->
+        <title>&#8230;</title>
         <base href="/" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" type="image/svg+xml" href="favicon.svg" />

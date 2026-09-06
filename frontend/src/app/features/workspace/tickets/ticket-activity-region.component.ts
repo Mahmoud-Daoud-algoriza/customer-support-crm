@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
 import { TranslocoModule } from '@jsverse/transloco';
 import { TagModule } from 'primeng/tag';
@@ -7,6 +6,8 @@ import { TicketActivityEntry, TicketsClient } from '../../../core/api/tickets.cl
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
+import { LtrEmbedDirective } from '../../../shared/directives/ltr-embed.directive';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * The **activity region** of the ticket detail screen — docs/ui-design.md §5.3, Story 06 task 10.
@@ -34,7 +35,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
     selector: 'app-ticket-activity-region',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [DatePipe, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, TagModule, TranslocoModule],
+    imports: [AppDatePipe, LtrEmbedDirective, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, TagModule, TranslocoModule],
     template: `
         <section class="app-region">
             <h2 class="app-region__title">{{ 'tickets.activity' | transloco }}</h2>
@@ -49,13 +50,13 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
                     <ol class="app-activity">
                         @for (entry of rows; track entry.id) {
                             <li class="app-activity__item">
-                                <p class="app-activity__meta app-ltr-numeric">
+                                <p class="app-activity__meta">
                                     <!-- actorKind decides the label. No special case for the
                                          automatic Pending -> Open row: it is a User entry (R-14). -->
                                     <span class="app-activity__actor">
                                         {{ entry.actor?.displayName ?? ('tickets.systemActor' | transloco) }}
                                     </span>
-                                    · {{ entry.occurredAt | date: 'short' }}
+                                    · <span appLtrEmbed>{{ entry.occurredAt | appDate: 'short' }}</span>
 
                                     @if (entry.visibility === 'Internal') {
                                         <p-tag severity="warn" [value]="'tickets.internalOnly' | transloco" />

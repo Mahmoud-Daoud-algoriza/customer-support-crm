@@ -2,13 +2,14 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { ApplicationConfig, inject, provideAppInitializer } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScrolling } from '@angular/router';
-import { provideTransloco } from '@jsverse/transloco';
+import { provideTransloco, provideTranslocoMissingHandler } from '@jsverse/transloco';
 import Aura from '@primeuix/themes/aura';
 import { MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { RuntimeConfigService } from './app/core/config/runtime-config.service';
 import { DirectionService } from './app/core/i18n/direction.service';
+import { AppMissingHandler } from './app/core/i18n/missing-key-handler';
 import { TranslocoHttpLoader } from './app/core/i18n/transloco-http-loader';
 import { AuthService } from './app/core/auth/auth.service';
 import { authInterceptor } from './app/core/interceptors/auth.interceptor';
@@ -38,6 +39,10 @@ export const appConfig: ApplicationConfig = {
             },
             loader: TranslocoHttpLoader
         }),
+
+        // Story 17 Part B task 8: a missing key logs loudly in development instead of rendering
+        // itself silently, which is how the both-languages sweep of the 24 screens finds gaps.
+        provideTranslocoMissingHandler(AppMissingHandler),
 
         // Branding and the language set are resolved before the first screen renders
         // (docs/architecture.md §6.3).

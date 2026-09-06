@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -16,6 +15,7 @@ import { AttachmentListComponent } from '../../../shared/components/attachment-l
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * Customer detail — `/workspace/customers/:id` (docs/ui-design.md §5.5). Agent+.
@@ -43,7 +43,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
     selector: 'app-customer-detail',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [AttachmentListComponent, ButtonModule, DatePipe, EmptyStateComponent, ErrorStateComponent, FormsModule, InputTextModule, LoadingStateComponent, MessageModule, RouterLink, SelectModule, TextareaModule, TranslocoModule],
+    imports: [AppDatePipe, AttachmentListComponent, ButtonModule, EmptyStateComponent, ErrorStateComponent, FormsModule, InputTextModule, LoadingStateComponent, MessageModule, RouterLink, SelectModule, TextareaModule, TranslocoModule],
     template: `
         <section class="app-page">
             <a routerLink="/workspace/customers">{{ 'actions.back' | transloco }}</a>
@@ -59,7 +59,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
 
                     <p class="app-page__meta">
                         {{ 'customers.since' | transloco }}
-                        <span class="app-ltr-numeric">{{ row.createdAt | date: 'medium' }}</span>
+                        <span class="app-ltr-numeric">{{ row.createdAt | appDate: 'medium' }}</span>
                         @if (row.externalReference) {
                             · {{ 'customers.externalReference' | transloco }}
                             <span class="app-ltr-numeric">{{ row.externalReference }}</span>
@@ -130,7 +130,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
                             <ol class="app-timeline">
                                 @for (entry of entries; track $index) {
                                     <li class="app-timeline__entry">
-                                        <span class="app-timeline__when app-ltr-numeric">{{ entry.occurredAt | date: 'short' }}</span>
+                                        <span class="app-timeline__when app-ltr-numeric">{{ entry.occurredAt | appDate: 'short' }}</span>
                                         <!-- The activity type is a stable CODE (api-design §2);
                                              the label comes from the dictionary Story 06 added, the
                                              same one the ticket history region reads (T2-J). -->
@@ -169,7 +169,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
                                         <p class="app-notes__body">{{ note.body }}</p>
                                         <p class="app-notes__meta">
                                             {{ note.author.displayName }} ·
-                                            <span class="app-ltr-numeric">{{ note.createdAt | date: 'medium' }}</span>
+                                            <span class="app-ltr-numeric">{{ note.createdAt | appDate: 'medium' }}</span>
                                         </p>
                                     </li>
                                 }

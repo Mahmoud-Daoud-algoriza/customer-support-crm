@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -10,6 +9,7 @@ import { NotificationStore } from '../../../core/notifications/notification.stor
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * Notifications — `/workspace/notifications` (docs/ui-design.md §5.8). Agent+.
@@ -35,7 +35,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
-        ButtonModule, DatePipe, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent,
+        AppDatePipe, ButtonModule, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent,
         PaginatorModule, RouterLink, TranslocoModule
     ],
     template: `
@@ -80,7 +80,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
                                     </div>
 
                                     <span class="app-notifications__when app-ltr-numeric">
-                                        {{ row.createdAt | date: 'short' }}
+                                        {{ row.createdAt | appDate: 'short' }}
                                     </span>
                                 </li>
                             }

@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
@@ -16,6 +15,8 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
 import { PriorityChipComponent } from '../../../shared/components/priority-chip/priority-chip.component';
 import { StatusChipComponent } from '../../../shared/components/status-chip/status-chip.component';
 import { TicketFilterBarComponent } from '../../../shared/components/ticket-filter-bar/ticket-filter-bar.component';
+import { LtrEmbedDirective } from '../../../shared/directives/ltr-embed.directive';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * Ticket list — `/workspace/tickets` (docs/ui-design.md §5.2). Agent+.
@@ -41,7 +42,7 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
     selector: 'app-ticket-list',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [ButtonModule, DatePipe, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, PaginatorModule, PriorityChipComponent, RouterLink, StatusChipComponent, TableModule, TicketFilterBarComponent, TranslocoModule],
+    imports: [AppDatePipe, LtrEmbedDirective, ButtonModule, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, PaginatorModule, PriorityChipComponent, RouterLink, StatusChipComponent, TableModule, TicketFilterBarComponent, TranslocoModule],
     template: `
         <section class="app-page">
             <header class="app-page__header">
@@ -89,8 +90,8 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
                                         <td>{{ categoryName(ticket.categoryCode) }}</td>
                                         <!-- Assignee and status are two independent facts (A-18). -->
                                         <td>{{ ticket.assignee?.displayName ?? ('tickets.unassigned' | transloco) }}</td>
-                                        <td class="app-ltr-numeric">
-                                            {{ ticket.resolutionDueAt | date: 'short' }}
+                                        <td>
+                                            <span appLtrEmbed>{{ ticket.resolutionDueAt | appDate: 'short' }}</span>
                                             @if (ticket.resolutionBreached || ticket.firstResponseBreached) {
                                                 <span class="app-breach">{{ 'tickets.breached' | transloco }}</span>
                                             }
@@ -120,8 +121,9 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
                                         {{ ticket.assignee?.displayName ?? ('tickets.unassigned' | transloco) }}
                                     </p>
 
-                                    <p class="app-ticket-card__meta app-ltr-numeric">
-                                        {{ 'tickets.resolutionDue' | transloco }}: {{ ticket.resolutionDueAt | date: 'short' }}
+                                    <p class="app-ticket-card__meta">
+                                        {{ 'tickets.resolutionDue' | transloco }}:
+                                        <span appLtrEmbed>{{ ticket.resolutionDueAt | appDate: 'short' }}</span>
                                         @if (ticket.resolutionBreached || ticket.firstResponseBreached) {
                                             <span class="app-breach">{{ 'tickets.breached' | transloco }}</span>
                                         }

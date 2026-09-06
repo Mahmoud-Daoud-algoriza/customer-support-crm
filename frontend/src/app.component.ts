@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ToastModule } from 'primeng/toast';
+import { DirectionService } from './app/core/i18n/direction.service';
 
 /**
  * The root shell.
@@ -21,7 +22,20 @@ import { ToastModule } from 'primeng/toast';
     imports: [RouterModule, ToastModule],
     template: `
         <router-outlet></router-outlet>
-        <p-toast position="bottom-right" />
+        <p-toast [position]="toastPosition()" />
     `
 })
-export class AppComponent {}
+export class AppComponent {
+    private readonly direction = inject(DirectionService);
+
+    /**
+     * **The toast rises from the trailing bottom corner, and that corner mirrors under RTL**
+     * (docs/ui-design.md §10.2). PrimeNG's `position` takes physical values only, so the logical
+     * choice is made here from the active direction — the same way the ticket detail chooses its
+     * drawer's edge — rather than being left as a hardcoded `bottom-right` that would sit over the
+     * wrong corner in Arabic.
+     */
+    protected readonly toastPosition = computed<'bottom-left' | 'bottom-right'>(() =>
+        this.direction.isRtl() ? 'bottom-left' : 'bottom-right'
+    );
+}

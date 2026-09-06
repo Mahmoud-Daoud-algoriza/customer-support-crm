@@ -48,14 +48,38 @@ export class DirectionService {
 
     /**
      * PrimeNG carries its own component strings; its locale switches alongside the application
-     * dictionaries so both change together (docs/architecture.md §2.3).
+     * dictionaries so both change together (docs/architecture.md §2.3). A translated page with an
+     * English paginator or an English month name is a fail (Story 17 Part B task 1).
+     *
+     * **The array restore is load-bearing.** Transloco flattens a loaded dictionary to dot keys and
+     * its `unflatten` rebuilds plain objects only — `dayNames` comes back as
+     * `{ '0': 'Sunday', … }`, which PrimeNG's date picker cannot iterate. {@link restoreArrays}
+     * turns every densely 0-indexed object back into the array PrimeNG's `Translation` declares.
      */
     private applyPrimeNgLocale(): void {
         const locale = this.transloco.translateObject('primeng');
+
         if (locale && typeof locale === 'object') {
-            this.primeng.setTranslation(locale as Record<string, unknown>);
+            this.primeng.setTranslation(restoreArrays(locale as Record<string, unknown>) as Record<string, unknown>);
         }
     }
+}
+
+/**
+ * Rebuilds the arrays Transloco's flatten/unflatten round trip loses. An object is treated as an
+ * array only when its keys are exactly `0 … n-1` — so `aria` and the other named groups are left
+ * alone, and a dictionary that never had an array is unchanged.
+ */
+export function restoreArrays(value: unknown): unknown {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        return value;
+    }
+
+    const entries = Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, restoreArrays(item)] as const);
+    const keys = entries.map(([key]) => key);
+    const isDenseIndex = keys.length > 0 && keys.every((key, index) => key === String(index));
+
+    return isDenseIndex ? entries.map(([, item]) => item) : Object.fromEntries(entries);
 }
 
 function readStoredLanguage(): string | null {

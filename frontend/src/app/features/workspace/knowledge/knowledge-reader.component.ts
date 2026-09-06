@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -8,6 +7,8 @@ import { Article, KnowledgeClient } from '../../../core/api/knowledge.client';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { MarkdownViewComponent } from '../../../shared/components/markdown-view/markdown-view.component';
+import { LtrEmbedDirective } from '../../../shared/directives/ltr-embed.directive';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * The staff article reader — `/workspace/knowledge/:id` (docs/ui-design.md §5.6). Agent+.
@@ -33,7 +34,7 @@ import { MarkdownViewComponent } from '../../../shared/components/markdown-view/
     selector: 'app-knowledge-reader',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [DatePipe, ErrorStateComponent, LoadingStateComponent, MarkdownViewComponent, RouterLink, TagModule, TranslocoModule],
+    imports: [AppDatePipe, LtrEmbedDirective, ErrorStateComponent, LoadingStateComponent, MarkdownViewComponent, RouterLink, TagModule, TranslocoModule],
     template: `
         <section class="app-page">
             <a routerLink="/workspace/knowledge">{{ 'actions.back' | transloco }}</a>
@@ -59,7 +60,8 @@ import { MarkdownViewComponent } from '../../../shared/components/markdown-view/
                     <p class="app-page__meta">
                         {{ 'knowledge.articleType.' + row.type | transloco }}
                         · {{ 'knowledge.author' | transloco }}: {{ row.author.displayName }}
-                        · <span class="app-ltr-numeric">{{ 'knowledge.updated' | transloco }}: {{ row.updatedAt | date: 'short' }}</span>
+                        · {{ 'knowledge.updated' | transloco }}:
+                        <span appLtrEmbed>{{ row.updatedAt | appDate: 'short' }}</span>
                     </p>
 
                     <!-- Authored content, rendered as authored (A-11). No translation pipe. -->

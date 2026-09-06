@@ -61,7 +61,7 @@ import { LoadingStateComponent } from '../../../../shared/components/loading-sta
                                         {{ 'knowledge.articleType.' + article.type | transloco }}
                                         ·
                                         <!-- The database's own ranking, shown as what it is. -->
-                                        <span class="app-ltr-numeric">
+                                        <span>
                                             {{ 'knowledge.suggested.matchScore' | transloco }}: {{ article.matchScore }}
                                         </span>
                                     </span>

@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -7,6 +6,8 @@ import { PortalArticle, PortalKnowledgeClient } from '../../core/api/knowledge.c
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { MarkdownViewComponent } from '../../shared/components/markdown-view/markdown-view.component';
+import { LtrEmbedDirective } from '../../shared/directives/ltr-embed.directive';
+import { AppDatePipe } from '../../shared/pipes/app-date.pipe';
 
 /**
  * The portal article reader — `/portal/help/:id` (docs/ui-design.md §7.4). Customer.
@@ -30,7 +31,7 @@ import { MarkdownViewComponent } from '../../shared/components/markdown-view/mar
     selector: 'app-portal-help-article',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [DatePipe, ErrorStateComponent, LoadingStateComponent, MarkdownViewComponent, RouterLink, TranslocoModule],
+    imports: [AppDatePipe, LtrEmbedDirective, ErrorStateComponent, LoadingStateComponent, MarkdownViewComponent, RouterLink, TranslocoModule],
     template: `
         <section class="app-page">
             <a routerLink="/portal/help">{{ 'actions.back' | transloco }}</a>
@@ -46,7 +47,8 @@ import { MarkdownViewComponent } from '../../shared/components/markdown-view/mar
 
                     <p class="app-page__meta">
                         {{ 'knowledge.articleType.' + row.type | transloco }}
-                        · <span class="app-ltr-numeric">{{ 'knowledge.updated' | transloco }}: {{ row.updatedAt | date: 'short' }}</span>
+                        · {{ 'knowledge.updated' | transloco }}:
+                        <span appLtrEmbed>{{ row.updatedAt | appDate: 'short' }}</span>
                     </p>
 
                     <app-markdown-view [source]="row.body" />

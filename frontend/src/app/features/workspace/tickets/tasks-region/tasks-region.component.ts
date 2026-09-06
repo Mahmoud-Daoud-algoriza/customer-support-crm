@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -17,6 +16,8 @@ import { UserRow } from '../../../../core/auth/identity.model';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../../shared/components/loading-state/loading-state.component';
+import { LtrEmbedDirective } from '../../../../shared/directives/ltr-embed.directive';
+import { AppDatePipe } from '../../../../shared/pipes/app-date.pipe';
 
 /**
  * The **tasks region** of the ticket detail screen — docs/ui-design.md §5.3, Story 14 task 10.
@@ -57,7 +58,7 @@ import { LoadingStateComponent } from '../../../../shared/components/loading-sta
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
-        ButtonModule, CheckboxModule, DatePickerModule, DatePipe, DialogModule, EmptyStateComponent,
+        AppDatePipe, LtrEmbedDirective, ButtonModule, CheckboxModule, DatePickerModule, DialogModule, EmptyStateComponent,
         ErrorStateComponent, FormsModule, InputTextModule, LoadingStateComponent, MessageModule,
         SelectModule, TranslocoModule
     ],
@@ -100,8 +101,8 @@ import { LoadingStateComponent } from '../../../../shared/components/loading-sta
                                         {{ task.title }}
                                     </span>
 
-                                    <span class="app-tasks__due app-ltr-numeric">
-                                        {{ task.dueAt | date: 'shortDate' }}
+                                    <span class="app-tasks__due">
+                                        <span appLtrEmbed>{{ task.dueAt | appDate: 'shortDate' }}</span>
 
                                         @if (isOverdue(task)) {
                                             <span class="app-tasks__overdue-label">

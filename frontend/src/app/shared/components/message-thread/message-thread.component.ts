@@ -1,8 +1,9 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { TranslocoModule } from '@jsverse/transloco';
 import { TagModule } from 'primeng/tag';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
+import { LtrEmbedDirective } from '../../directives/ltr-embed.directive';
+import { AppDatePipe } from '../../pipes/app-date.pipe';
 
 /**
  * One row of a thread, in the shape **both** path spaces can satisfy.
@@ -50,7 +51,7 @@ export interface MessageThreadItem {
     selector: 'app-message-thread',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [DatePipe, EmptyStateComponent, TagModule, TranslocoModule],
+    imports: [AppDatePipe, LtrEmbedDirective, EmptyStateComponent, TagModule, TranslocoModule],
     template: `
         @if (messages().length === 0) {
             <app-empty-state [title]="'tickets.threadEmptyTitle' | transloco" [message]="'tickets.threadEmptyMessage' | transloco" />
@@ -61,14 +62,14 @@ export interface MessageThreadItem {
                         class="app-thread__item"
                         [class.app-thread__item--inbound]="message.direction === 'Inbound'"
                         [class.app-thread__item--outbound]="message.direction === 'Outbound'">
-                        <p class="app-thread__meta app-ltr-numeric">
+                        <p class="app-thread__meta">
                             <span class="app-thread__author">{{ message.author.displayName }}</span>
 
                             @if (showChannel() && message.authorRole) {
                                 <span class="app-thread__role">{{ 'roles.' + message.authorRole | transloco }}</span>
                             }
 
-                            · {{ message.postedAt | date: 'short' }}
+                            · <span appLtrEmbed>{{ message.postedAt | appDate: 'short' }}</span>
 
                             <!-- The channel is the seam made visible: a staff reader can see which
                                  channel a message arrived on without any channel-specific code

@@ -234,7 +234,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
                                     [title]="'reports.empty.ratings' | transloco"
                                     [message]="'reports.empty.ratingsMessage' | transloco" />
                             } @else {
-                                <p class="app-report-metric app-ltr-numeric">
+                                <p class="app-report-metric">
                                     <!-- The configured scale travels with the average, so the
                                          denominator is never hardcoded (OQ-1 is not answered). -->
                                     {{ 'reports.averageOf' | transloco: {

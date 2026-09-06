@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -9,6 +8,8 @@ import { InternalNote, TicketsClient } from '../../../../core/api/tickets.client
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../../shared/components/loading-state/loading-state.component';
+import { LtrEmbedDirective } from '../../../../shared/directives/ltr-embed.directive';
+import { AppDatePipe } from '../../../../shared/pipes/app-date.pipe';
 
 /**
  * The **internal notes region** of the ticket detail screen — docs/ui-design.md §5.3 and **UI-5**,
@@ -41,7 +42,7 @@ import { LoadingStateComponent } from '../../../../shared/components/loading-sta
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
-        ButtonModule, DatePipe, EmptyStateComponent, ErrorStateComponent, FormsModule,
+        AppDatePipe, LtrEmbedDirective, ButtonModule, EmptyStateComponent, ErrorStateComponent, FormsModule,
         LoadingStateComponent, TextareaModule, TranslocoModule
     ],
     template: `
@@ -70,9 +71,9 @@ import { LoadingStateComponent } from '../../../../shared/components/loading-sta
                         <ol class="app-internal-notes__list">
                             @for (note of rows; track note.id) {
                                 <li class="app-internal-notes__item">
-                                    <p class="app-internal-notes__meta app-ltr-numeric">
+                                    <p class="app-internal-notes__meta">
                                         <span class="app-internal-notes__author">{{ note.author.displayName }}</span>
-                                        · {{ note.createdAt | date: 'short' }}
+                                        · <span appLtrEmbed>{{ note.createdAt | appDate: 'short' }}</span>
                                     </p>
 
                                     <!-- No edit and no delete control: neither exists server-side. -->

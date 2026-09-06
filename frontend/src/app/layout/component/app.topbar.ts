@@ -6,7 +6,6 @@ import { filter } from 'rxjs/operators';
 import { TranslocoModule } from '@jsverse/transloco';
 import { ButtonModule } from 'primeng/button';
 import { PopoverModule } from 'primeng/popover';
-import { StyleClassModule } from 'primeng/styleclass';
 import { NotificationRow } from '../../core/api/notifications.client';
 import { Department, OrganizationClient } from '../../core/api/organization.client';
 import { NotificationStore } from '../../core/notifications/notification.store';
@@ -15,7 +14,6 @@ import { AuthStore } from '../../core/auth/auth.store';
 import { RuntimeConfigService } from '../../core/config/runtime-config.service';
 import { LanguageSwitcherComponent } from '../../shared/components/language-switcher/language-switcher.component';
 import { LayoutService } from '../service/layout.service';
-import { AppConfigurator } from './app.configurator';
 
 /**
  * Sakai's topbar, with the template's own brand mark replaced by the runtime brand block from
@@ -27,12 +25,20 @@ import { AppConfigurator } from './app.configurator';
  * The avatar menu shows the signed-in user's **department name**, resolved through
  * `GET /departments` (Story 03 task 7). Story 02 showed the raw id here because that endpoint did
  * not exist yet.
+ *
+ * <h3>No theme picker — T3-E</h3>
+ * The Sakai template's palette configurator (`app.configurator.ts`) used to sit beside the language
+ * switcher. **Story 17 Part B task 6 removed it**: it swapped PrimeNG presets and let a user pick a
+ * primary and surface palette at runtime, which is a **theming engine** and overrode the very
+ * `primaryColor` `GET /config/bootstrap` supplies. T3-E delivers *"a single default brand loaded
+ * from config … a designed seam, not a theming engine"*, and the story's own task 6 forbids a theme
+ * picker by name. Dark mode stays — it is a display preference, not a brand value.
  */
 @Component({
     selector: 'app-topbar',
     standalone: true,
     imports: [
-        RouterModule, CommonModule, StyleClassModule, AppConfigurator, LanguageSwitcherComponent,
+        RouterModule, CommonModule, LanguageSwitcherComponent,
         ButtonModule, PopoverModule, TranslocoModule,
     ],
     template: ` <div class="layout-topbar">
@@ -54,20 +60,6 @@ import { AppConfigurator } from './app.configurator';
                 <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()">
                     <i [ngClass]="{ 'pi ': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>
                 </button>
-                <div class="relative">
-                    <button
-                        class="layout-topbar-action layout-topbar-action-highlight"
-                        pStyleClass="@next"
-                        enterFromClass="hidden"
-                        enterActiveClass="animate-scalein"
-                        leaveToClass="hidden"
-                        leaveActiveClass="animate-fadeout"
-                        [hideOnOutsideClick]="true"
-                    >
-                        <i class="pi pi-palette"></i>
-                    </button>
-                    <app-configurator />
-                </div>
             </div>
 
             <!-- Story 09 — the notification bell and its unread count (A-13), in the slot Story 02

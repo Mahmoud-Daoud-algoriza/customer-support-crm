@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TranslocoModule } from '@jsverse/transloco';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { RuntimeConfigService } from '../../../core/config/runtime-config.service';
 import { DirectionService } from '../../../core/i18n/direction.service';
@@ -29,7 +30,7 @@ const FIXED_ORDER = ['en', 'ar'];
     selector: 'app-language-switcher',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FormsModule, SelectButtonModule],
+    imports: [FormsModule, SelectButtonModule, TranslocoModule],
     template: `
         <p-selectbutton
             [options]="options()"
@@ -38,7 +39,7 @@ const FIXED_ORDER = ['en', 'ar'];
             optionLabel="label"
             optionValue="code"
             [allowEmpty]="false"
-            ariaLabel="Language"
+            [ariaLabel]="'shared.language' | transloco"
         />
     `,
     // `direction: ltr` pins the row to a physical left-to-right layout, so English stays on the left

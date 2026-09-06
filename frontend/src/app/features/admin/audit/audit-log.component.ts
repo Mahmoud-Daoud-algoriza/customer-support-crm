@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -16,6 +15,7 @@ import { Paged } from '../../../core/api/paged';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * Audit log — `/admin/audit` (docs/ui-design.md §6). Administrator only; the server refuses every
@@ -37,7 +37,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
     selector: 'app-audit-log',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [ButtonModule, DatePickerModule, DatePipe, EmptyStateComponent, ErrorStateComponent, FormsModule, InputTextModule, LoadingStateComponent, PaginatorModule, TableModule, TagModule, TranslocoModule],
+    imports: [AppDatePipe, ButtonModule, DatePickerModule, EmptyStateComponent, ErrorStateComponent, FormsModule, InputTextModule, LoadingStateComponent, PaginatorModule, TableModule, TagModule, TranslocoModule],
     template: `
         <section class="app-page">
             <header class="app-page__header">
@@ -72,7 +72,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
                                 </ng-template>
                                 <ng-template pTemplate="body" let-entry>
                                     <tr>
-                                        <td class="app-ltr-numeric">{{ entry.occurredAt | date: 'short' }}</td>
+                                        <td class="app-ltr-numeric">{{ entry.occurredAt | appDate: 'short' }}</td>
                                         <td>{{ entry.actor?.displayName ?? entry.actorDescriptor ?? '—' }}</td>
                                         <td>{{ entry.action }}</td>
                                         <td>{{ entry.targetType ? entry.targetType + ' · ' + entry.targetId : '—' }}</td>

@@ -55,7 +55,11 @@
         "illegal-transition": "هذا التغيير غير مسموح من الحالة الحالية للتذكرة.",
         "ticket-terminal": "هذه التذكرة مغلقة، لذلك لا تُقبل ردود إضافية.",
         "feedback-already-submitted": "لقد قمت بتقييم هذا الطلب مسبقًا.",
-        "feedback-not-available": "يمكنك تقييم هذا الطلب بعد أن يتم حلّه."
+        "feedback-not-available": "يمكنك تقييم هذا الطلب بعد أن يتم حلّه.",
+        "ai-unavailable": "المساعد غير متاح حاليًا. بقية عناصر هذه الشاشة تعمل كالمعتاد.",
+        "http-404": "غير موجود.",
+        "http-413": "حجم هذا الملف أكبر من الحد المسموح به.",
+        "http-422": "لا يمكن تطبيق هذا التغيير على هذا السجل."
     },
     "primeng": {
         "accept": "نعم",
@@ -63,7 +67,104 @@
         "clear": "مسح",
         "apply": "تطبيق",
         "emptyMessage": "لا توجد نتائج",
-        "emptyFilterMessage": "لا توجد نتائج"
+        "emptyFilterMessage": "لا توجد نتائج",
+        "choose": "اختر",
+        "upload": "رفع",
+        "cancel": "إلغاء",
+        "completed": "مكتمل",
+        "pending": "قيد الانتظار",
+        "dayNames": [
+            "الأحد",
+            "الاثنين",
+            "الثلاثاء",
+            "الأربعاء",
+            "الخميس",
+            "الجمعة",
+            "السبت"
+        ],
+        "dayNamesShort": [
+            "أحد",
+            "اثنين",
+            "ثلاثاء",
+            "أربعاء",
+            "خميس",
+            "جمعة",
+            "سبت"
+        ],
+        "dayNamesMin": [
+            "ح",
+            "ن",
+            "ث",
+            "ر",
+            "خ",
+            "ج",
+            "س"
+        ],
+        "monthNames": [
+            "يناير",
+            "فبراير",
+            "مارس",
+            "أبريل",
+            "مايو",
+            "يونيو",
+            "يوليو",
+            "أغسطس",
+            "سبتمبر",
+            "أكتوبر",
+            "نوفمبر",
+            "ديسمبر"
+        ],
+        "monthNamesShort": [
+            "يناير",
+            "فبراير",
+            "مارس",
+            "أبريل",
+            "مايو",
+            "يونيو",
+            "يوليو",
+            "أغسطس",
+            "سبتمبر",
+            "أكتوبر",
+            "نوفمبر",
+            "ديسمبر"
+        ],
+        "chooseYear": "اختر السنة",
+        "chooseMonth": "اختر الشهر",
+        "chooseDate": "اختر التاريخ",
+        "prevDecade": "العقد السابق",
+        "nextDecade": "العقد التالي",
+        "prevYear": "السنة السابقة",
+        "nextYear": "السنة التالية",
+        "prevMonth": "الشهر السابق",
+        "nextMonth": "الشهر التالي",
+        "today": "اليوم",
+        "weekHeader": "أسبوع",
+        "firstDayOfWeek": 0,
+        "dateFormat": "yy-mm-dd",
+        "weak": "ضعيفة",
+        "medium": "متوسطة",
+        "strong": "قوية",
+        "passwordPrompt": "أدخل كلمة المرور",
+        "searchMessage": "تتوفر {0} نتيجة",
+        "selectionMessage": "تم اختيار {0} عنصر",
+        "emptySelectionMessage": "لم يتم اختيار أي عنصر",
+        "emptySearchMessage": "لا توجد نتائج",
+        "aria": {
+            "selectAll": "تم اختيار كل العناصر",
+            "unselectAll": "تم إلغاء اختيار كل العناصر",
+            "close": "إغلاق",
+            "previous": "السابق",
+            "next": "التالي",
+            "navigation": "التنقل",
+            "pageLabel": "صفحة {page}",
+            "firstPageLabel": "الصفحة الأولى",
+            "lastPageLabel": "الصفحة الأخيرة",
+            "nextPageLabel": "الصفحة التالية",
+            "previousPageLabel": "الصفحة السابقة",
+            "rowsPerPageLabel": "صفوف لكل صفحة",
+            "jumpToPageDropdownLabel": "الانتقال إلى صفحة",
+            "jumpToPageInputLabel": "الانتقال إلى صفحة"
+        }
     },
     "auth": {
         "signIn": "تسجيل الدخول",
@@ -484,5 +585,9 @@
             "ratings": "لم يتم إرسال أي تقييم بعد",
             "ratingsMessage": "يُطلب من العملاء تقييم الطلب بعد حلّه."
         }
+    },
+    "shared": {
+        "loading": "جارٍ التحميل",
+        "language": "اللغة"
     }
 }

@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -8,6 +7,7 @@ import { Customer, CustomersClient, TimelineEntry } from '../../../core/api/cust
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * The **customer panel** of docs/ui-design.md §5.3 — *"reachable without leaving the screen (T1-C):
@@ -29,7 +29,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
     selector: 'app-ticket-customer-panel',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [ButtonModule, DatePipe, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, RouterLink, TranslocoModule],
+    imports: [AppDatePipe, ButtonModule, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, RouterLink, TranslocoModule],
     template: `
         <aside class="app-customer-panel">
             <h2 class="app-region__title">{{ 'tickets.customerPanel' | transloco }}</h2>
@@ -64,7 +64,7 @@ import { LoadingStateComponent } from '../../../shared/components/loading-state/
                         <ul class="app-timeline">
                             @for (entry of entries; track $index) {
                                 <li class="app-timeline__entry">
-                                    <span class="app-timeline__when app-ltr-numeric">{{ entry.occurredAt | date: 'short' }}</span>
+                                    <span class="app-timeline__when app-ltr-numeric">{{ entry.occurredAt | appDate: 'short' }}</span>
                                     <span class="app-timeline__what">{{ entry.ticketSubject }}</span>
                                 </li>
                             }

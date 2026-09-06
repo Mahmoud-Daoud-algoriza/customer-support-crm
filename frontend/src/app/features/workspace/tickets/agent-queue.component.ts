@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
@@ -17,6 +16,8 @@ import { PriorityChipComponent } from '../../../shared/components/priority-chip/
 import { SlaIndicatorComponent } from '../../../shared/components/sla-indicator/sla-indicator.component';
 import { StatusChipComponent } from '../../../shared/components/status-chip/status-chip.component';
 import { TicketFilterBarComponent } from '../../../shared/components/ticket-filter-bar/ticket-filter-bar.component';
+import { LtrEmbedDirective } from '../../../shared/directives/ltr-embed.directive';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 
 /**
  * My queue — `/workspace/queue` (docs/ui-design.md §5.1). Agent+. **The staff landing screen**
@@ -57,7 +58,7 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
-        ButtonModule, DatePipe, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, PaginatorModule,
+        AppDatePipe, LtrEmbedDirective, ButtonModule, EmptyStateComponent, ErrorStateComponent, LoadingStateComponent, PaginatorModule,
         PriorityChipComponent, RouterLink, SlaIndicatorComponent, StatusChipComponent, TableModule,
         TicketFilterBarComponent, TranslocoModule
     ],
@@ -129,7 +130,7 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
                                                 [breached]="ticket.resolutionBreached || ticket.firstResponseBreached"
                                             />
                                         </td>
-                                        <td class="app-ltr-numeric">{{ ticket.createdAt | date: 'short' }}</td>
+                                        <td class="app-ltr-numeric">{{ ticket.createdAt | appDate: 'short' }}</td>
                                         <td>{{ categoryName(ticket.categoryCode) }}</td>
                                         <td>
                                             <a [routerLink]="['/workspace/tickets', ticket.id]">{{ 'actions.open' | transloco }}</a>
@@ -157,8 +158,9 @@ import { TicketFilterBarComponent } from '../../../shared/components/ticket-filt
 
                                     <p class="app-ticket-card__meta">{{ ticket.customer.fullName }} · {{ categoryName(ticket.categoryCode) }}</p>
 
-                                    <p class="app-ticket-card__meta app-ltr-numeric">
-                                        {{ 'queue.age' | transloco }}: {{ ticket.createdAt | date: 'short' }}
+                                    <p class="app-ticket-card__meta">
+                                        {{ 'queue.age' | transloco }}:
+                                        <span appLtrEmbed>{{ ticket.createdAt | appDate: 'short' }}</span>
                                     </p>
                                 </li>
                             }
