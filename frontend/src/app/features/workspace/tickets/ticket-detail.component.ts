@@ -18,6 +18,8 @@ import { PriorityChipComponent } from '../../../shared/components/priority-chip/
 import { StatusChipComponent } from '../../../shared/components/status-chip/status-chip.component';
 import { TransitionMenuComponent } from '../../../shared/components/transition-menu/transition-menu.component';
 import { isTerminal } from '../../../shared/lifecycle/transition-matrix';
+import { InternalNotesRegionComponent } from './internal-notes-region/internal-notes-region.component';
+import { TasksRegionComponent } from './tasks-region/tasks-region.component';
 import { TicketActivityRegionComponent } from './ticket-activity-region.component';
 import { TicketAssignComponent } from './ticket-assign.component';
 import { TicketCustomerPanelComponent } from './ticket-customer-panel.component';
@@ -30,10 +32,15 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
  * <h3>Story 05 built the header, Story 06 the lifecycle, Story 07 the thread</h3>
  * The `Transition ▾` menu, the `Escalate` control and the **activity region** are Story 06's; the
  * **thread and reply composer** are Story 07's, the **AI assists panel** is Story 11's and the
- * **suggested-articles region** is Story 12's. Internal notes and tasks are still to come, from
- * Story 14. Regions load
+ * **suggested-articles region** is Story 12's, and the **internal-notes and tasks regions** are
+ * Story 14's. Regions load
  * **independently**, so a slow call never blanks the screen — and the thread is not chat: nothing on
  * this screen polls (T3-B).
+ *
+ * <h3>Internal notes are a sibling region, never a filtered thread (UI-5, T2-C)</h3>
+ * The notes region reads its **own** endpoint and carries a **persistent** "not visible to the
+ * customer" marker. There is no merged list anywhere on this screen, so no rendering bug can leak a
+ * note into the conversation — the separation is structural, which is the whole of T2-C's design.
  *
  * <h3>One composer, one insertion point (UI-7)</h3>
  * The AI panel's *Insert into reply* is routed to the thread region's composer through
@@ -68,7 +75,7 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
     selector: 'app-ticket-detail',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [AiAssistPanelComponent, ButtonModule, DatePipe, DrawerModule, ErrorStateComponent, EscalateButtonComponent, LoadingStateComponent, MessageModule, PriorityChipComponent, RouterLink, StatusChipComponent, SuggestedArticlesRegionComponent, TicketActivityRegionComponent, TicketAssignComponent, TicketCustomerPanelComponent, TicketThreadRegionComponent, TransitionMenuComponent, TranslocoModule],
+    imports: [AiAssistPanelComponent, ButtonModule, DatePipe, DrawerModule, ErrorStateComponent, EscalateButtonComponent, InternalNotesRegionComponent, LoadingStateComponent, MessageModule, PriorityChipComponent, RouterLink, StatusChipComponent, SuggestedArticlesRegionComponent, TasksRegionComponent, TicketActivityRegionComponent, TicketAssignComponent, TicketCustomerPanelComponent, TicketThreadRegionComponent, TransitionMenuComponent, TranslocoModule],
     template: `
         <section class="app-page">
             <a routerLink="/workspace/tickets">{{ 'actions.back' | transloco }}</a>
@@ -152,11 +159,24 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
                                  and the first outbound one also stamped firstRespondedAt. -->
                             <app-ticket-thread-region #thread [ticketId]="row.id" [status]="row.status" [reloadToken]="activityToken()" (replied)="onReplied()" />
 
-                            <!-- The activity region. It reloads when a lifecycle action lands,
-                                 which is what makes the new history entry visible immediately. -->
-                            <app-ticket-activity-region [ticketId]="row.id" [reloadToken]="activityToken()" />
+                            <!-- Story 14 — INTERNAL NOTES, between the thread and the history,
+                                 exactly where §5.3's layout puts them. A visually distinct block
+                                 with a persistent "not visible to the customer" marker (UI-5).
 
-                            <!-- Story 14: internal notes and tasks land in this column. -->
+                                 It is deliberately a SIBLING of the thread, reading its own
+                                 endpoint: there is no merged list to filter, so a rendering bug
+                                 cannot leak a note into the conversation above it. -->
+                            <app-internal-notes-region
+                                [ticketId]="row.id"
+                                [isTerminal]="terminal()"
+                                [reloadToken]="activityToken()" />
+
+                            <!-- The activity region. It reloads when a lifecycle action lands,
+                                 which is what makes the new history entry visible immediately.
+                                 A posted note bumps the same token, because an InternalNotePosted
+                                 row has just been written — at Internal visibility, which this
+                                 staff read shows and no customer-facing read does. -->
+                            <app-ticket-activity-region [ticketId]="row.id" [reloadToken]="activityToken()" />
                         </div>
 
                         <!-- The customer panel: a side region on desktop, a drawer at phone width
@@ -179,6 +199,15 @@ import { TicketThreadRegionComponent } from './ticket-thread-region.component';
                             <app-ai-assist-panel [ticketId]="row.id" (insertDraft)="thread.insert($event)" />
 
                             <app-suggested-articles-region [ticketId]="row.id" />
+
+                            <!-- Story 14 — TASKS, in the side column below the suggested articles,
+                                 exactly where §5.3's layout puts them. Overdue rows are visually
+                                 distinct; there is no calendar view, no recurrence and no reminder
+                                 control, because none exists server-side (T2-C). -->
+                            <app-tasks-region
+                                [ticketId]="row.id"
+                                [departmentId]="row.departmentId"
+                                [isTerminal]="terminal()" />
                         </div>
 
                         @if (phone()) {

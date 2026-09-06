@@ -310,7 +310,29 @@
         },
         "quickReplies": "Quick replies",
         "createTitle": "New ticket",
-        "choosecustomer": "Choose a customer"
+        "choosecustomer": "Choose a customer",
+        "internalNotes": {
+            "title": "Internal notes",
+            "notVisibleToCustomer": "Not visible to the customer",
+            "emptyTitle": "No internal notes",
+            "emptyMessage": "Notes added here stay between you and your colleagues.",
+            "placeholder": "Add a note for your colleagues…",
+            "add": "Add note",
+            "closedReason": "This ticket is closed, so no further notes can be added."
+        },
+        "tasks": {
+            "title": "Tasks",
+            "add": "Add task",
+            "emptyTitle": "No tasks",
+            "emptyMessage": "Add a task to track follow-up work on this ticket.",
+            "titleLabel": "Title",
+            "dueLabel": "Due date",
+            "assigneeLabel": "Assignee",
+            "assigneePlaceholder": "Choose an agent",
+            "assignToMeOnly": "This task will be assigned to you.",
+            "markDone": "Mark done",
+            "overdue": "Overdue"
+        }
     },
     "portal": {
         "submitTitle": "Submit a request",

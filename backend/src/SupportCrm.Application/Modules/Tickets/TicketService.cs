@@ -438,15 +438,15 @@ public sealed class TicketService(
 
         var assigneeId = request.AssignedUserId!.Value;
 
-        var assignee = await db.Users.FirstOrDefaultAsync(u => u.Id == assigneeId, ct)
-            ?? throw new UnprocessableException(OutOfDepartment, OutOfDepartmentMessage);
+        var assignee = await db.Users.FirstOrDefaultAsync(u => u.Id == assigneeId, ct);
 
         // One message and one slug for every way the assignee is unsuitable — not in the ticket's
         // department, not active, or a Customer-role login. Distinguishing them would tell a caller
         // which staff accounts exist and in which departments.
-        if (assignee.Role == UserRole.Customer ||
-            !assignee.IsActive ||
-            assignee.DepartmentId != ticket.DepartmentId)
+        //
+        // The predicate moved to TicketAssigneePolicy when Story 14 needed the SAME rule for a task
+        // assignee. The rule is unchanged; it simply has one home now rather than two copies.
+        if (assignee is null || !TicketAssigneePolicy.IsEligible(assignee, ticket))
         {
             throw new UnprocessableException(OutOfDepartment, OutOfDepartmentMessage);
         }
@@ -558,10 +558,12 @@ public sealed class TicketService(
         : priority == TicketPriority.High ? 2
         : 3;
 
-    private const string OutOfDepartment = "assignee-out-of-department";
+    // The slug and its message live with the predicate they belong to, so the rule and the way it
+    // is reported cannot drift apart (Story 14's extraction). These aliases keep the call sites
+    // above reading as they did.
+    private const string OutOfDepartment = TicketAssigneePolicy.OutOfDepartment;
 
-    private const string OutOfDepartmentMessage =
-        "That agent is not in this ticket's department.";
+    private const string OutOfDepartmentMessage = TicketAssigneePolicy.OutOfDepartmentMessage;
 
     private static TicketDto ToDto(
         Ticket t,

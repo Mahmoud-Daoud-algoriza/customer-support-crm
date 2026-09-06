@@ -72,5 +72,21 @@ public interface IApplicationDbContext
     /// </summary>
     DbSet<CustomerFeedback> CustomerFeedback { get; }
 
+    /// <summary>
+    /// Story 14 — the staff-only notes of docs/data-model.md §2.9. <b>Scoped through the ticket,
+    /// never independently</b>, and named by <b>no</b> customer-facing query: the portal thread
+    /// reads <see cref="TicketMessages"/> and the customer timeline reads
+    /// <see cref="TicketActivities"/>, and neither joins this set. That absence is the T2-C
+    /// visibility rule (§2.9's closing invariant), not a filter someone must remember.
+    /// </summary>
+    DbSet<TicketInternalNote> TicketInternalNotes { get; }
+
+    /// <summary>
+    /// Story 14 — the ticket-attached to-dos of docs/data-model.md §2.10. Staff only, scoped
+    /// through the ticket. <c>completedAt</c> is server-set and moves only with <c>isDone</c>
+    /// (§5 constraint 23).
+    /// </summary>
+    DbSet<TicketTask> TicketTasks { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

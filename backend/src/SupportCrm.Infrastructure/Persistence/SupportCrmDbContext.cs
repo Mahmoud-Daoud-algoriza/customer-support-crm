@@ -105,6 +105,20 @@ public sealed class SupportCrmDbContext(DbContextOptions<SupportCrmDbContext> op
     /// </summary>
     public DbSet<CustomerFeedback> CustomerFeedback => Set<CustomerFeedback>();
 
+    /// <summary>
+    /// Story 14 — staff-only notes (docs/data-model.md §2.9). <b>Immutable once written</b>:
+    /// <see cref="TicketInternalNote"/> exposes no mutator (§5 constraint 16). <b>No customer-facing
+    /// query names this set</b>, and that — not a filter — is how T2-C's visibility rule holds.
+    /// </summary>
+    public DbSet<TicketInternalNote> TicketInternalNotes => Set<TicketInternalNote>();
+
+    /// <summary>
+    /// Story 14 — due-dated to-dos attached to a ticket (docs/data-model.md §2.10). Staff only;
+    /// never surfaced to customers. <c>completedAt</c> moves only through
+    /// <see cref="TicketTask.SetDone"/>, which is §5 constraint 23 expressed as the one write path.
+    /// </summary>
+    public DbSet<TicketTask> TicketTasks => Set<TicketTask>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SupportCrmDbContext).Assembly);

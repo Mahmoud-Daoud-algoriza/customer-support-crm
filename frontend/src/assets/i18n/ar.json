@@ -310,7 +310,29 @@
         },
         "quickReplies": "ردود سريعة",
         "createTitle": "تذكرة جديدة",
-        "choosecustomer": "اختر عميلًا"
+        "choosecustomer": "اختر عميلًا",
+        "internalNotes": {
+            "title": "ملاحظات داخلية",
+            "notVisibleToCustomer": "غير مرئية للعميل",
+            "emptyTitle": "لا توجد ملاحظات داخلية",
+            "emptyMessage": "الملاحظات المضافة هنا تبقى بينك وبين زملائك.",
+            "placeholder": "أضف ملاحظة لزملائك…",
+            "add": "إضافة ملاحظة",
+            "closedReason": "هذه التذكرة مغلقة، لذا لا يمكن إضافة ملاحظات أخرى."
+        },
+        "tasks": {
+            "title": "المهام",
+            "add": "إضافة مهمة",
+            "emptyTitle": "لا توجد مهام",
+            "emptyMessage": "أضف مهمة لتتبع أعمال المتابعة على هذه التذكرة.",
+            "titleLabel": "العنوان",
+            "dueLabel": "تاريخ الاستحقاق",
+            "assigneeLabel": "المسؤول",
+            "assigneePlaceholder": "اختر وكيلاً",
+            "assignToMeOnly": "سيتم إسناد هذه المهمة إليك.",
+            "markDone": "وضع علامة مكتمل",
+            "overdue": "متأخرة"
+        }
     },
     "portal": {
         "submitTitle": "إرسال طلب",

@@ -121,6 +121,12 @@ public static class DependencyInjection
         // Portal backend module to register it in, and no eleventh module was added.
         services.AddScoped<CustomerFeedbackService>();
 
+        // Story 14 — the two halves of T2-C, both in the Tickets module. TicketInternalNoteService
+        // has NO portal counterpart and must never be reachable from one (AP-5): the path space is
+        // the visibility rule, so there is nothing to register on the portal side.
+        services.AddScoped<TicketInternalNoteService>();
+        services.AddScoped<TicketTaskService>();
+
         // The escalation-recipient seam — A-21, closing OQ-3 (docs/product-scope.md §7).
         // Story 06's manual escalate and Story 09's automatic breach sweep resolve recipients
         // through ONE policy, which is what makes the cascade shared rather than a rule each story

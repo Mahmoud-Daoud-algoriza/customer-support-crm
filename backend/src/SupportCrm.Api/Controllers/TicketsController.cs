@@ -50,6 +50,8 @@ public sealed class TicketsController(
     TicketLifecycleService lifecycle,
     TicketActivityQueryService activity,
     TicketMessageService messages,
+    TicketInternalNoteService internalNotes,
+    TicketTaskService tasks,
     AttachmentService attachments,
     SuggestedArticleService suggestedArticles) : ApiControllerBase
 {
@@ -301,6 +303,124 @@ public sealed class TicketsController(
     public async Task<ActionResult<PagedResult<AttachmentMetadataDto>>> Attachments(
         Guid id, [FromQuery] PageQuery paging, CancellationToken ct) =>
         Ok(await attachments.ListForTicketAsync(id, paging, ct));
+
+    // ------------------------------------------- Internal notes (Story 14, T2-C, AP-5)
+
+    /// <summary>
+    /// <c>GET /tickets/{id}/internal-notes</c> — <b>staff only, by path</b> (docs/api-design.md
+    /// §5.6, <b>AP-5</b>).
+    ///
+    /// <para>
+    /// <b>The path space <em>is</em> the visibility rule.</b> There is no <c>/portal</c> counterpart
+    /// to this route and <b>none may be added</b>: a customer cannot see an internal note because
+    /// there is no route by which they could ask for one, not because a filter removes it (T2-C,
+    /// docs/data-model.md §2.9). A <c>Customer</c> token on this staff route is <c>403</c> from the
+    /// controller's <c>RequireAgent</c> policy, before any note is read.
+    /// </para>
+    ///
+    /// <para>
+    /// Agent, Manager and Administrator all satisfy the policy — the A-4 hierarchy — which is the
+    /// story's <em>"visible to Agent, Manager and Administrator"</em> criterion.
+    /// </para>
+    /// </summary>
+    [HttpGet("{id:guid}/internal-notes")]
+    [ProducesResponseType<PagedResult<InternalNoteDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResult<InternalNoteDto>>> InternalNotes(
+        Guid id, [FromQuery] PageQuery paging, CancellationToken ct) =>
+        Ok(await internalNotes.ListAsync(id, paging, ct));
+
+    /// <summary>
+    /// <c>POST /tickets/{id}/internal-notes</c> — <c>{ "body": "..." }</c>.
+    ///
+    /// <para>
+    /// <b>No <c>visibility</c> is accepted, and its absence is the enforcement.</b> A note is
+    /// internal by virtue of being a note; a field asking for a customer-visible one would be the
+    /// exact hole T2-C exists to close. Author and timestamp are server-derived too, so a body
+    /// carrying any of the three is a <c>400</c> (<b>AP-10</b>).
+    /// </para>
+    ///
+    /// <para>
+    /// The paired history entry is written on the same path, <b>always</b> at <c>Internal</c>
+    /// visibility (§2.7) — it appears in <c>GET /tickets/{id}/activity</c> for staff and in no
+    /// customer-facing read. A note on a <c>Closed</c> or <c>Cancelled</c> ticket is
+    /// <c>409 ticket-terminal</c> (A-5, §5 constraint 8).
+    /// </para>
+    /// </summary>
+    [HttpPost("{id:guid}/internal-notes")]
+    [ProducesResponseType<InternalNoteDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<InternalNoteDto>> PostInternalNote(
+        Guid id, PostInternalNoteRequest request, CancellationToken ct)
+    {
+        var created = await internalNotes.CreateAsync(id, request.Body, ct);
+
+        return CreatedAtAction(nameof(InternalNotes), new { id }, created);
+    }
+
+    // ------------------------------------------------------- Tasks (Story 14, T2-C)
+
+    /// <summary>
+    /// <c>GET /tickets/{id}/tasks</c> — the ticket's to-dos, soonest due first
+    /// (docs/api-design.md §5.6).
+    /// <para>
+    /// <b>Ticket-scoped, like every task endpoint in the contract.</b> §5.6 publishes no
+    /// cross-ticket list, which is finding <b>S9-1</b> — see <c>TicketTaskService.ListForUserAsync</c>.
+    /// </para>
+    /// </summary>
+    [HttpGet("{id:guid}/tasks")]
+    [ProducesResponseType<PagedResult<TicketTaskDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResult<TicketTaskDto>>> Tasks(
+        Guid id, [FromQuery] PageQuery paging, CancellationToken ct) =>
+        Ok(await tasks.ListForTicketAsync(id, paging, ct));
+
+    /// <summary>
+    /// <c>POST /tickets/{id}/tasks</c> — <c>{ title, dueAt, assignedUserId }</c>.
+    /// <para>
+    /// The assignee must be an active staff user in the ticket's department, or
+    /// <c>422 assignee-out-of-department</c> — the same rule and the same slug ticket assignment
+    /// uses (§5 constraint 10). <c>isDone</c> and <c>completedAt</c> are not accepted: a task is
+    /// created not-done and the timestamp is server-set (<b>AP-10</b>, §7).
+    /// </para>
+    /// </summary>
+    [HttpPost("{id:guid}/tasks")]
+    [ProducesResponseType<TicketTaskDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TicketTaskDto>> CreateTask(
+        Guid id, CreateTicketTaskRequest request, CancellationToken ct)
+    {
+        var created = await tasks.CreateAsync(id, request, ct);
+
+        return CreatedAtAction(nameof(Tasks), new { id }, created);
+    }
+
+    /// <summary>
+    /// <c>PATCH /tickets/{id}/tasks/{taskId}</c> — <c>{ isDone }</c>, and <b><c>completedAt</c> is
+    /// server-set</b> (docs/api-design.md §5.6).
+    /// <para>
+    /// Marking done stamps <c>completedAt</c>; un-doing clears it (§5 constraint 23). A body
+    /// carrying <c>completedAt</c> is a <c>400</c> — it is not a member of the request model
+    /// (<b>AP-10</b>, §7).
+    /// </para>
+    /// </summary>
+    [HttpPatch("{id:guid}/tasks/{taskId:guid}")]
+    [ProducesResponseType<TicketTaskDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TicketTaskDto>> UpdateTask(
+        Guid id, Guid taskId, UpdateTicketTaskRequest request, CancellationToken ct) =>
+        Ok(await tasks.SetDoneAsync(id, taskId, request, ct));
 
     // ------------------------------------------------------- Suggested articles (Story 12, §7.4)
 

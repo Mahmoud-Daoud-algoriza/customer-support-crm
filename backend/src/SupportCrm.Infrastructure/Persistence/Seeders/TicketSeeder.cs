@@ -279,6 +279,7 @@ public sealed class TicketSeeder(
 
         var messages = SeedThreads(created, now);
         var ratings = SeedFeedback(created, now);
+        var (notes, tasks) = SeedCollaboration(created, now);
 
         if (seeded > 0)
         {
@@ -286,8 +287,9 @@ public sealed class TicketSeeder(
         }
 
         logger.LogInformation(
-            "TicketSeeder: {Tickets} ticket(s), {Messages} message(s) and {Ratings} rating(s) seeded.",
-            seeded, messages, ratings);
+            "TicketSeeder: {Tickets} ticket(s), {Messages} message(s), {Ratings} rating(s), " +
+            "{Notes} internal note(s) and {Tasks} task(s) seeded.",
+            seeded, messages, ratings, notes, tasks);
     }
 
     /// <summary>
@@ -390,6 +392,80 @@ public sealed class TicketSeeder(
             now);
 
         return messages;
+    }
+
+    /// <summary>
+    /// Story 14 task 6 — <b>one internal note and one open task, on a ticket that already has a
+    /// customer thread</b>.
+    ///
+    /// <para>
+    /// <b>The ticket choice is the point of the task.</b> <c>PaymentsCardDeclined</c> is the one with
+    /// the two-way conversation Story 07 seeded, so a demo can show <b>on one screen</b> that the
+    /// agent's view and the customer's view of the same ticket differ: the agent sees three
+    /// messages, a note and a to-do; the customer, signed in to the portal, sees the three messages
+    /// and <b>nothing else</b>. That side-by-side is what makes T2-C's visibility rule visible rather
+    /// than merely asserted.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The note's text is deliberately something a customer must not read</b> — an internal
+    /// judgement about another team — because a bland note would still demonstrate the plumbing but
+    /// not the reason the rule exists.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The task is left open and due in the near future</b>, so the ticket-detail tasks region has
+    /// a live row rather than a completed one. It is <b>not</b> seeded overdue: overdue styling is
+    /// worth demonstrating, but a demo that opens with an already-failed to-do misreports the state
+    /// of the seeded system. <c>SetDone</c> is never called here, so <c>completedAt</c> stays null —
+    /// constraint 23 holds for seeded rows exactly as it does for endpoint-created ones.
+    /// </para>
+    ///
+    /// <para>
+    /// The <c>InternalNotePosted</c> activity row uses
+    /// <see cref="TicketActivity.InternalNotePosted"/> — the same factory the recorder uses — so
+    /// §5 constraint 17's <em>"exactly one activity row per internal note"</em> and §2.7's
+    /// <em>"always <c>Internal</c> visibility"</em> hold for seeded rows too. Written directly rather
+    /// than through <c>TicketActivityRecorder</c> for the reason the creation loop already records:
+    /// the recorder resolves its actor from <c>ICurrentUser</c>, and a seeder has no caller.
+    /// </para>
+    /// </summary>
+    private (int Notes, int Tasks) SeedCollaboration(
+        IReadOnlyDictionary<Guid, Ticket> created, DateTimeOffset now)
+    {
+        if (!created.TryGetValue(Tickets.PaymentsCardDeclined, out var payments))
+        {
+            // A re-run against an existing volume created nothing, so there is nothing to annotate.
+            return (0, 0);
+        }
+
+        // Seconds after the last seeded message, for the same reason SeedThreads uses seconds: the
+        // rows must be ordered and in the past by the time the API is reachable.
+        var notedAt = now.AddSeconds(60);
+
+        var note = TicketInternalNote.Write(
+            Guid.NewGuid(),
+            payments.Id,
+            IdentitySeeder.Users.BillingAgent,
+            "Third card decline from this merchant today — likely the acquirer, not the customer. "
+                + "Do not promise a refund until payments confirm.",
+            notedAt);
+
+        db.TicketInternalNotes.Add(note);
+
+        db.TicketActivities.Add(TicketActivity.InternalNotePosted(
+            Guid.NewGuid(), payments.Id, note.Id, IdentitySeeder.Users.BillingAgent, notedAt));
+
+        db.TicketTasks.Add(TicketTask.Create(
+            Guid.NewGuid(),
+            payments.Id,
+            "Chase the payments team for the acquirer response",
+            notedAt.AddDays(1),
+            IdentitySeeder.Users.BillingAgent,
+            IdentitySeeder.Users.BillingAgent,
+            notedAt));
+
+        return (1, 1);
     }
 
     /// <summary>

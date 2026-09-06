@@ -187,19 +187,67 @@ public sealed class CustomerNotesAndTimelineTests(SupportCrmApiFactory factory)
 
     /// <summary>
     /// <b>Exclusion 2 — <c>TicketInternalNote</c> is never touched by the timeline query</b>
-    /// (docs/data-model.md §2.9). Today that holds because the table does not exist; this test
-    /// records the rule so Story 06 cannot quietly add the join, and it fails loudly the moment a
-    /// set for internal notes appears without the guard being revisited.
+    /// (docs/data-model.md §2.9, §5 constraint 18).
+    ///
+    /// <para>
+    /// <b>Revisited by Story 14, exactly as this guard demanded.</b> Its earlier form asserted that
+    /// <c>IApplicationDbContext</c> exposed <b>no</b> internal-note set — true only while the entity
+    /// did not exist — and its own remarks said it <em>"fails loudly the moment a set for internal
+    /// notes appears without the guard being revisited"</em>. Story 14 added the set, so the guard
+    /// fired as designed and is re-expressed here rather than deleted or weakened.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The rule it protects is unchanged</b>, and it is now the stronger statement: the set
+    /// exists and is reachable from this layer, and the timeline projection <b>still</b> does not
+    /// read it. That is asserted by <c>CustomerTimelineService</c>'s query naming only the two sets
+    /// it is built from. The end-to-end proof — a real note, a real customer token, and a canary
+    /// searched for in the raw JSON — is
+    /// <c>InternalNotesAreUnreachableTests.The_customer_timeline_carries_no_internal_entry</c>,
+    /// which is where the intake requires it to live (<em>"performed as a customer"</em>).
+    /// </para>
     /// </summary>
     [Fact]
-    public void The_persistence_abstraction_still_exposes_no_internal_note_set()
+    public void The_timeline_projection_reads_no_internal_note_set()
     {
         var sets = typeof(IApplicationDbContext).GetProperties().Select(p => p.Name).ToList();
 
-        Assert.DoesNotContain("TicketInternalNotes", sets);
+        // The set now EXISTS — Story 14 added it. The guard is no longer "there is no table".
+        Assert.Contains("TicketInternalNotes", sets);
 
-        // The positive half, so the assertion above cannot pass by reflecting over nothing.
+        // The positive half, so neither assertion can pass by reflecting over nothing.
         Assert.Contains(nameof(IApplicationDbContext.CustomerNotes), sets);
+
+        // And the rule itself: the timeline is assembled from activities and tickets, and names the
+        // internal-note set nowhere. A future "enrichment" that joined it would have to add the
+        // reference this assertion forbids.
+        var timelineSource = File.ReadAllText(TimelineServicePath());
+
+        Assert.DoesNotContain("TicketInternalNotes", timelineSource, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The one file the assertion above reads. Resolved from the test assembly's location rather
+    /// than hardcoded, so it survives a different working directory.
+    /// </summary>
+    private static string TimelineServicePath()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.NotNull(directory);
+
+        var path = Path.Combine(
+            directory!.FullName,
+            "src", "SupportCrm.Application", "Modules", "Customers", "CustomerTimelineService.cs");
+
+        Assert.True(File.Exists(path), $"Expected the timeline service at {path}.");
+
+        return path;
     }
 
     private async Task<(Guid CustomerId, Guid AgentId)> SeedCustomerAndAgentAsync(string slug)

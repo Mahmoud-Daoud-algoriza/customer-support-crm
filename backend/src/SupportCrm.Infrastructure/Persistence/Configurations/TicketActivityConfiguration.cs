@@ -72,10 +72,21 @@ public sealed class TicketActivityConfiguration : IEntityTypeConfiguration<Ticke
             .HasForeignKey(a => a.MessageId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // InternalNoteId stays a plain column with no foreign key: TicketInternalNote is Story 14's
-        // and does not exist yet. The column is part of this entity's shape regardless of when the
-        // other side lands — the same placement Story 04 used for Attachment.TicketId.
+        // InternalNoteId is now a real foreign key — Story 14 landed the other side, completing the
+        // placeholder this file carried since Story 05. It is set if and only if ActivityType is
+        // InternalNotePosted (§2.7 invariant), which TicketActivity.InternalNotePosted makes
+        // structural: no other factory accepts a note id, and that one accepts no type and no
+        // visibility.
+        //
+        // Restrict, not Cascade — the same reasoning as MessageId above: §5 constraint 17 says every
+        // internal note has exactly one activity row, so a note must not be removable while its row
+        // points at it. Nothing deletes a note in any case: §2.9 makes it immutable and no service
+        // exposes a delete.
         builder.Property(a => a.InternalNoteId);
+        builder.HasOne<TicketInternalNote>()
+            .WithMany()
+            .HasForeignKey(a => a.InternalNoteId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // ---------------------------------------------------------------- indexes (§6)
 

@@ -183,6 +183,54 @@ export interface TicketListFilter extends PageRequest {
 }
 
 /**
+ * `InternalNote` — the shape of `GET /tickets/{id}/internal-notes` (docs/api-design.md §6.4).
+ *
+ * **There is deliberately no portal counterpart of this interface** — not a narrowed one, not one
+ * with fields omitted. A narrowed type would imply a portal read exists to narrow, and the whole
+ * T2-C design is that none does (docs/data-model.md §2.9, AP-5).
+ *
+ * **No `visibility` member**, because there is no column: a note is internal by being a note.
+ */
+export interface InternalNote {
+    id: string;
+    ticketId: string;
+    author: UserSummary;
+    body: string;
+    createdAt: string;
+}
+
+/**
+ * `Task` — the shape of `GET /tickets/{id}/tasks` (docs/api-design.md §6.4).
+ *
+ * **`completedAt` is server-set** and is absent while the task is not done: nulls are omitted from
+ * every payload (docs/api-design.md §2), so `isDone` is the flag to branch on, never the presence
+ * of this field.
+ */
+export interface TicketTask {
+    id: string;
+    ticketId: string;
+    title: string;
+    dueAt: string;
+    assignee: UserSummary;
+    isDone: boolean;
+    completedAt?: string;
+    createdBy: UserSummary;
+    createdAt: string;
+}
+
+/**
+ * The body of `POST /tickets/{id}/tasks`. All three are required (docs/data-model.md §2.10).
+ *
+ * **`isDone` and `completedAt` are absent on purpose** — a task is created not-done and the
+ * timestamp is the server's (AP-10).
+ */
+export interface CreateTicketTaskRequest {
+    title: string;
+    dueAt: string;
+    assignedUserId: string;
+}
+
+/**
  * The typed client for the staff ticket endpoints Story 05 publishes (docs/api-design.md §5.6).
  * Feature components never call `HttpClient` directly (docs/architecture.md §2.2).
  *
@@ -277,6 +325,58 @@ export class TicketsClient extends ApiClientBase {
      */
     postMessage(id: string, body: string): Observable<TicketMessage> {
         return this.post<TicketMessage>(`tickets/${id}/messages`, { body });
+    }
+
+    /**
+     * `GET /tickets/{id}/internal-notes` — **staff only, by path** (AP-5, T2-C).
+     *
+     * **There is no portal counterpart of this method, and none may be added.** `portal.client.ts`
+     * has no route that could reach internal notes, which is how the visibility rule holds: a
+     * customer cannot see a note because nothing on their side can ask for one, not because a
+     * filter removes it (docs/data-model.md §2.9).
+     *
+     * **Its own endpoint, deliberately.** The notes region never filters a merged list — there is no
+     * merged list — so a rendering bug cannot leak one (docs/ui-design.md §5.3).
+     */
+    internalNotes(id: string, paging?: PageRequest): Observable<Paged<InternalNote>> {
+        return this.get<Paged<InternalNote>>(`tickets/${id}/internal-notes`, paging as Record<string, QueryValue>);
+    }
+
+    /**
+     * `POST /tickets/{id}/internal-notes` — `{ body }` and nothing else.
+     *
+     * **No `visibility` is sent, and there is no parameter for one.** A note is internal by virtue
+     * of being a note; author and timestamp are server-derived, and sending any of the three is a
+     * `400` (AP-10). A note on a `Closed` or `Cancelled` ticket comes back `409 ticket-terminal`.
+     */
+    postInternalNote(id: string, body: string): Observable<InternalNote> {
+        return this.post<InternalNote>(`tickets/${id}/internal-notes`, { body });
+    }
+
+    /** `GET /tickets/{id}/tasks` — the ticket's to-dos, soonest due first. */
+    tasks(id: string, paging?: PageRequest): Observable<Paged<TicketTask>> {
+        return this.get<Paged<TicketTask>>(`tickets/${id}/tasks`, paging as Record<string, QueryValue>);
+    }
+
+    /**
+     * `POST /tickets/{id}/tasks` — `{ title, dueAt, assignedUserId }`.
+     *
+     * An assignee outside the ticket's department, or deactivated, comes back
+     * `422 assignee-out-of-department` — the same slug ticket assignment uses, so the error layer
+     * already has its translation.
+     */
+    createTask(id: string, request: CreateTicketTaskRequest): Observable<TicketTask> {
+        return this.post<TicketTask>(`tickets/${id}/tasks`, request);
+    }
+
+    /**
+     * `PATCH /tickets/{id}/tasks/{taskId}` — `{ isDone }`.
+     *
+     * **`completedAt` is server-set and is never sent** (AP-10, §7): the signature takes a boolean,
+     * not an object a caller could add a timestamp to.
+     */
+    setTaskDone(id: string, taskId: string, isDone: boolean): Observable<TicketTask> {
+        return this.patch<TicketTask>(`tickets/${id}/tasks/${taskId}`, { isDone });
     }
 
     attachments(id: string, paging?: PageRequest): Observable<Paged<AttachmentMetadata>> {

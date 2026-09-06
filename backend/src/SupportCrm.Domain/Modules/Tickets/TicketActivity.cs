@@ -181,6 +181,74 @@ public sealed class TicketActivity
     }
 
     /// <summary>
+    /// The <see cref="TicketActivityType.InternalNotePosted"/> entry for one note — <b>the only way
+    /// <see cref="InternalNoteId"/> is ever set</b> (Story 14).
+    ///
+    /// <para>
+    /// <b>The mirror of <see cref="MessagePosted"/>, and deliberately so.</b> The activity type is
+    /// not a parameter and neither is the visibility: this factory always writes
+    /// <c>InternalNotePosted</c> at <see cref="TicketActivityVisibility.Internal"/>, and no other
+    /// factory accepts an <c>internalNoteId</c>. That makes both of §2.7's invariants unbreakable
+    /// rather than merely observed — <em>"<c>internalNoteId</c> is set if and only if
+    /// <c>activityType = InternalNotePosted</c>"</em> and <em>"<c>InternalNotePosted</c> is always
+    /// <c>Internal</c> visibility"</em>. Neither can be got wrong at a call site, because neither
+    /// can be spelled there.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The body is not copied here</b> (DM-4). Content lives once, on the note; this row is the
+    /// ordering spine that points at it. <c>OldValue</c> and <c>NewValue</c> stay null because
+    /// writing a note is not a change to a field.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The <c>Internal</c> visibility is what keeps the note out of the customer timeline</b>,
+    /// which excludes <c>Internal</c> entries and does not join the note table either — two
+    /// independent reasons, which is the point (§5 constraint 18, architecture §2.5).
+    /// </para>
+    /// </summary>
+    public static TicketActivity InternalNotePosted(
+        Guid id,
+        Guid ticketId,
+        Guid internalNoteId,
+        Guid authorUserId,
+        DateTimeOffset occurredAt)
+    {
+        if (ticketId == Guid.Empty)
+        {
+            throw new ArgumentException("An activity entry requires a ticket.", nameof(ticketId));
+        }
+
+        if (internalNoteId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "An InternalNotePosted entry requires the note it points at (§2.7).",
+                nameof(internalNoteId));
+        }
+
+        if (authorUserId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "An InternalNotePosted entry requires its author as actor.", nameof(authorUserId));
+        }
+
+        return new TicketActivity
+        {
+            Id = id,
+            TicketId = ticketId,
+            OccurredAt = occurredAt,
+            ActivityType = TicketActivityType.InternalNotePosted,
+            ActorUserId = authorUserId,
+            ActorKind = TicketActorKind.User,
+            OldValue = null,
+            NewValue = null,
+            Visibility = TicketActivityVisibility.Internal,
+            MessageId = null,
+            InternalNoteId = internalNoteId,
+        };
+    }
+
+    /// <summary>
     /// An entry caused by the system — <b>the SLA monitor and nothing else</b> (§2.7, Story 09).
     /// <see cref="ActorUserId"/> is null, which is the other half of the same invariant.
     /// </summary>

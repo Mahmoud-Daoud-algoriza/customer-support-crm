@@ -107,6 +107,41 @@ public sealed class TicketActivityRecorder(
     }
 
     /// <summary>
+    /// Records the <c>InternalNotePosted</c> entry for one note — <b>the only method that sets
+    /// <c>TicketActivity.InternalNoteId</c></b> (Story 14, DM-4).
+    ///
+    /// <para>
+    /// <b>Neither the activity type nor the visibility is a parameter</b>, and that is what makes
+    /// §2.7's two invariants unbreakable rather than merely observed:
+    /// <see cref="TicketActivity.InternalNotePosted"/> always writes the type and always writes
+    /// <c>Internal</c>. The plan's instruction — <em>"set it in the recorder call, not as a
+    /// caller-supplied value"</em> — is honoured by there being no value to supply: a caller cannot
+    /// post a note whose history row is <c>CustomerVisible</c>, because that call does not exist.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The body is not copied onto the row</b> (DM-4). Content lives once, on the note — which
+    /// also means the history spine carries no note text for a customer-facing read to leak, even
+    /// before the <c>Internal</c> filter applies.
+    /// </para>
+    ///
+    /// <para>
+    /// The actor is the authenticated caller — the note's author, by construction, because
+    /// <c>TicketInternalNoteService</c> stamps <c>AuthorUserId</c> from the same source.
+    /// </para>
+    /// </summary>
+    public Task RecordInternalNotePostedAsync(
+        Guid ticketId, Guid internalNoteId, CancellationToken ct = default)
+    {
+        db.TicketActivities.Add(TicketActivity.InternalNotePosted(
+            Guid.NewGuid(), ticketId, internalNoteId, currentUser.Id, clock.GetUtcNow()));
+
+        _ = ct;
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Records one entry attributed to <b>the system</b> — <see cref="TicketActivity.BySystem"/>,
     /// so <c>ActorUserId</c> is null and <c>ActorKind</c> is <c>System</c>, the two halves of
     /// §2.7's invariant.
