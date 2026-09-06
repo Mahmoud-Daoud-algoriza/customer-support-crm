@@ -11,30 +11,113 @@ not against what the tracker reports. It exists to make one distinction visible:
 below [PROJECT-PROGRESS.md](PROJECT-PROGRESS.md) as reporting, and it reports a different axis:
 company requirement coverage rather than SDD stage state.
 
-**Audit date:** 2026-09-07 · **Commit audited:** `8d449bf` (*feat: story 18 — channel and ERP
+**Audit date:** 2026-09-07 · **Second-pass audit**, re-derived from the company PDF ·
+**Commit audited:** `1e0c179` (code unchanged since `8d449bf`, *feat: story 18 — channel and ERP
 integration seams*) · **Working tree:** clean.
+
+> **Pass 1** (2026-09-07) was derived from [docs/requirements.md](requirements.md) because the
+> company PDF had not been supplied. **Pass 2** — this version — was re-derived from the PDF itself.
+> What changed is recorded in *[What the second pass changed](#what-the-second-pass-changed)* at the
+> end. **No percentage moved**, and the section explains exactly why.
 
 ---
 
-## ⚠ Source-of-truth limitation — read this first
+## ✅ Source of truth — the company PDF
 
-**The company PDF was not supplied to this session.** No PDF exists anywhere in the repository
-(`find . -iname "*.pdf"` returned no matches).
+**Authoritative company source:** `azm_squad_customer_support_crm.pdf` — *"Customer Support CRM .
+Core Features"*, **2 pages**, supplied by the company. This PDF, not `requirements.md` and not any
+approved project document, is the authority for what the company asked for.
 
-The company scope used here is [docs/requirements.md](requirements.md), which the project records as
-*"the given input · never edited"* (CLAUDE.md §1). Its twelve areas and **55 bullet lines match the
-twelve areas supplied in the audit request verbatim**, so the two agree exactly on structure and
-wording.
+### What it contains
 
-**Consequence, stated plainly:** if the company PDF contains *additional* sub-items, acceptance
-criteria, constraints or qualifying wording beyond these 55 bullets, **they are not covered by this
-document**, and every percentage below would need recalculating against them. Nothing has been
-invented to fill that gap. Supply the PDF and this document can be re-derived against it.
+**12 numbered areas and 55 bullets. Nothing else.** Page 1 carries areas 1–6, page 2 carries areas
+7–12. Each area is a heading followed by a flat bullet list of feature names. There is no other
+content on either page beyond the company logo and a rule below the title.
 
-**Line count.** `requirements.md` has **55 bullets**. One of them — §1 *"Notes and attachments"* —
-is split by [product-scope.md](product-scope.md) §6 into two independently-tiered lines (Notes = T1,
-Attachments = T2). That gives the **56 requirement lines** this audit scores, matching
-product-scope's own count: *"all 56 requirement lines are addressed in some tier."*
+### Verified against the repository's recorded input
+
+`requirements.md` is the project's transcription of this PDF, recorded under CLAUDE.md §1 as *"the
+given input · never edited."* This audit checked that transcription rather than assuming it:
+
+| Check | Result |
+|---|---|
+| Areas | **12 = 12** ✅ |
+| Bullets | **55 = 55** ✅ |
+| Title, including its unusual `"CRM . Core Features"` spacing | Preserved exactly ✅ |
+| Full text comparison (`diff`, line endings normalized) | **Zero differences** ✅ |
+| MD5 of both normalized texts | `082aba3be21050ecc8527baea78904a8` — **identical** ✅ |
+
+**`requirements.md` is a faithful, complete transcription of the company PDF.** Pass 1 was therefore
+built on the correct scope by accident of an accurate transcription, and its requirement inventory
+needed no correction.
+
+### What the PDF does *not* contain — and why it matters
+
+This is the most consequential finding of the second pass. The PDF carries **no**:
+
+- sub-requirements beneath the 55 bullets
+- acceptance criteria or definitions of done
+- constraints, non-functional requirements or quality targets
+- priorities, phasing, MoSCoW markers, or any "must / should / could"
+- feature descriptions, narrative or glossary
+- volumes, SLAs, integration targets, or named external systems
+
+**Consequence — read this before reading any tier label below.** Every T1/T2/T3/T4 tier assignment,
+every simplification (*"round-robin only"*, *"keyword search"*, *"in-app notifications only"*,
+*"branch is an attribute, not a boundary"*), and every one of the 21 assumptions **A-1…A-21** is the
+**project's own interpretation of a one-line feature name** — not something the company specified,
+and not something the company is recorded anywhere as having agreed to.
+
+That cuts both ways, and this document reports both directions:
+
+- **In the project's favour** — nothing in the PDF contradicts any tier assignment, because the PDF
+  says nothing about depth at all. The interpretations are defensible.
+- **Against it** — *"Outside current approved scope"* below means **the supplier decided not to
+  build it**, and carries **no evidence of company agreement**. A bullet reading `- WhatsApp` is,
+  on its face, a request for WhatsApp. This audit therefore never reports a T3 seam as satisfying
+  the company bullet it stands behind.
+
+**The 55 bullets are the whole company specification.** Any acceptance criterion cited anywhere in
+this repository originates with the project, not the company.
+
+### Why 56 scored lines, not 55
+
+One PDF bullet — §1 *"Notes and attachments"* — names **two** capabilities and is split by
+[product-scope.md](product-scope.md) §6 into two independently-tiered lines (Notes = T1,
+Attachments = T2). Scoring them together would force one score onto two differently-delivered
+things. That gives the **56 requirement lines** this audit scores, matching product-scope's own
+count: *"all 56 requirement lines are addressed in some tier."*
+
+**This is the only place where a company bullet was subdivided**, it is a split rather than an
+addition, and no requirement was invented: 55 company bullets → 56 scored lines, and the mapping is
+one-to-one everywhere else.
+
+---
+
+## Status definitions
+
+Used consistently throughout. A line carries exactly one **Status**; the cross-cutting flags
+(*Blocked*, *Implemented but not verified*) may additionally apply.
+
+| Status | Definition | Count |
+|---|---|---:|
+| ✅ **Fully implemented** | The required behaviour exists in the running application and every layer the requirement needs is implemented. `Overall = 100%`. | **44** |
+| 🟡 **Partially implemented** | Some required behaviour exists, but one or more meaningful parts of the company bullet are missing. `0% < Overall < 100%`. | **12** |
+| ⬜ **Not implemented** | The requirement is inside the approved scope and has no meaningful implementation evidence. `Overall = 0%`. | **0** |
+| 📐 **Outside current approved scope** | The company requested it; the approved project scope (product-scope §5, T3) explicitly declines to build the full feature and commits only to a seam plus a runnable fake. **A supplier-side decision — not a company agreement, and not a development failure.** Always *also* carries a Partial or Fully status reflecting what was actually delivered. | **10** |
+| ⛔ **Blocked** | Completion is prevented by a real, already-recorded, unresolved project decision. Not a synonym for "unfinished". | **6** |
+| 🔵 **Implemented but not verified** | Implementation evidence exists and automated checks pass, but a required verification — visual/screen checks in particular — has not been performed or recorded. | **14** |
+
+**Where each label appears.** The **Status** column of every traceability table carries the primary
+status plus the `📐` and `⛔` flags, because those change how the row should be read. The `🔵`
+verification flag lives in that table's **Verification** column instead, so it is not duplicated —
+look there for `⚠ Partial` or `🔵 Unrecorded`.
+
+**A seam is never counted as the integration it stands behind.** `IOutboundChannelAdapter` plus a
+console adapter is scored as a seam (50% backend), never as email.
+
+**Documentation never raises an implementation score.** SDD/Docs is reported as its own dimension and
+is excluded from Overall by construction — see the methodology.
 
 ---
 
@@ -207,13 +290,13 @@ User Stories: ████████████████████  100%
 SDD / Docs:   ████████████████████  100%
 ```
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| Customer profiles | T1 | **04** `customer-records` | Done | Done | Done | Done | ✅ Verified 2026-08-30 | ✅ Complete |
-| Contact details | T1 | **04** | Done | Done | Done | Done | ✅ Verified 2026-08-30 | ✅ Complete |
-| Interaction history | T1 | **04** + **06** | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Complete |
-| Notes | T1 | **04** | Done | Done | Done | Done | ✅ Verified 2026-08-30 | ✅ Complete |
-| Attachments | T2 | **04** (+ **05** ticket-scoped) | **Partial** | Done | Done | Done | ✅ Verified 2026-08-30 | 🟡 Partial |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| Customer profiles | T1 | Yes — in full | **04** `customer-records` | Done | Done | Done | Done | ✅ Verified 2026-08-30 | ✅ Fully implemented |
+| Contact details | T1 | Yes — in full | **04** | Done | Done | Done | Done | ✅ Verified 2026-08-30 | ✅ Fully implemented |
+| Interaction history | T1 | Yes — in full | **04** + **06** | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Fully implemented |
+| Notes | T1 | Yes — in full | **04** | Done | Done | Done | Done | ✅ Verified 2026-08-30 | ✅ Fully implemented |
+| Attachments | T2 | Yes — simplified | **04** (+ **05** ticket-scoped) | **Partial** | Done | Done | Done | ✅ Verified 2026-08-30 | 🟡 Partially implemented |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -259,13 +342,13 @@ User Stories: ████████████████████  100%
 SDD / Docs:   ████████████████████  100%
 ```
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| Create and track tickets | T1 | **05** `ticket-core` | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Complete |
-| Categories and priorities | T1 | **05** (+ **16 A** config) | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Complete |
-| Assign tickets to agents | T1 | **05** | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Complete |
-| Status and escalation | T1 | **06** `ticket-lifecycle` | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Complete |
-| Ticket history | T1 | **05** + **06** | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Complete |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| Create and track tickets | T1 | Yes — in full | **05** `ticket-core` | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Fully implemented |
+| Categories and priorities | T1 | Yes — in full | **05** (+ **16 A** config) | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Fully implemented |
+| Assign tickets to agents | T1 | Yes — in full | **05** | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Fully implemented |
+| Status and escalation | T1 | Yes — in full | **06** `ticket-lifecycle` | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Fully implemented |
+| Ticket history | T1 | Yes — in full | **05** + **06** | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Fully implemented |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -308,13 +391,13 @@ SDD / Docs:   █████████████████░░░   85%
 to.** Four of the five channels are **T3** — *"a real seam plus a runnable fake, not the feature"* —
 and that was decided up front in product-scope §5, not discovered late.
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| Email | **T3** | **18** `channel-erp-adapters` | ⬜ None | Seam + fake | Partial | Done | 🔵 Unrecorded | 📐 Seam only |
-| WhatsApp | **T3** | **18** | ⬜ None | Seam + fake | Partial | Done | 🔵 Unrecorded | 📐 Seam only |
-| Live chat | **T3** | **07** (polled) · **18** (documented) | Partial | Partial | Done | Done | ✅ Verified 2026-08-31 | 🟡 Partial |
-| SMS | **T3** | **18** | ⬜ None | Seam + fake | Partial | Done | 🔵 Unrecorded | 📐 Seam only |
-| Web forms | T2 | **07** `ticket-intake-messaging` | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Complete |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| Email | **T3** | **No** — seam only | **18** `channel-erp-adapters` | ⬜ None | Seam + fake | Partial | Done | 🔵 Unrecorded | 🟡 Partial · 📐 Outside approved scope · ⛔ Blocked |
+| WhatsApp | **T3** | **No** — seam only | **18** | ⬜ None | Seam + fake | Partial | Done | 🔵 Unrecorded | 🟡 Partial · 📐 Outside approved scope · ⛔ Blocked |
+| Live chat | **T3** | **No** — seam only | **07** (polled) · **18** (documented) | Partial | Partial | Done | Done | ✅ Verified 2026-08-31 | 🟡 Partial · 📐 Outside approved scope |
+| SMS | **T3** | **No** — seam only | **18** | ⬜ None | Seam + fake | Partial | Done | 🔵 Unrecorded | 🟡 Partial · 📐 Outside approved scope · ⛔ Blocked |
+| Web forms | T2 | Yes — simplified | **07** `ticket-intake-messaging` | Done | Done | Done | Done | ✅ Verified 2026-08-31 | ✅ Fully implemented |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -371,13 +454,13 @@ User Stories: ███████████████████░   95%
 SDD / Docs:   ███████████████████░   95%
 ```
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| Assigned tickets | T1 | **08** `agent-dashboard` | Done | Done | Done | Done | 🔵 Implemented | ✅ Complete |
-| Customer information | T1 | **08** | Done | Done | Done | Done | 🔵 Implemented | ✅ Complete |
-| Tasks and reminders | T2 | **14** `tasks-internal-notes` | **Partial** | **Partial** | Done | Partial | ⚠ Partial 2026-09-06 | ⛔ Partial / Blocked |
-| Quick replies | T1 | **08** (+ **16 A** config) | Done | Done | n/a | Done | 🔵 Implemented | ✅ Complete |
-| Team collaboration | T2 | **14** | Done | Done | Done | Done | ⚠ Partial 2026-09-06 | ✅ Complete |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| Assigned tickets | T1 | Yes — in full | **08** `agent-dashboard` | Done | Done | Done | Done | 🔵 Implemented | ✅ Fully implemented |
+| Customer information | T1 | Yes — in full | **08** | Done | Done | Done | Done | 🔵 Implemented | ✅ Fully implemented |
+| Tasks and reminders | T2 | Yes — simplified | **14** `tasks-internal-notes` | **Partial** | **Partial** | Done | Partial | ⚠ Partial 2026-09-06 | 🟡 Partial · ⛔ Blocked |
+| Quick replies | T1 | Yes — in full | **08** (+ **16 A** config) | Done | Done | n/a | Done | 🔵 Implemented | ✅ Fully implemented |
+| Team collaboration | T2 | Yes — simplified | **14** | Done | Done | Done | Done | ⚠ Partial 2026-09-06 | ✅ Fully implemented |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -438,12 +521,12 @@ User Stories: ████████████████████  100%
 SDD / Docs:   ████████████████████  100%
 ```
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| Response and resolution targets | T2 | **05** + **09** `sla-routing-escalation` | Done | Done | Done | Done | 🔵 Implemented | ✅ Complete |
-| Automatic assignment | T2 | **09** | Done | Done | Done | Done | 🔵 Implemented | ✅ Complete |
-| Escalation rules | T2 | **09** (+ **06** manual) | Done | Done | Done | Done | 🔵 Implemented | ✅ Complete |
-| Alerts and notifications | T2 | **09** | Done | Done | Done | Done | 🔵 Implemented | ✅ Complete |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| Response and resolution targets | T2 | Yes — simplified | **05** + **09** `sla-routing-escalation` | Done | Done | Done | Done | 🔵 Implemented | ✅ Fully implemented |
+| Automatic assignment | T2 | Yes — simplified | **09** | Done | Done | Done | Done | 🔵 Implemented | ✅ Fully implemented |
+| Escalation rules | T2 | Yes — simplified | **09** (+ **06** manual) | Done | Done | Done | Done | 🔵 Implemented | ✅ Fully implemented |
+| Alerts and notifications | T2 | Yes — simplified | **09** | Done | Done | Done | Done | 🔵 Implemented | ✅ Fully implemented |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -488,12 +571,12 @@ User Stories: ████████████████████  100%
 SDD / Docs:   ████████████████████  100%
 ```
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| FAQs | T2 | **12** `kb-articles-search` | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete |
-| Help articles | T2 | **12** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete |
-| Solutions and guides | T2 | **12** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete |
-| Search | T2 | **12** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| FAQs | T2 | Yes — simplified | **12** `kb-articles-search` | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
+| Help articles | T2 | Yes — simplified | **12** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
+| Solutions and guides | T2 | Yes — simplified | **12** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
+| Search | T2 | Yes — simplified | **12** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -525,13 +608,13 @@ User Stories: █████████████████░░░   85%
 SDD / Docs:   ███████████████████░   95%
 ```
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| Ticket summaries | T1 | **10** + **11** | Done | Done | n/a | Done | 🔵 Implemented | ✅ Complete |
-| Suggested replies | T1 | **10** + **11** | Done | Done | n/a | Done | 🔵 Implemented | ✅ Complete |
-| Automatic categorization | T1 | **11** `ai-ticket-assists` | **Partial** | **Partial** | **Partial** | Partial | 🔵 Implemented | ⛔ Partial / Blocked |
-| Suggested solutions | T2 | **12** (retrieval) | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete |
-| AI chatbot | **T3** | **10** (seam) · **18** (documented) | ⬜ None | Extension point | ⬜ None | Done | — | 📐 Not built |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| Ticket summaries | T1 | Yes — in full | **10** + **11** | Done | Done | n/a | Done | 🔵 Implemented | ✅ Fully implemented |
+| Suggested replies | T1 | Yes — in full | **10** + **11** | Done | Done | n/a | Done | 🔵 Implemented | ✅ Fully implemented |
+| Automatic categorization | T1 | Yes — in full | **11** `ai-ticket-assists` | **Partial** | **Partial** | **Partial** | Partial | 🔵 Implemented | 🟡 Partial · ⛔ Blocked |
+| Suggested solutions | T2 | Yes — simplified | **12** (retrieval) | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
+| AI chatbot | **T3** | **No** — seam only | **10** (seam) · **18** (documented) | ⬜ None | Extension point | ⬜ None | Done | — | 🟡 Partial · 📐 Outside approved scope |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -598,13 +681,13 @@ User Stories: ████████████████████  100%
 SDD / Docs:   ████████████████████  100%
 ```
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| Submit tickets | T2 | **07** + **13** `portal-self-service` | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete |
-| Track requests | T2 | **13** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete |
-| View history | T2 | **13** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete |
-| Access FAQs | T2 | **12** + **13** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete |
-| Submit feedback | T2 | **13** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete · ⚠ OQ-1 |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| Submit tickets | T2 | Yes — simplified | **07** + **13** `portal-self-service` | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
+| Track requests | T2 | Yes — simplified | **13** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
+| View history | T2 | Yes — simplified | **13** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
+| Access FAQs | T2 | Yes — simplified | **12** + **13** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
+| Submit feedback | T2 | Yes — simplified | **13** | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented · ⚠ OQ-1 open |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -658,13 +741,13 @@ User Stories: ████████████████████  100%
 SDD / Docs:   ████████████████████  100%
 ```
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| Ticket reports | T2 | **15** `management-dashboard` | Done | Done | Done | Done | ⚠ **Partial 2026-09-06** | 🔵 Verification pending |
-| SLA performance | T2 | **15** | Done | Done | Done | Done | ⚠ **Partial 2026-09-06** | 🔵 Verification pending |
-| Agent performance | T2 | **15** | Done | Done | Done | Done | ⚠ **Partial 2026-09-06** | 🔵 Verification pending |
-| Customer satisfaction | T2 | **15** | Done | Done | Done | Done | ⚠ **Partial 2026-09-06** | 🔵 Verification pending |
-| Management dashboards | T2 | **15** | Done | Done | Done | Done | ⚠ **Partial 2026-09-06** | 🔵 Verification pending |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| Ticket reports | T2 | Yes — simplified | **15** `management-dashboard` | Done | Done | Done | Done | ⚠ **Partial 2026-09-06** | ✅ Fully implemented |
+| SLA performance | T2 | Yes — simplified | **15** | Done | Done | Done | Done | ⚠ **Partial 2026-09-06** | ✅ Fully implemented |
+| Agent performance | T2 | Yes — simplified | **15** | Done | Done | Done | Done | ⚠ **Partial 2026-09-06** | ✅ Fully implemented |
+| Customer satisfaction | T2 | Yes — simplified | **15** | Done | Done | Done | Done | ⚠ **Partial 2026-09-06** | ✅ Fully implemented |
+| Management dashboards | T2 | Yes — simplified | **15** | Done | Done | Done | Done | ⚠ **Partial 2026-09-06** | ✅ Fully implemented |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -714,12 +797,12 @@ User Stories: ████████████████████  100%
 SDD / Docs:   ████████████████████  100%
 ```
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| Users and roles | T1 | **02** `auth-and-roles` | Done | Done | Done | Done | ✅ Verified 2026-08-26 | ✅ Complete |
-| Permissions | T1 | **02** (+ **03** scoping) | Done | Done | Done | Done | ✅ Verified 2026-08-26 | ✅ Complete |
-| Audit logs | T2 | **02** (write) + **16 B** (read) | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Complete |
-| System configuration | T2 | **16 A** + **16 B** | Done | Done | n/a | Done | ✅ Verified 2026-09-01 | ✅ Complete |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| Users and roles | T1 | Yes — in full | **02** `auth-and-roles` | Done | Done | Done | Done | ✅ Verified 2026-08-26 | ✅ Fully implemented |
+| Permissions | T1 | Yes — in full | **02** (+ **03** scoping) | Done | Done | Done | Done | ✅ Verified 2026-08-26 | ✅ Fully implemented |
+| Audit logs | T2 | Yes — simplified | **02** (write) + **16 B** (read) | Done | Done | Done | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
+| System configuration | T2 | Yes — simplified | **16 A** + **16 B** | Done | Done | n/a | Done | ✅ Verified 2026-09-01 | ✅ Fully implemented |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -753,12 +836,12 @@ SDD / Docs:   ████████████████░░░░   81%
 **The second large company-vs-scope gap.** Three of four lines are **T3** — an interface plus a
 runnable fake, by decision.
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| APIs | T2 | **01** `solution-skeleton` | Done | Done | n/a | Done | ✅ Verified 2026-08-25 | ✅ Complete |
-| ERP | **T3** | **18** | ⬜ None | Seam + no-op | Partial | Done | 🔵 Unrecorded | 📐 Seam only |
-| Email, SMS & WhatsApp | **T3** | **18** | ⬜ None | Seam + fake | Partial | Done | 🔵 Unrecorded | 📐 Seam only |
-| External systems | **T3** | **18** | ⬜ None | Seam + no-op | Partial | Done | 🔵 Unrecorded | 📐 Seam only |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| APIs | T2 | Yes — simplified | **01** `solution-skeleton` | Done | Done | n/a | Done | ✅ Verified 2026-08-25 | ✅ Fully implemented |
+| ERP | **T3** | **No** — seam only | **18** | ⬜ None | Seam + no-op | Partial | Done | 🔵 Unrecorded | 🟡 Partial · 📐 Outside approved scope |
+| Email, SMS & WhatsApp | **T3** | **No** — seam only | **18** | ⬜ None | Seam + fake | Partial | Done | 🔵 Unrecorded | 🟡 Partial · 📐 Outside approved scope · ⛔ Blocked |
+| External systems | **T3** | **No** — seam only | **18** | ⬜ None | Seam + no-op | Partial | Done | 🔵 Unrecorded | 🟡 Partial · 📐 Outside approved scope |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -800,13 +883,13 @@ User Stories: ████████████████████  100%
 SDD / Docs:   █████████████████░░░   85%
 ```
 
-| Company requirement | Tier | Story | Frontend | Backend | DB | SDD | Verification | Status |
-|---|---|---|---|---|---|---|---|---|
-| Arabic & English | T2 | **17 A** (scaffold) + **17 B** (translation) | Done | Done | n/a | Partial | 🔵 Unrecorded | ✅ Complete |
-| Web and mobile friendly | **T3** | **17 B** | Done | n/a | n/a | Partial | 🔵 Unrecorded | ✅ Complete (responsive web) |
-| Multi-department | T1 | **03** `departments-branches` | Done | Done | Done | Done | ✅ Verified 2026-08-27 | ✅ Complete |
-| Multi-branch | T2 | **03** | Done | Done | Done | Done | ✅ Verified 2026-08-27 | ✅ Complete |
-| Custom branding | **T3** | **17 B** | **Partial** | **Partial** | n/a | Partial | 🔵 Unrecorded | 🟡 Partial |
+| Company requirement (PDF bullet) | Tier | In approved scope | Story | Frontend | Backend | DB | SDD | Verification | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| Arabic & English | T2 | Yes — simplified | **17 A** (scaffold) + **17 B** (translation) | Done | Done | n/a | Partial | 🔵 Unrecorded | ✅ Fully implemented |
+| Web and mobile friendly | **T3** | **No** — seam only | **17 B** | Done | n/a | n/a | Partial | 🔵 Unrecorded | ✅ Fully implemented · 📐 native apps outside scope |
+| Multi-department | T1 | Yes — in full | **03** `departments-branches` | Done | Done | Done | Done | ✅ Verified 2026-08-27 | ✅ Fully implemented |
+| Multi-branch | T2 | Yes — simplified | **03** | Done | Done | Done | Done | ✅ Verified 2026-08-27 | ✅ Fully implemented |
+| Custom branding | **T3** | **No** — seam only | **17 B** | **Partial** | **Partial** | n/a | Partial | 🔵 Unrecorded | 🟡 Partial · 📐 Outside approved scope |
 
 | Requirement | FE | BE | DB | US | SDD | **Overall** |
 |---|---:|---:|---:|---:|---:|---:|
@@ -969,15 +1052,26 @@ each.
 ### 🔬 Evidence — checks run for this audit
 
 Every check is from [README.md](../README.md) § *Checks*, run against the audited commit. No
-substitutions.
+substitutions. **All five were re-run for the second pass** and returned the same results as the
+first.
 
-| Command | Result |
+| Command | Result (re-run 2026-09-07, second pass) |
 |---|---|
 | `dotnet build backend/SupportCrm.sln` | ✅ **Build succeeded · 0 Warning(s) · 0 Error(s)** (`TreatWarningsAsErrors` is on) |
-| `dotnet test backend/SupportCrm.sln` | ✅ **Passed! Failed: 0, Passed: 480, Skipped: 1, Total: 481** — the 1 skip is the PF-2 inbound-ingestion test |
-| `cd frontend && npm run build` | ✅ **Application bundle generation complete** · exit 0 · 50+ lazy chunks |
+| `dotnet test backend/SupportCrm.sln` | ✅ **Passed! Failed: 0, Passed: 480, Skipped: 1, Total: 481** — the 1 skip is `InboundIngestionTests.cs:47`, whose `Skip` reason is the PF-2 statement verbatim |
+| `cd frontend && npm run build` | ✅ exit 0 — application bundle generation complete |
 | `cd frontend && npm run lint:styles` | ✅ exit 0 — no physical CSS properties (logical properties only, ui-design §10.2) |
 | `npx ng test --watch=false --browsers=ChromeHeadless` | ✅ **TOTAL: 99 SUCCESS** (99 of 99) |
+
+**PDF verification performed for the second pass:**
+
+| Check | Result |
+|---|---|
+| PDF read in full (both pages, text layer and rendered images) | ✅ 12 areas · 55 bullets · no other content |
+| `diff` of PDF text against `docs/requirements.md` (normalized) | ✅ **zero differences** |
+| MD5 of both normalized texts | ✅ `082aba3be21050ecc8527baea78904a8` — identical |
+| Blocker re-verification in code (S9-1, S9-4, PF-2) | ✅ all three still present — see the Blocked section |
+| `git status` before and after | ✅ only `docs/COMPANY-SCOPE-PROGRESS.md` modified |
 
 **Not run, and therefore not claimed:** the live-stack verification of README § *Run it*
 (`docker compose up --build`), which is what proves case-insensitive collation, `DateTimeOffset`
@@ -1031,12 +1125,64 @@ Line-status tally, for checking: **44** lines at Overall 100 · **12** between 0
 
 ---
 
+## What the second pass changed
+
+The first pass was built from [requirements.md](requirements.md) with the PDF unavailable, and said
+so at the top. The second pass read the PDF and re-derived the document from it.
+
+### What did not change, and why
+
+**No percentage moved. No requirement was added, removed or re-tiered. No status flipped.**
+
+That is not the second pass declining to do its job — it is the finding. `requirements.md` proved to
+be a **byte-identical transcription** of the PDF (zero `diff` differences, matching MD5), and the PDF
+contains **no** sub-requirements, acceptance criteria, constraints or priorities beyond its 55
+bullets. There was nothing additional to fold in. Every repository finding was independently
+re-verified against the code rather than copied forward, and all held:
+
+| First-pass claim | Re-verified how | Result |
+|---|---|---|
+| Overall 88 · FE 84 · BE 90 · DB 91 · US 96 · SDD 95 | Recomputed from the 56 scored lines | ✅ Unchanged |
+| 44 complete · 12 partial · 0 not implemented | Recounted from the tables | ✅ Unchanged |
+| **S9-1** — no cross-ticket task endpoint | Searched controllers for a standalone `/tasks` route | ✅ Confirmed — only `{id}/tasks` at `TicketsController.cs:375,392,416` |
+| **S9-4** — AI suggestion never recorded | Searched for any writer of `AiSuggestionOffered`/`Resolved` | ✅ Confirmed — the enum declaration and one comment; no writer |
+| **PF-2** — inbound attribution undecided | Read the seam and the skipped test | ✅ Confirmed — `BlockedInboundChannelIngestion.cs:41` throws; `InboundIngestionTests.cs:47` is the 1 skip |
+| PROJECT-PROGRESS §3 drift on 08–11, 17, 18 | Re-read §3, spot-checked a file per story | ✅ Confirmed — all six still read `Not Started`; all six have code |
+| Build / test / lint all green | Re-ran all five commands | ✅ Confirmed — identical results |
+
+### What did change
+
+| Change | Why |
+|---|---|
+| The `⚠ Source-of-truth limitation` section became **`✅ Source of truth — the company PDF`** | The PDF is now the cited authority, named by filename, with the verification evidence that `requirements.md` matches it |
+| **New finding: the PDF carries no acceptance criteria, constraints or priorities** | This makes every tier assignment and all 21 assumptions the *project's* interpretation of a one-line feature name. It is the single most important thing the PDF told us, and the first pass could not have known it |
+| **`Outside current approved scope` re-framed** | It now reads explicitly as *a supplier-side decision with no evidence of company agreement*, rather than as a settled exclusion. A bullet reading `- WhatsApp` is, on its face, a request for WhatsApp |
+| **New `Status definitions` section** | Six explicit definitions with counts, and a stated rule for where each flag appears |
+| **`In approved scope` column added to all 12 traceability tables** | Separates *"the company asked"* from *"the project committed"* on every one of the 56 rows |
+| **Status labels normalized across all 56 rows** | They now use the six defined labels only, and carry the `📐` / `⛔` flags explicitly. Counts reconcile: 44 / 12 / 0, with 10 outside-scope and 6 blocked |
+| Header, audit date, evidence tables | Record the second pass, its commit, and the PDF checks |
+
+### What a reader should take from this
+
+The company's specification is **55 feature names on two pages**. Everything else in this
+repository — the tiers, the assumptions, the simplifications, the definitions of done — is the
+project's reading of those names. **88% measures delivery against that reading.** Where the reading
+narrowed a bullet (round-robin only, in-app alerts only, keyword search only, branch as an attribute,
+a seam instead of an integration), this document says so at the line that was narrowed, so the
+company's own question — *"is this what we asked for?"* — can be answered bullet by bullet rather
+than in aggregate.
+
+---
+
 ## What this document does not do
 
-- It **creates no story, feature or requirement**, and recommends implementing nothing.
+- It **creates no story, feature, requirement or acceptance criterion**, and recommends implementing
+  nothing.
 - It **changes no scope**. Every tier assignment is read from [product-scope.md](product-scope.md) §6.
 - It **changes no API contract, no database schema and no application code.**
 - It **treats no T2 or T3 item as implemented without evidence** — every claim above names a file, a
   route, an endpoint, a migration, a test or a command result.
-- It **leaves [PROJECT-PROGRESS.md](PROJECT-PROGRESS.md) untouched**, including the §3 inaccuracy it
-  reports. Correcting that file is a tracking task under its own Maintenance section.
+- It **leaves [PROJECT-PROGRESS.md](PROJECT-PROGRESS.md), [product-scope.md](product-scope.md),
+  [story-backlog.md](story-backlog.md) and [requirements.md](requirements.md) untouched**, including
+  the PROJECT-PROGRESS §3 inaccuracy it reports. Correcting that file is a tracking task under its
+  own Maintenance section.
