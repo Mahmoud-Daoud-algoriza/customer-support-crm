@@ -5,7 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using SupportCrm.Application.Abstractions;
 using SupportCrm.Application.Configuration;
 using SupportCrm.Infrastructure.Seams.Ai;
+using SupportCrm.Infrastructure.Seams.Channels;
+using SupportCrm.Infrastructure.Seams.Erp;
 using SupportCrm.Application.Modules.Ai;
+using SupportCrm.Application.Modules.Integrations;
 using Microsoft.Extensions.Options;
 using SupportCrm.Application.Modules.Administration;
 using SupportCrm.Application.Modules.Customers;
@@ -182,6 +185,49 @@ public static class DependencyInjection
         // service, not a repository: it composes four aggregate queries and owns no state (AD-3).
         // §9 introduces NO entity (data-model §7), so there is no DbSet and no migration beside it.
         services.AddScoped<DashboardReportService>();
+
+        // ------------------------------------------------- Story 18: the channel and ERP seams
+        // **Named abstractions plus fakes the demo runs against** — the T3 rule of engagement
+        // (product-scope §5). Both defaults require no configuration, no account and no credential,
+        // which is what makes "the whole application runs with every real integration absent"
+        // (§10 item 5) a property of the composition root rather than a claim.
+        //
+        // **The fakes live here, in the application, not in test-only code** (intake). A reviewer
+        // running the demo is running against exactly these.
+        //
+        // **These are seams, not features.** Nothing in the application calls them: A-13's
+        // notifications are in-app only and are a DIFFERENT thing (architecture §5.2) — when email
+        // or SMS delivery is added later it becomes a *consumer* of the channel adapter.
+        //
+        // **Selected by configuration, the same way the AI seam is** (AD-11). The kind has one value
+        // today, so this resolves the one adapter — and adding a provider is a new class plus a new
+        // arm here, with nothing else moving. That is the claim §5.2 makes, expressed where it can
+        // be checked.
+        services.AddScoped<ConsoleChannelAdapter>();
+
+        services.AddScoped<IOutboundChannelAdapter>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<ChannelOptions>>().Value;
+
+            return options.Outbound switch
+            {
+                ChannelAdapterKind.Console => sp.GetRequiredService<ConsoleChannelAdapter>(),
+
+                // Unreachable while the kind has one value — but an enum binds from configuration by
+                // number too, so an out-of-range value is a real input. It resolves the shipped
+                // adapter rather than throwing: a mistyped setting must not take a demo down when
+                // the only implementation there is would have worked (product-scope §10 item 5).
+                _ => sp.GetRequiredService<ConsoleChannelAdapter>(),
+            };
+        });
+
+        // ⛔ PF-2 / S9-10 — registered so the seam is wired and the gap sits at one line. It throws
+        // with the reason; nothing calls it. See IInboundChannelIngestion.
+        services.AddScoped<IInboundChannelIngestion, BlockedInboundChannelIngestion>();
+
+        // T3-D. No connection, no field mapping, no sync strategy, and NO NAMED PRODUCT —
+        // product-scope §9 questions 2 and 3 stay open (architecture §5.3).
+        services.AddScoped<IExternalSystemGateway, NoOpExternalSystemGateway>();
 
         return services;
     }

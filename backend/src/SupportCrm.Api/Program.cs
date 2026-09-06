@@ -80,6 +80,22 @@ builder.Services.AddOptions<AiOptions>()
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<AiOptions>, AiOptionsValidator>();
 
+// Story 18 — the channel and ERP seams. **Neither section appears in appsettings.json**, exactly
+// as the AI seam's does not: the defaults are the shipped implementations, so these bind cleanly
+// with no configuration at all. That is the observable form of T3's rule of engagement — a named
+// abstraction plus a fake requiring no external account, contract or credential (product-scope §5,
+// §10 item 5). There is no validator because there is nothing to validate: one shipped value each,
+// and no endpoint, key or credential to check.
+builder.Services.AddOptions<ChannelOptions>()
+    .Bind(builder.Configuration.GetSection(ChannelOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddOptions<ErpOptions>()
+    .Bind(builder.Configuration.GetSection(ErpOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 // Story 09 — the sweep interval (AD-6). Same section as the targets: one operator concern.
 builder.Services.AddOptions<SlaMonitorOptions>()
     .Bind(builder.Configuration.GetSection(SlaMonitorOptions.SectionName))
@@ -265,6 +281,30 @@ app.MapControllers();
         "AI seam: {Implementation} implementation selected (SupportCrm:Ai:Provider = {Provider}).",
         aiOptions.Provider == AiProviderKind.Provider ? "real provider" : "deterministic offline fake",
         aiOptions.Provider);
+}
+
+// Story 18 — record which channel and ERP implementations are live, once, at startup, for the same
+// reason the AI line above exists: **the plan verifies this by reading the log.** With no
+// integration credential configured — which is every configuration this repository ships — these
+// lines must name the console adapter and the no-op gateway. That is the observable form of "the
+// whole application runs and demos with every real integration absent" (T3-A, T3-D, product-scope
+// §10 item 5). **No provider and no ERP product is ever named**, only the kind: product-scope §9
+// questions 2 and 3 stay open (architecture §5.3).
+{
+    var channelOptions = app.Services.GetRequiredService<IOptions<ChannelOptions>>().Value;
+    var erpOptions = app.Services.GetRequiredService<IOptions<ErpOptions>>().Value;
+
+    app.Logger.LogInformation(
+        "Channel seam: {Implementation} outbound adapter selected (SupportCrm:Channels:Outbound = {Kind}). " +
+        "No external call is attempted and no provider account is required.",
+        "console/log",
+        channelOptions.Outbound);
+
+    app.Logger.LogInformation(
+        "ERP seam: {Implementation} external-system gateway selected (SupportCrm:Erp:Gateway = {Kind}). " +
+        "No external connection is opened and no system is named.",
+        "no-op",
+        erpOptions.Gateway);
 }
 
 app.Run();

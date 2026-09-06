@@ -136,9 +136,27 @@ only. There is no configuration UI: changing configuration is a redeploy (T2-I).
 | `SupportCrm:Branding` | `appsettings.json` — product name, logo, primary colour |
 | `SupportCrm:Localization` | `appsettings.json` — `en`, `ar`, and the default |
 | `SupportCrm:Cors:AllowedOrigins` | `appsettings.json`, overridden by Compose |
+| `SupportCrm:Channels:Outbound` | Nothing — defaults to the console/log channel adapter |
+| `SupportCrm:Erp:Gateway` | Nothing — defaults to the no-op external-system gateway |
 
 The front end reads branding and the language set from `GET /api/v1/config/bootstrap` **before the
 first screen renders**, so branding is never compiled into a component or a stylesheet.
+
+---
+
+## Integration seams
+
+Email, WhatsApp, SMS, ERP, live chat and an AI chatbot were **designed for, not delivered**. Each is
+a named abstraction plus a fake the demo runs against — **no external account, provider contract or
+production credential is required**, which is why the two rows above are supplied by nothing at all.
+The API logs which implementation of each seam is live at startup.
+
+**[`docs/integration-seams.md`](docs/integration-seams.md) records, per seam, exactly what a real
+implementation would have to add** — accounts and onboarding, webhooks, retries, delivery receipts,
+opt-outs, field mapping, conflict resolution — so *"designed for, not delivered"* is a claim you can
+check rather than one you have to take on trust. It also states the one question this could not
+answer: **inbound channel messages have no actor (PF-2)**, so inbound ingestion refuses rather than
+inventing an attribution.
 
 ---
 

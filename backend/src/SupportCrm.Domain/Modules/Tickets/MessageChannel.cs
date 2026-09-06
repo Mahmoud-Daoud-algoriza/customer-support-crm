@@ -13,10 +13,17 @@ namespace SupportCrm.Domain.Modules.Tickets;
 ///
 /// <para>
 /// <b>Nothing branches on it.</b> <c>TicketMessageService.PostAsync</c> takes the channel as a
-/// parameter and stores it: channel origin is <em>data</em>, never a code path. Story 18's log
-/// adapter therefore adds a member here and calls the same method in-process — it gets no HTTP
-/// route (<b>AP-11</b>), because publishing an ingestion endpoint would force the undecided
-/// system-actor question (<b>PF-2</b>) into the contract.
+/// parameter and stores it: channel origin is <em>data</em>, never a code path — and a Story 18 test
+/// asserts that nothing in <c>Modules/Tickets</c> switches on this type.
+/// </para>
+///
+/// <para>
+/// <b>Story 18 added no member here, and that is the seam working rather than a gap.</b> Its
+/// console/log adapter implements no provider, so it brings no channel: it declares
+/// <see cref="Portal"/> and calls the same ingestion method in-process. A member arrives with the
+/// adapter that implements it — a Story 18 test pins this set at the two real values (DM-6). The
+/// adapter gets no HTTP route (<b>AP-11</b>), because publishing an ingestion endpoint would force
+/// the undecided system-actor question (<b>PF-2</b>) into the contract.
 /// </para>
 ///
 /// <para>

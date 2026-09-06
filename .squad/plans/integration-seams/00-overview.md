@@ -14,6 +14,20 @@ which is the **global** execution sequence across all feature folders
 Tracker integration is `none`; story ids are the folder names under
 [`.squad/stories/integration-seams/`](../../stories/integration-seams/).
 
+## Implementation progress
+
+Story 18 was delivered **whole** — every unblocked plan task in one unit. **Backend only: no
+endpoint, no screen, no entity, no migration.**
+
+| Story | Plan tasks | Status |
+|---|---|---|
+| **18 — Channel and ERP seams** | **1, 2, 3, 5, 6, 7** — the outbound adapter interface, the console/log adapter, `SupportCrm:Channels` and `SupportCrm:Erp` selection, the ERP gateway with its no-op, [`docs/integration-seams.md`](../../../docs/integration-seams.md), and the four test files | ✅ **Implemented 2026-09-07.** Backend build warning-free; suite **480 passing, 1 skipped** (30 this story's own). Verified against real SQL Server: the startup log names the **console** adapter and the **no-op** gateway with no integration configuration present |
+| **18 — task 4, inbound ingestion** | **4** | ⛔ **BLOCKED — PF-2 / S9-10.** The normalized shape and the ingestion interface exist; the implementation throws with the reason and the acceptance test is **skipped with the reason**. **No attribution was invented.** Options A, B and C are in the plan and in [`docs/integration-seams.md`](../../../docs/integration-seams.md) §1.3 — the decision is the product owner's |
+
+**One acceptance criterion of eight remains open**, and it is the blocked one: *"an inbound message
+delivered through the fake adapter creates or updates a ticket using the SAME message model."* The
+other seven are met.
+
 ## Dependency notes
 
 **Phase 8. The safest single story to cut — nothing depends on it.**
