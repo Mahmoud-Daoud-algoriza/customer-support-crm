@@ -33,11 +33,11 @@ any of them opens directly in the VS Code PlantUML extension (`Alt+D`).
 ## Rendering
 
 The repository has no local Java or Graphviz; the PNGs were produced with the PlantUML Docker
-image, from the `docs/` directory:
+image, from the `docs/diagrams/user-flows/` directory:
 
 ```bash
 docker run --rm -e PLANTUML_LIMIT_SIZE=16384 \
-  -v "E:/Others/customer-support-crm/docs:/data" plantuml/plantuml \
+  -v "E:/Others/customer-support-crm/docs/diagrams/user-flows:/data" plantuml/plantuml \
   -tpng -failfast2 /data/USER-FLOWS-*.puml
 ```
 

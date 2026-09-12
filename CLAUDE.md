@@ -12,7 +12,7 @@ On any conflict, the higher entry wins:
 2. [docs/product-scope.md](docs/product-scope.md) — scope tiers T1–T4, assumptions A-1…A-n, exclusions, open questions.
 3. The stage design documents — [architecture.md](docs/architecture.md), [data-model.md](docs/data-model.md), [api-design.md](docs/api-design.md), [ui-design.md](docs/ui-design.md), [sdd-workflow.md](docs/sdd-workflow.md).
 4. [docs/story-backlog.md](docs/story-backlog.md), the intakes under [.squad/stories/](.squad/stories/), and the plans under [.squad/plans/](.squad/plans/).
-5. [docs/PROJECT-PROGRESS.md](docs/PROJECT-PROGRESS.md) — **reporting and tracking only.** It reports state; it never defines it.
+5. [docs/tracking/PROJECT-PROGRESS.md](docs/tracking/PROJECT-PROGRESS.md) — **reporting and tracking only.** It reports state; it never defines it.
 
 **Never invent behaviour the approved documents do not define.** A gap is not a design opportunity —
 see §3.
@@ -33,8 +33,10 @@ Consult the row, not the whole file; confirm a section with a heading search bef
 | **Implementation conventions — folders, naming, migrations, seeders, shared rules** | [00-implementation-plan.md](.squad/plans/00-implementation-plan.md) **§6**; also §3 (phases), §4 (dependencies) |
 | The story being implemented | `.squad/plans/<feature>/NN-story-<slug>.md` — its numbered tasks are the scope |
 | Slice map and per-story delivery state | `.squad/plans/<feature>/00-overview.md` |
-| Current status, blockers, findings | [PROJECT-PROGRESS.md](docs/PROJECT-PROGRESS.md) §1, §3, §6, §10 |
-| Historical detail on a past slice — what changed, why, evidence | [CHANGELOG-IMPLEMENTATION.md](docs/CHANGELOG-IMPLEMENTATION.md) — find the dated entry, read that range only |
+| Current status, blockers, findings | [PROJECT-PROGRESS.md](docs/tracking/PROJECT-PROGRESS.md) §1, §3, §6, §10 |
+| Historical detail on a past slice — what changed, why, evidence | [CHANGELOG-IMPLEMENTATION.md](docs/tracking/CHANGELOG-IMPLEMENTATION.md) — find the dated entry, read that range only |
+| Company scope progress (source-PDF-derived) | [COMPANY-SCOPE-PROGRESS.md](docs/tracking/COMPANY-SCOPE-PROGRESS.md) |
+| User-flow diagrams (PlantUML source + rendered PNGs) | [docs/diagrams/user-flows/USER-FLOWS.md](docs/diagrams/user-flows/USER-FLOWS.md) |
 | How to build, run, reset, configure | [README.md](README.md) |
 
 **Do not copy these documents' contents here.** This table is the only thing that belongs.
@@ -99,7 +101,7 @@ The critical few, already decided — do not relitigate:
 
 ## 7. Progress tracking
 
-[docs/PROJECT-PROGRESS.md](docs/PROJECT-PROGRESS.md) is updated **in the same task** as the change it reports,
+[docs/tracking/PROJECT-PROGRESS.md](docs/tracking/PROJECT-PROGRESS.md) is updated **in the same task** as the change it reports,
 per its own Maintenance section, which governs. Its accuracy rules override convenience: never record progress
 that did not happen, never mark Verified without evidence named in its §8, never delete history.
 

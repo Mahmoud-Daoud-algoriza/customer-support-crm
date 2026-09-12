@@ -1,6 +1,6 @@
 ---
 name: record-progress
-description: Update the project's tracking in the same task as the change — the PROJECT-PROGRESS.md status, story, findings, verification and next-step sections, a newest-first entry in docs/CHANGELOG-IMPLEMENTATION.md, and the status cell of the feature's .squad plan 00-overview.md. Use after verify-slice has passed and before asking for approval, and whenever a stage completes, an architecture decision or the data model changes, an open question is opened or answered, a story or plan changes, a blocker is hit, a feature is cut, or execution order is reordered. Not for a routine mid-implementation test run — only for a completed verification whose result is being reported. Tracking only — it touches no source code, no design document, no plan content beyond the status cell, and commits nothing.
+description: Update the project's tracking in the same task as the change — the PROJECT-PROGRESS.md status, story, findings, verification and next-step sections, a newest-first entry in docs/tracking/CHANGELOG-IMPLEMENTATION.md, and the status cell of the feature's .squad plan 00-overview.md. Use after verify-slice has passed and before asking for approval, and whenever a stage completes, an architecture decision or the data model changes, an open question is opened or answered, a story or plan changes, a blocker is hit, a feature is cut, or execution order is reordered. Not for a routine mid-implementation test run — only for a completed verification whose result is being reported. Tracking only — it touches no source code, no design document, no plan content beyond the status cell, and commits nothing.
 ---
 
 # Record progress
@@ -77,7 +77,7 @@ point at these ids where they already sit, and moving a row breaks them.
   what they decided and when. *"Ambiguity gets recorded, not resolved silently"* (sdd-workflow §6),
   and assumptions A-1…A-n are fixed — disagreeing with one is a product-scope edit the user makes.
 
-## 2. docs/CHANGELOG-IMPLEMENTATION.md
+## 2. docs/tracking/CHANGELOG-IMPLEMENTATION.md
 
 Add the new entry at the **top**, directly under the header block and above the previous newest.
 

@@ -99,7 +99,7 @@ own); `npm run build`/`lint:styles` clean; front end **51/51** unchanged. Agains
 the real running front end: coverage-by-hand for all four audited actions, every write verb `405`
 with the row count unchanged, AD-10 independence proven live, and the plan's own DOM query confirming
 zero writable elements on the configuration screen and exactly four filter controls on the audit
-screen. Full evidence in [PROJECT-PROGRESS.md](../../../docs/PROJECT-PROGRESS.md) §8.
+screen. Full evidence in [PROJECT-PROGRESS.md](../../../docs/tracking/PROJECT-PROGRESS.md) §8.
 
 **No finding raised.** The `to` date-filter's end-of-day inclusivity is a UI implementation choice
 recorded at the code, not a product or contract question.
