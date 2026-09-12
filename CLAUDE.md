@@ -33,7 +33,7 @@ Consult the row, not the whole file; confirm a section with a heading search bef
 | **Implementation conventions — folders, naming, migrations, seeders, shared rules** | [00-implementation-plan.md](.squad/plans/00-implementation-plan.md) **§6**; also §3 (phases), §4 (dependencies) |
 | The story being implemented | `.squad/plans/<feature>/NN-story-<slug>.md` — its numbered tasks are the scope |
 | Slice map and per-story delivery state | `.squad/plans/<feature>/00-overview.md` |
-| Current status, blockers, findings | [PROJECT-PROGRESS.md](docs/tracking/PROJECT-PROGRESS.md) §1, §3, §6, §10 |
+| Current status, blockers, findings | [PROJECT-PROGRESS.md](docs/tracking/PROJECT-PROGRESS.md) §1, §3, §6, §10 — the index; §1/§3/§6/§10 each link to their content under [docs/tracking/progress/](docs/tracking/progress/) |
 | Historical detail on a past slice — what changed, why, evidence | [CHANGELOG-IMPLEMENTATION.md](docs/tracking/CHANGELOG-IMPLEMENTATION.md) — find the dated entry, read that range only |
 | Company scope progress (source-PDF-derived) | [COMPANY-SCOPE-PROGRESS.md](docs/tracking/COMPANY-SCOPE-PROGRESS.md) |
 | User-flow diagrams (PlantUML source + rendered PNGs) | [docs/diagrams/user-flows/USER-FLOWS.md](docs/diagrams/user-flows/USER-FLOWS.md) |
